@@ -85,9 +85,9 @@ receiver = make_node("rx", "10.10.1.1", "receiver")
 
 if params.tempfs > 0:
     bs = receiver.Blockstore("rx-scratch", "/scratch")
-    bs.size = f"{params.tmpfs}GB"
+    bs.size = "%dGB" % params.tmpfs
 
 for i in range(params.nsenders):
-    make_node(f"tx{i}", f"10.10.1.{10 + i}", "sender")
+    make_node("tx%d" % i, "10.10.1.%d" % (10 + i), "sender")
 
 pc.printRequestRSpec(request)
