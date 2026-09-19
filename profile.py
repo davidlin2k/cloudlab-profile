@@ -53,8 +53,12 @@ pc.defineParameter(
 )
 
 pc.defineParameter(
-    "tmpfs", "Extra scratch space on the receiver (GB), 0 to skip",
-    portal.ParameterType.INTEGER, 0, advanced=True)
+    "tmpfs",
+    "Extra scratch space on the receiver (GB), 0 to skip",
+    portal.ParameterType.INTEGER,
+    0,
+    advanced=True,
+)
 
 params = pc.bindParameters()
 
@@ -70,6 +74,7 @@ lan.best_effort = True
 lan.vlan_tagging = False
 lan.link_multiplexing = False
 
+
 def make_node(name, ip, role):
     node = request.RawPC(name)
     node.hardware_type = params.hwtype
@@ -81,9 +86,10 @@ def make_node(name, ip, role):
 
     return node
 
+
 receiver = make_node("rx", "10.10.1.1", "receiver")
 
-if params.tempfs > 0:
+if params.tmpfs > 0:
     bs = receiver.Blockstore("rx-scratch", "/scratch")
     bs.size = "%dGB" % params.tmpfs
 
