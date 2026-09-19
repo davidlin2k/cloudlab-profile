@@ -70,7 +70,7 @@ lan.best_effort = True
 lan.vlan_tagging = False
 lan.link_multiplexing = False
 
-def make_node(name: str, ip: str, role: str) -> rspec.RawPC:
+def make_node(name, ip, role):
     node = request.RawPC(name)
     node.hardware_type = params.hwtype
     node.disk_image = params.osimage
