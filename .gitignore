@@ -1,2 +1,22 @@
-.venv
-.ruff_cache
+# CloudLab profile repo — receiver-driven host placement
+#
+# This directory is git-backed and mounted at /local/repository on every
+# node: profile.py + setup.sh + the experiment kits run from here at boot.
+# Private heavy trees (HomaModule, flowlet-eval) are NOT in this repo —
+# deploy.sh clones HomaModule from GitHub and rsyncs flowlet-eval.
+
+.venv/
+.ruff_cache/
+__pycache__/
+*.pyc
+*.o
+*.ko
+*.mod*
+*.cmd
+Module.symvers
+modules.order
+/tmp/
+e0/sportgen
+k2/k2_rx
+wk/*.trace
+wk/*.txt
