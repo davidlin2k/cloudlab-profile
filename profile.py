@@ -81,7 +81,7 @@ def make_node(name, ip, role):
     lan.addInterface(iface)
 
     if params.tuneboot:
-        node.addService(rspec.ExecuteService(
+        node.addService(rspec.Execute(
             shell="bash",
             command="bash /local/repository/setup.sh {} {} {}".format(
                 role, params.nsenders, 1 if params.iommu_off else 0)))
