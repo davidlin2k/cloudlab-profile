@@ -36,6 +36,7 @@ static uint64_t now_ns(void)
 int main(int argc, char **argv)
 {
 	unsigned long long n = 1000000;
+	long long rate = 0;		/* pkts/s pacing; 0 = flat out */
 	int plen = 300, batch = VLEN, core = -1;
 	int sport = 0, dport = 0, sip = 0;
 	char dip[64] = "10.10.1.1";
@@ -45,6 +46,7 @@ int main(int argc, char **argv)
 		else if (!strcmp(argv[i], "--sport")) sport = atoi(argv[++i]);
 		else if (!strcmp(argv[i], "--dport")) dport = atoi(argv[++i]);
 		else if (!strcmp(argv[i], "--n")) n = strtoull(argv[++i], NULL, 10);
+		else if (!strcmp(argv[i], "--rate")) rate = atoll(argv[++i]);
 		else if (!strcmp(argv[i], "--plen")) plen = atoi(argv[++i]);
 		else if (!strcmp(argv[i], "--batch")) batch = atoi(argv[++i]);
 		else if (!strcmp(argv[i], "--core")) core = atoi(argv[++i]);
@@ -95,7 +97,18 @@ int main(int argc, char **argv)
 	}
 	uint64_t sent = 0, enobufs = 0;
 	uint64_t t0 = now_ns();
+	uint64_t t_next = t0;		/* next batch deadline when paced */
+	uint64_t t_status = t0 + 2000000000ull;
 	while (sent < n) {
+		if (rate > 0) {
+			uint64_t tn;
+			while ((tn = now_ns()) < t_next)
+				;	/* spin to the batch deadline */
+			t_next += (uint64_t)((double)batch * 1e9 /
+					     (double)rate);
+			if (t_next < tn)	/* fell behind: catch up */
+				t_next = tn;
+		}
 		int want = batch;
 		if ((uint64_t)want > n - sent) want = (int)(n - sent);
 		int r = sendmmsg(fd, mmsg, want, 0);
@@ -107,6 +120,19 @@ int main(int argc, char **argv)
 			die("sendmmsg");
 		}
 		sent += r;
+		uint64_t ts = now_ns();
+		if (ts >= t_status) {
+			/* periodic status: the cell driver kills blasters
+			 * mid-flight at saturation and still reads their
+			 * offered rate from the last status line */
+			printf("[k5blast] status sent=%llu wall=%.2fs "
+			       "rate=%.0f/s enobufs=%llu\n",
+			       (unsigned long long)sent, (ts - t0) / 1e9,
+			       sent / ((ts - t0) / 1e9),
+			       (unsigned long long)enobufs);
+			fflush(stdout);
+			t_status += 2000000000ull;
+		}
 	}
 	double wall = (now_ns() - t0) / 1e9;
 	printf("[k5blast] dip=%s dport=%d sip=%d sport=%d sent=%llu "

@@ -608,11 +608,14 @@ int main(int argc, char **argv)
 		if (cons != acc) bad = 1;
 	}
 	double exp_rolls = (now_s() - t_start) / (WINDOW_MS / 1000.0);
+	/* margin 4: thread start lags t_start by the spawn+first-batch
+	 * skew (~0.4s under load) and the last boundary may fall inside
+	 * the final gap; -4 trips only on genuinely frozen ledgers */
 	printf("[gate] rolls=%llu expected>=%.0f %s\n",
-	       (unsigned long long)g_rolls, exp_rolls - 2.0,
-	       (g_rolls >= (uint64_t)(exp_rolls - 2.0) && g_rolls > 0) ?
+	       (unsigned long long)g_rolls, exp_rolls - 4.0,
+	       (g_rolls >= (uint64_t)(exp_rolls - 4.0) && g_rolls > 0) ?
 	       "OK" : "FAIL");
-	if (g_rolls == 0 || (double)g_rolls < exp_rolls - 2.0) bad = 1;
+	if (g_rolls == 0 || (double)g_rolls < exp_rolls - 4.0) bad = 1;
 	if (bad) {
 		fprintf(stderr, "GATEFAIL conservation violated - "
 			"DISCARD RUN\n");
