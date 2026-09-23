@@ -21,7 +21,7 @@ FAIL=0
 pkill -x sportgen 2>/dev/null; pkill -x k2_rx 2>/dev/null
 pkill -x k4reins 2>/dev/null; pkill -x k4send 2>/dev/null
 sleep 0.5
-comb=$(ethtool -l $IFACE | awk '/Combined/{print $2}')
+comb=$(ethtool -l $IFACE | awk '/Combined/{c=$2} END{print c}')
 if [ "$comb" != "32" ]; then
 	echo "GATE FAIL: Combined=$comb != 32"; exit 2
 fi

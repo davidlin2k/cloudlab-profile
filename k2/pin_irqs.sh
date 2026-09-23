@@ -27,8 +27,9 @@ pkill -x irqbalance 2>/dev/null
 sleep 0.5
 
 pin() { # irq cpu
-	local mask; mask=$(printf "%x" $((1 << $2)))
-	if ! echo "$mask" > "/proc/irq/$1/smp_affinity" 2>/dev/null; then
+	# smp_affinity (bitmap hex) rejects masks with bits >= 32 on this
+	# kernel (EOVERFLOW); the list interface accepts any online cpu
+	if ! echo "$2" > "/proc/irq/$1/smp_affinity_list" 2>/dev/null; then
 		echo "WARN: could not pin irq $1 -> cpu $2"
 		return 1
 	fi
