@@ -30,7 +30,7 @@ for g in $(seq 0 $((nc - 1))); do
 		used[$key]=1
 		DPORTS+=("$dp"); SENDERS+=("$sip"); SPORTS+=("$sport")
 		taken=$((taken + 1))
-	done < <(awk '$4 == '"$g"'' /root/k5/porttable.txt)
+	done < <(awk '$4 == '"$g"'' /root/k2/porttable.txt)
 	[ $taken -lt $NPC ] && { echo "GATE FAIL: not enough authored ports for queue $g"; exit 2; }
 done
 echo "ports: ${DPORTS[*]}"
