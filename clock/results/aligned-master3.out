@@ -1,0 +1,6 @@
+== aligned N=10000 20:05:30
+sweep_master.sh: line 22: p: unbound variable
+sweep_master.sh: line 22: p: unbound variable
+sweep_master.sh: line 22: p: unbound variable
+0
+bash: line 1: /tmp/clock/sw-aligned-10000.log: Permission denied

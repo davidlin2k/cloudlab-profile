@@ -24,9 +24,10 @@ for S in "$@"; do
   done
   [ "$ok" = "1" ] || { echo "$S,connect_timeout,0,0,$TAG" >> "$OUT"; continue; }
   sleep 60   # soak: instrument sees the steady state
-  rate=$(grep -oE "rate=[0-9]+" "/tmp/clock/sw-${TAG}-${S}.log" | tail -1 | cut -d= -f2)
-  live=$(curl -s -m 3 http://127.0.0.1:9200/stats | grep -oE "live=[0-9]+" | cut -d= -f2)
-  errs=$(curl -s -m 3 http://127.0.0.1:9200/stats | grep -oE "errs=[0-9]+" | cut -d= -f2)
+  last=$(grep -E "rate=" "/tmp/clock/sw-${TAG}-${S}.log" | tail -1)
+  rate=$(echo "$last" | grep -oE "rate=[0-9]+" | cut -d= -f2)
+  live=$(echo "$last" | grep -oE "live=[0-9]+" | cut -d= -f2)
+  errs=$(echo "$last" | grep -oE "errs=[0-9]+" | cut -d= -f2)
   echo "$S,${live:-0},${errs:-0},${rate:-0},$TAG" >> "$OUT"
   echo "point $S done: live=$live rate=$rate" >&2
 done

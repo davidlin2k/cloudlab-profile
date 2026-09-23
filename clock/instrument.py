@@ -66,7 +66,8 @@ def tcp_counters():
         if len(f) >= 2 and any(k in f[0] for k in (
                 "Retrans", "Prune", "Collapsed", "MemoryPress",
                 "RcvbufErrors", "ListenOverflows", "ListenDrops",
-                "TCPTimeouts", "DelayedACK")):
+                "TCPTimeouts", "DelayedACK", "BacklogDrop", "RcvQDrop",
+                "RcvPruned")):
             try:
                 d[f[0]] = int(f[1])
             except ValueError:

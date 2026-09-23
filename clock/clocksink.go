@@ -1,16 +1,16 @@
-// clocksink: reads N SSE streams through a proxy and counts delivery.
-//
-// Usage: clocksink -proxy http://10.10.1.1:9000 -streams 50000 \
-//                  -sink-base 0   // this shard's stream-id offset
-// Reports delivered tokens/s, read errors, stalls. /stats endpoint.
+// clocksink: reads N SSE streams through the proxy and measures
+// delivery: tokens/s, p50/p99 inter-token latency, stalls (>1s gaps),
+// and errors. Shards dials across nports proxy listen ports.
 package main
 
 import (
 	"bufio"
 	"flag"
 	"fmt"
+	neturl "net/url"
 	"net/http"
 	"os"
+	"sort"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -20,18 +20,10 @@ var (
 	proxy   = flag.String("proxy", "http://10.10.1.1:9000", "proxy base URL")
 	nS      = flag.Int("streams", 10000, "streams this sink opens")
 	listen  = flag.String("listen", ":9200", "stats listen addr")
-	dialTO  = flag.Duration("dial-timeout", 30*time.Second, "dial timeout")
 	rateWin = flag.Int("window", 2, "rate window seconds")
-	dialR   = flag.Int("dial-rate", 4000, "dials per second")
+	dialR   = flag.Int("dial-rate", 10000, "dials per second")
+	nPorts  = flag.Int("nports", 4, "proxy listen ports to shard across (9000..)")
 )
-
-var limiter = make(chan struct{}, 1)
-
-func allow() {
-	limiter <- struct{}{}
-	time.Sleep(time.Second / time.Duration(*dialR))
-	<-limiter
-}
 
 var (
 	okToks atomic.Uint64
@@ -39,18 +31,41 @@ var (
 	live   atomic.Int64
 	lastT  atomic.Int64 // unix ms of last window sample
 	lastC  atomic.Uint64
+	stalls atomic.Uint64
+	latMu  sync.Mutex
+	latMs  []int64 // inter-token latency samples (capped)
 )
+
+const maxSamples = 400000
+
+func recordLat(dt int64) {
+	if dt > 1000 {
+		stalls.Add(1)
+	}
+	latMu.Lock()
+	if len(latMs) < maxSamples {
+		latMs = append(latMs, dt)
+	}
+	latMu.Unlock()
+}
+
+var limiter = make(chan struct{}, 1)
 
 func runOne(id int, wg *sync.WaitGroup) {
 	defer wg.Done()
-	allow()
-	url := fmt.Sprintf("%s/stream?s=%d", *proxy, id)
+	limiter <- struct{}{}
+	time.Sleep(time.Second / time.Duration(*dialR))
+	<-limiter
+	// shard across nports listen ports (unique TCP 4-tuples)
+	u, _ := neturl.Parse(*proxy)
+	host := u.Hostname()
+	if host == "" {
+		host = "127.0.0.1"
+	}
+	u.Host = fmt.Sprintf("%s:%d", host, 9000+id%*nPorts)
+	url := u.String() + "/stream?s=" + fmt.Sprint(id)
 	req, _ := http.NewRequest("GET", url, nil)
 	tr := &http.Transport{
-		MaxIdleConns:        0,
-		MaxConnsPerHost:     0,
-		IdleConnTimeout:     0,
-		DisableKeepAlives:   false,
 		MaxIdleConnsPerHost: 1,
 	}
 	cl := &http.Client{Transport: tr, Timeout: 0}
@@ -67,20 +82,44 @@ func runOne(id int, wg *sync.WaitGroup) {
 	live.Add(1)
 	defer live.Add(-1)
 	br := bufio.NewReaderSize(resp.Body, 4096)
+	var last int64 = -1
 	for {
-		_, err := br.ReadBytes('\n')
+		_, err := br.ReadBytes('\n') // "data: ..."
 		if err != nil {
 			errs.Add(1)
 			return
 		}
-		// two lines per token frame: "data: ..." + blank
-		_, err = br.ReadBytes('\n')
+		_, err = br.ReadBytes('\n') // blank
 		if err != nil {
 			errs.Add(1)
 			return
 		}
+		now := time.Now().UnixMilli()
+		if last >= 0 {
+			recordLat(now - last)
+		}
+		last = now
 		okToks.Add(1)
 	}
+}
+
+func percentile(sorted []int64, p float64) int64 {
+	if len(sorted) == 0 {
+		return 0
+	}
+	return sorted[int(float64(len(sorted)-1)*p)]
+}
+
+func statsLine() string {
+	latMu.Lock()
+	cp := make([]int64, len(latMs))
+	copy(cp, latMs)
+	latMu.Unlock()
+	sort.Slice(cp, func(i, j int) bool { return cp[i] < cp[j] })
+	p50 := percentile(cp, 0.5)
+	p99 := percentile(cp, 0.99)
+	return fmt.Sprintf("live=%d tokens=%d errs=%d stalls=%d p50_itl_ms=%d p99_itl_ms=%d",
+		live.Load(), okToks.Load(), errs.Load(), stalls.Load(), p50, p99)
 }
 
 func main() {
@@ -99,15 +138,14 @@ func main() {
 			pc := lastC.Load()
 			if pn > 0 {
 				rate := float64(c-pc) / (float64(now-pn) / 1000.0)
-				fmt.Fprintf(os.Stderr, "rate=%.0f tok/s live=%d errs=%d total=%d\n",
-					rate, live.Load(), errs.Load(), c)
+				fmt.Fprintf(os.Stderr, "rate=%.0f tok/s %s\n", rate, statsLine())
 			}
 			lastT.Store(now)
 			lastC.Store(c)
 		}
 	}()
 	http.HandleFunc("/stats", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, "live=%d tokens=%d errs=%d\n", live.Load(), okToks.Load(), errs.Load())
+		fmt.Fprint(w, statsLine()+"\n")
 	})
 	go http.ListenAndServe(*listen, nil)
 	wg.Wait()

@@ -1,0 +1,26 @@
+== aligned N=10000 20:11:20
+4
+4
+4
+emitters_up=4 phase=aligned
+emitters_up=4 phase=aligned
+emitters_up=4 phase=aligned
+0
+sweep_master.sh: line 52: p: unbound variable
+  rep 1: live=10000 rate=400189 p99=232 stalls=0 overruns=
+sweep_master.sh: line 52: p: unbound variable
+  rep 2: live=10000 rate=401145 p99=232 stalls=0 overruns=
+sweep_master.sh: line 52: p: unbound variable
+  rep 3: live=10000 rate=399099 p99=232 stalls=0 overruns=
+== aligned N=25000 20:15:30
+4
+4
+4
+emitters_up=4 phase=aligned
+emitters_up=4 phase=aligned
+emitters_up=4 phase=aligned
+0
+sweep_master.sh: line 52: p: unbound variable
+  rep 1: live=25000 rate=970978 p99=232 stalls=0 overruns=
+sweep_master.sh: line 52: p: unbound variable
+  rep 2: live=25000 rate=1051567 p99=232 stalls=0 overruns=
