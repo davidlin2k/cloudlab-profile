@@ -75,7 +75,7 @@ awk -v p="$p50" 'BEGIN{exit !(p < 10.0)}' && { echo "GATE FAIL: p50=${p50}us < 1
 grep -q "GATEFAIL" $OUT/k4reins.txt && { echo "GATE FAIL: receiver gate line"; FAIL=1; }
 grep -q "FAIL" $OUT/k4reins.txt && { echo "GATE FAIL: per-port FAIL in k4reins.txt"; FAIL=1; }
 # cross-check: receiver consumed == sender sent (idle: no loss)
-cons=$(awk '/\[gate\] port=/ {s+=$3} END{print s+0}' $OUT/k4reins.txt)
+cons=$(awk '/\[gate\] port=/ {split($3,a,"="); s+=a[2]} END{print s+0}' $OUT/k4reins.txt)
 if [ "$cons" -ne "$sent" ]; then
 	echo "GATE FAIL: consumed=$cons != sent=$sent"; FAIL=1
 fi
