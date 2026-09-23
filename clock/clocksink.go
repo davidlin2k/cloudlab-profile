@@ -7,10 +7,12 @@ import (
 	"bufio"
 	"flag"
 	"fmt"
-	neturl "net/url"
+	"net"
 	"net/http"
+	neturl "net/url"
 	"os"
 	"sort"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -56,14 +58,21 @@ func runOne(id int, wg *sync.WaitGroup) {
 	limiter <- struct{}{}
 	time.Sleep(time.Second / time.Duration(*dialR))
 	<-limiter
-	// shard across nports listen ports (unique TCP 4-tuples)
-	u, _ := neturl.Parse(*proxy)
-	host := u.Hostname()
-	if host == "" {
-		host = "127.0.0.1"
+	// endpoints: -proxy is either "host" (shard across nPorts listen
+	// ports 9000+) or a comma-separated "host:port,host:port,..." list
+	// (bypass test: point straight at the emitters)
+	var url string
+	if strings.Contains(*proxy, ",") {
+		eps := strings.Split(*proxy, ",")
+		url = fmt.Sprintf("http://%s/stream?s=%d", eps[id%len(eps)], id)
+	} else {
+		u, _ := neturl.Parse(*proxy)
+		host := u.Hostname()
+		if host == "" {
+			host = "127.0.0.1"
+		}
+		url = fmt.Sprintf("http://%s:%d/stream?s=%d", host, 9000+id%*nPorts, id)
 	}
-	u.Host = fmt.Sprintf("%s:%d", host, 9000+id%*nPorts)
-	url := u.String() + "/stream?s=" + fmt.Sprint(id)
 	req, _ := http.NewRequest("GET", url, nil)
 	tr := &http.Transport{
 		MaxIdleConnsPerHost: 1,

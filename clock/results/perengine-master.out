@@ -1,0 +1,30 @@
+== per-engine N=10000 21:27:15
+4
+4
+4
+emitters_up=4 phase=per-engine
+emitters_up=4 phase=per-engine
+emitters_up=4 phase=per-engine
+0
+  rep 1: live=10000 rate=401668 p99=232 stalls=0 overruns=0
+  rep 2: live=10000 rate=400527 p99=232 stalls=0 overruns=0
+  rep 3: live=10000 rate=400253 p99=232 stalls=0 overruns=0
+== per-engine N=25000 21:31:23
+4
+4
+4
+emitters_up=4 phase=per-engine
+emitters_up=4 phase=per-engine
+emitters_up=4 phase=per-engine
+0
+  rep 1: live=25000 rate=943142 p99=232 stalls=0 overruns=0
+  rep 2: live=25000 rate=942369 p99=232 stalls=0 overruns=0
+  rep 3: live=25000 rate=940941 p99=232 stalls=0 overruns=0
+== per-engine N=50000 21:35:41
+4
+4
+5
+emitters_up=0 phase=per-engine
+emitters_up=0 phase=per-engine
+emitters_up=0 phase=per-engine
+0
