@@ -12,7 +12,7 @@ for pod in $(seq 0 $((N-1))); do
   sudo bash -c "POD_IP=$IP POD_NAME=sim-$SHORT-$pod \
     KV_EVENT_LOG=/var/log/llmd/events-$SHORT-$pod.jsonl \
     nohup /opt/llmd/llm-d-inference-sim \
-    --model TinyLlama-$SHORT-$pod --served-model-name TinyLlama-$SHORT-$pod \
+    --model TinyLlama-$SHORT-$pod --served-model-name TinyLlama \
     --port $PORT --mode random --force-dummy-tokenizer \
     --enable-kvcache --kv-cache-size $BLOCKS --block-size 16 \
     --max-model-len 32768 \
