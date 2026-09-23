@@ -1,0 +1,61 @@
+== random N=10000 20:39:31
+4
+4
+4
+emitters_up=4 phase=random
+emitters_up=4 phase=random
+emitters_up=4 phase=random
+0
+  rep 1: live=10000 rate=401110 p99=231 stalls=0 overruns=0
+  rep 2: live=10000 rate=399523 p99=231 stalls=0 overruns=0
+  rep 3: live=10000 rate=399295 p99=231 stalls=0 overruns=0
+== random N=25000 20:43:38
+4
+4
+4
+emitters_up=4 phase=random
+emitters_up=4 phase=random
+emitters_up=4 phase=random
+0
+  rep 1: live=25000 rate=1021901 p99=232 stalls=0 overruns=0
+  rep 2: live=25000 rate=1052376 p99=232 stalls=0 overruns=0
+  rep 3: live=25000 rate=1054241 p99=232 stalls=0 overruns=0
+== random N=50000 20:47:58
+4
+4
+4
+emitters_up=4 phase=random
+emitters_up=4 phase=random
+emitters_up=4 phase=random
+0
+  rep 1: live=50000 rate=1714942 p99=232 stalls=0 overruns=370
+  rep 2: live=50000 rate=1708722 p99=232 stalls=0 overruns=379
+  rep 3: live=50000 rate=1733859 p99=232 stalls=0 overruns=383
+== random N=100000 20:52:24
+4
+4
+4
+emitters_up=4 phase=random
+emitters_up=4 phase=random
+emitters_up=4 phase=random
+0
+  rep 1: live=100000 rate=2808783 p99=232 stalls=1535101 overruns=55915
+  rep 2: live=100000 rate=2674064 p99=232 stalls=3003302 overruns=98976
+  rep 3: live=100000 rate=2774375 p99=232 stalls=4412125 overruns=125217
+== random N=150000 20:57:19
+4
+4
+4
+emitters_up=4 phase=random
+emitters_up=4 phase=random
+emitters_up=4 phase=random
+0
+== random N=200000 21:09:28
+4
+4
+4
+emitters_up=4 phase=random
+emitters_up=4 phase=random
+emitters_up=4 phase=random
+1
+1

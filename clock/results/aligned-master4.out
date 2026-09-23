@@ -24,3 +24,62 @@ sweep_master.sh: line 52: p: unbound variable
   rep 1: live=25000 rate=970978 p99=232 stalls=0 overruns=
 sweep_master.sh: line 52: p: unbound variable
   rep 2: live=25000 rate=1051567 p99=232 stalls=0 overruns=
+sweep_master.sh: line 52: p: unbound variable
+  rep 3: live=25000 rate=1045962 p99=232 stalls=0 overruns=
+== aligned N=50000 20:19:46
+4
+4
+4
+emitters_up=4 phase=aligned
+emitters_up=4 phase=aligned
+emitters_up=4 phase=aligned
+0
+sweep_master.sh: line 52: p: unbound variable
+  rep 1: live=50000 rate=1751852 p99=232 stalls=0 overruns=
+sweep_master.sh: line 52: p: unbound variable
+  rep 2: live=50000 rate=1765488 p99=232 stalls=0 overruns=
+sweep_master.sh: line 52: p: unbound variable
+  rep 3: live=50000 rate=1744281 p99=232 stalls=0 overruns=
+== aligned N=100000 20:24:07
+4
+4
+4
+emitters_up=4 phase=aligned
+emitters_up=4 phase=aligned
+emitters_up=4 phase=aligned
+0
+sweep_master.sh: line 52: p: unbound variable
+  rep 1: live=100000 rate=1601830 p99=232 stalls=57914 overruns=
+sweep_master.sh: line 52: p: unbound variable
+  rep 2: live=100000 rate=1096424 p99=232 stalls=81708 overruns=
+sweep_master.sh: line 52: p: unbound variable
+  rep 3: live=100000 rate=1583468 p99=232 stalls=113608 overruns=
+== aligned N=150000 20:28:52
+4
+4
+4
+emitters_up=4 phase=aligned
+emitters_up=4 phase=aligned
+emitters_up=4 phase=aligned
+0
+sweep_master.sh: line 52: p: unbound variable
+  rep 1: live=150000 rate=1511222 p99=278 stalls=926768 overruns=
+sweep_master.sh: line 52: p: unbound variable
+  rep 2: live=150000 rate=1531746 p99=278 stalls=1649560 overruns=
+sweep_master.sh: line 52: p: unbound variable
+  rep 3: live=150000 rate=1557347 p99=278 stalls=2373258 overruns=
+== aligned N=200000 20:33:50
+4
+4
+4
+emitters_up=4 phase=aligned
+emitters_up=4 phase=aligned
+emitters_up=4 phase=aligned
+0
+sweep_master.sh: line 52: p: unbound variable
+  rep 1: live=200000 rate=1513513 p99=233 stalls=1305957 overruns=
+sweep_master.sh: line 52: p: unbound variable
+  rep 2: live=200000 rate=1513942 p99=233 stalls=1912957 overruns=
+sweep_master.sh: line 52: p: unbound variable
+  rep 3: live=200000 rate=1472144 p99=233 stalls=2722511 overruns=
+1
