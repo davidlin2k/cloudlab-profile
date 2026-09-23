@@ -51,7 +51,7 @@ queue_of() { # mode sport dport
 die() { echo "e0_gate: $*" >&2; exit 1; }
 log() { echo "e0_gate: $*"; }
 
-SENDER="" SSH_USER="root" REMOTE_KIT="" IFACE="" OUT=""
+SENDER="" SSH_USER="davidlin" REMOTE_KIT="" IFACE="" OUT=""
 NSPORTS=64 NPKTS=20000 THRESH=0.97
 DPORTS="4240 4421"
 VETH=0 PLAN_ONLY=0 STEER_CORE="" NTUPLE=""
@@ -242,7 +242,7 @@ fi
 	for dport in $DPORTS; do
 		for sport in "${SPORTS[@]}"; do
 			for proto in udp tcp 146; do
-				echo "$REMOTE_KIT/sportgen --dip $RX_IP --dport $dport --sport $sport --n $NPKTS --proto $proto --batch $BATCH --pause $PAUSE"
+				echo "sudo $REMOTE_KIT/sportgen --dip $RX_IP --dport $dport --sport $sport --n $NPKTS --proto $proto --batch $BATCH --pause $PAUSE"
 			done
 		done
 	done
@@ -295,7 +295,7 @@ trial_stats() {
 
 remote_send() { # proto dport sport
 	ssh $SSH_OPTS "$SSH_USER@$SENDER" \
-		"$REMOTE_KIT/sportgen --dip $RX_IP --dport $2 --sport $3 --n $NPKTS --proto $1 --batch $BATCH --pause $PAUSE" >/dev/null
+		"sudo $REMOTE_KIT/sportgen --dip $RX_IP --dport $2 --sport $3 --n $NPKTS --proto $1 --batch $BATCH --pause $PAUSE" >/dev/null
 }
 
 record_trial() { # proto dport sport pred before_file after_file

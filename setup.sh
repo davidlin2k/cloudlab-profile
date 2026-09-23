@@ -66,6 +66,11 @@ done
 } > /root/topology.txt
 
 if [ "$ROLE" = rx ]; then
+	# UDP-consumer experiments need real socket buffers: the default
+	# rmem_max (212992) clamps SO_RCVBUF to ~145 packets of headroom
+	# at 1 Mpps and produces RcvbufErrors storms (see FINDINGS §GENOA).
+	sysctl -w net.core.rmem_max=134217728 net.core.wmem_max=134217728 \
+		>/dev/null 2>&1 || log_fail "rmem_max"
 	# The experiment NIC: the one on 10.10.1.0/24 (eth-exp).
 	IFACE=$(ip -o addr show to 10.10.1.0/24 | awk '{print $2}')
 	[ -n "$IFACE" ] || { log_fail "no experiment iface"; IFACE=$(ip -o route get 10.10.1.1 | awk '{print $3}'); }

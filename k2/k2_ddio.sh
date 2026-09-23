@@ -2,7 +2,11 @@
 # k2_ddio.sh -- the K2 DDIO-causality measurement (the program's decisive
 # figure). Run as root ON THE RECEIVER.
 #
-#   usage: ./k2_ddio.sh <sender_ip> [iface]
+#   usage: ./k2_ddio.sh <sender_control_host> <sender_exp_ip> [iface]
+#
+# <sender_control_host>: CloudLab control-net hostname — orchestration ssh
+#   ONLY (never carries experiment traffic).
+# <sender_exp_ip>: 10.10.1.x experiment address — sportgen --dip ONLY.
 #
 # Design: sportgen streams 1400B UDP at ~1 Mpps (one core can consume
 # ~1.5 Mpps of this, so the consumer never queues) with a source port chosen
@@ -21,12 +25,18 @@
 # the output; the JSON has the raw numbers.
 set -euo pipefail
 
-SENDER=${1:?usage: k2_ddio.sh <sender_ip> [iface]}
-IFACE=${2:-$(ip -o addr show to 10.10.1.0/24 | awk '{print $2}')}
+SENDER_HOST=${1:?usage: k2_ddio.sh <sender_control_host> <sender_exp_ip> [iface]
+  <sender_host> = control-net hostname (orchestration ssh ONLY);
+  <sender_ip>  = experiment-net IP (10.10.1.x, sportgen --dip ONLY).
+  Per CloudLab policy the control network never carries experiment traffic,
+  and orchestration never rides the experiment LAN.}
+SENDER=${2:?missing sender experiment IP}
+IFACE=${3:-$(ip -o addr show to 10.10.1.0/24 | awk '{print $2}')}
 KIT=/local/repository/e0
 HERE=$(cd "$(dirname "$0")" && pwd)
 REMOTE_KIT=/root/e0
-SSH_OPTS="-o StrictHostKeyChecking=no -o ConnectTimeout=10"
+SSH_OPTS="-o BatchMode=yes -o ConnectTimeout=10 -o StrictHostKeyChecking=no"
+SSH_USER=davidlin   # CloudLab nodes share the user's keys; root has none
 DPORT=7777
 PPS=1000000            # ~1 Mpps of 1400B = ~17 Gbps: one core absorbs it
 NPKTS=$((PPS * 15))    # 15 s per cell
@@ -40,9 +50,9 @@ log() { echo "[k2] $*"; }
 die() { echo "[k2] FATAL: $*" >&2; exit 1; }
 
 # --- sender side: sportgen present? (deploy.sh usually put it there) ---
-ssh $SSH_OPTS root@"$SENDER" "test -x $REMOTE_KIT/sportgen" 2>/dev/null || {
+ssh $SSH_OPTS $SSH_USER@"$SENDER_HOST" "sudo test -x $REMOTE_KIT/sportgen" 2>/dev/null || {
 	log "building sportgen on sender"
-	ssh $SSH_OPTS root@"$SENDER" "cd $REMOTE_KIT && gcc -Wall -O2 -o sportgen sportgen.c" \
+	ssh $SSH_OPTS $SSH_USER@"$SENDER_HOST" "sudo bash -c 'cd $REMOTE_KIT && gcc -Wall -O2 -o sportgen sportgen.c'" \
 		|| die "no sportgen on sender: run deploy.sh first"
 }
 
@@ -64,30 +74,38 @@ NQ=$(ethtool -l "$IFACE" 2>/dev/null | awk '/^Combined:/ {print $2}' | tail -1)
 [ -n "$NQ" ] || die "ethtool -l failed on $IFACE"
 log "iface=$IFACE combined queues=$NQ"
 
-# --- per-queue counter name (kernel-dependent) ---
-qctr() { # qctr <q> -> counter name
-	local q=$1 c
-	c="rx_${q}_packets"
-	ethtool -S "$IFACE" 2>/dev/null | grep -q "$c:" && { echo "$c"; return; }
-	echo "rx${q}_packets"
+# --- per-queue counters (same parsing as e0_gate.sh's proven snap_queues) ---
+snap_queues() {
+	sudo ethtool -S "$IFACE" 2>/dev/null | awk -F: '
+	{
+		k = $1
+		gsub(/[[:space:]]/, "", k)
+		if (k ~ /^rx_?[0-9]+_packets$/) {
+			sub(/^rx_?/, "", k)
+			sub(/_packets$/, "", k)
+			v = $2
+			gsub(/[[:space:]]/, "", v)
+			printf "%s %s\n", k, v + 0
+		}
+	}'
 }
-qget() { ethtool -S "$IFACE" 2>/dev/null | awk -v c="$(qctr $1)" '$1==c":" {print $2}'; }
+qget() { snap_queues | awk -v q="$1" '$1==q {print $2; exit}'; }
 
 # --- empirical port discovery: find a sport whose stream lands >=97% on queue q ---
 find_port() { # find_port <target_queue> -> prints sport
 	local q=$1 sp tries=0
-	for sp in 20000 20003 20011 20017 20023 20029 20037 20041 20051 20059 \
-		  20067 20071 20077 20083 20089 20097 20101 20107 20111 20119; do
+	for sp in $(seq 20000 7 20412); do
 		local before after d hit
 		before=$(qget "$q")
-		ssh $SSH_OPTS root@"$SENDER" \
-			"$REMOTE_KIT/sportgen --dip 10.10.1.1 --dport $DPORT --sport $sp \
+		ssh $SSH_OPTS $SSH_USER@"$SENDER_HOST" \
+			"sudo $REMOTE_KIT/sportgen --dip 10.10.1.1 --dport $DPORT --sport $sp \
 			 --n 50000 --proto udp --plen 1400 --batch $BATCH --pause $PAUSE" >/dev/null
 		after=$(qget "$q")
 		d=$((after - before))
 		hit=$((d * 100 / 50000))
 		if [ "$hit" -ge 97 ]; then echo "$sp"; return; fi
-		tries=$((tries + 1)); [ $tries -ge 20 ] && { echo ""; return; }
+		echo "[k2]   probe $sp -> q$q hit=$hit%" >&2
+		tries=$((tries + 1)); [ $tries -ge 60 ] && { echo ""; return; }
 	done
 	echo ""
 }
@@ -105,8 +123,8 @@ run_cell() { # run_cell <name> <port> <consumer_core>
 	for rep in 1 2 3; do
 		out=$("$HERE/k2_rx" --port $DPORT --core "$core" --secs 15 &
 		      sleep 0.3
-		      ssh $SSH_OPTS root@"$SENDER" \
-			"$REMOTE_KIT/sportgen --dip 10.10.1.1 --dport $DPORT --sport $port \
+		      ssh $SSH_OPTS $SSH_USER@"$SENDER_HOST" \
+			"sudo $REMOTE_KIT/sportgen --dip 10.10.1.1 --dport $DPORT --sport $port \
 			 --n $NPKTS --proto udp --plen 1400 --batch $BATCH --pause $PAUSE" >/dev/null
 		      wait)
 		echo "$out" | sed "s/^k2rx /k2rx cell=$name /"

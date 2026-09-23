@@ -1,0 +1,255 @@
+<title>The Gap Map</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>
+  :root {
+    --surface: #fcfcfb; --page: #f9f9f7;
+    --ink: #0b0b0b; --ink2: #52514e; --mut: #898781;
+    --grid: #e1e0d9; --axis: #c3c2b7; --ring: rgba(11,11,11,.10);
+    --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a;
+    --good: #0ca30c; --warn: #fab219; --serious: #ec835a; --crit: #d03b3b;
+    --seq1: #cde2fb; --seq2: #9ec5f4; --seq3: #5598e7;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme="light"])) {
+      --surface: #1a1a19; --page: #0d0d0d;
+      --ink: #ffffff; --ink2: #c3c2b7; --mut: #898781;
+      --grid: #2c2c2a; --axis: #383835; --ring: rgba(255,255,255,.10);
+      --s1: #3987e5; --s2: #d95926; --s3: #199e70;
+      --seq1: #86b6ef22; --seq2: #6da7ec33; --seq3: #3987e555;
+      color-scheme: dark;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--page); color: var(--ink);
+    font: 15px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif;
+    padding: 0 18px; padding-block: 0;
+  }
+  .wrap { max-width: 1060px; margin: 0 auto; padding-block: 28px 60px; }
+  h1 { font-size: 26px; letter-spacing: -.01em; margin: 8px 0 4px; }
+  .lede { color: var(--ink2); max-width: 72ch; margin: 0 0 20px; }
+  h2 { font-size: 17px; margin: 34px 0 4px; }
+  .sub { color: var(--ink2); font-size: 13.5px; margin: 0 0 12px; }
+  .panel {
+    background: var(--surface); border: 1px solid var(--ring);
+    border-radius: 10px; padding: 16px 18px; margin: 14px 0;
+  }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0; }
+  .chip {
+    display: inline-block; padding: 2px 9px; border-radius: 999px;
+    font-size: 12px; border: 1px solid var(--axis); color: var(--ink2);
+    background: var(--page); white-space: nowrap;
+  }
+  /* verdict board */
+  .board { display: grid; grid-template-columns: repeat(auto-fit,minmax(300px,1fr)); gap: 10px; }
+  .card { border: 1px solid var(--ring); border-radius: 8px; padding: 10px 12px; background: var(--surface); }
+  .card .k { font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+  .card .t { font-weight: 600; margin: 2px 0; }
+  .card .d { font-size: 13px; color: var(--ink2); }
+  .pill { display: inline-block; font-size: 11px; font-weight: 700; padding: 1px 8px; border-radius: 999px; margin-bottom: 4px; }
+  .p-true  { background: #0ca30c22; color: #0ca30c; }
+  .p-narrow{ background: #fab21933; color: #9a6d00; }
+  .p-open  { background: var(--s1); color: #fff; }
+  .p-mine  { background: #1baf7a22; color: #0c7a55; }
+  :root[data-theme="dark"] .p-narrow, @media (prefers-color-scheme: dark) { :root:where(:not([data-theme="light"])) .p-narrow { color: #fab219; } }
+  :root[data-theme="dark"] .p-true { color: #0ca30c; }
+  /* matrix */
+  table.mx { border-collapse: collapse; width: 100%; font-size: 12.5px; }
+  .mx th { font-size: 10.5px; letter-spacing: .06em; text-transform: uppercase; color: var(--mut); font-weight: 600; text-align: left; padding: 6px 8px; border-bottom: 2px solid var(--ink2); }
+  .mx td { border: 1px solid var(--grid); padding: 7px 8px; vertical-align: top; min-width: 130px; }
+  .mx td.rowh { border: none; font-weight: 600; font-size: 12.5px; white-space: nowrap; }
+  .who { font-size: 11.5px; }
+  .who b { font-weight: 600; }
+  .cell-field { background: color-mix(in srgb, var(--axis) 16%, transparent); }
+  .cell-mine  { background: color-mix(in srgb, var(--s1) 14%, transparent); border: 1.5px solid color-mix(in srgb, var(--s1) 55%, transparent) !important; }
+  .cell-open  { background: transparent; border: 1.5px dashed var(--crit) !important; }
+  .legend { display: flex; gap: 14px; font-size: 12px; color: var(--ink2); margin: 8px 0 2px; flex-wrap: wrap; }
+  .sw { display: inline-block; width: 13px; height: 13px; border-radius: 3px; vertical-align: -2px; margin-right: 4px; border: 1px solid var(--axis); }
+  .sw.f { background: color-mix(in srgb, var(--axis) 30%, transparent); }
+  .sw.m { background: color-mix(in srgb, var(--s1) 30%, transparent); border-color: var(--s1); }
+  .sw.o { border: 1.5px dashed var(--crit); background: transparent; }
+  /* regime chart */
+  .fig { margin: 10px 0 4px; }
+  .axis-t { font-size: 11px; fill: var(--mut); }
+  .bar-lab { font-size: 11.5px; fill: var(--ink); font-weight: 600; }
+  .grp { font-size: 12px; fill: var(--ink2); font-weight: 600; }
+  .foot { color: var(--mut); font-size: 12px; margin-top: 6px; }
+  table.t { border-collapse: collapse; font-size: 12.5px; width: 100%; }
+  .tbl th { text-align: left; color: var(--mut); font-size: 10.5px; text-transform: uppercase; letter-spacing: .06em; padding: 4px 8px; border-bottom: 1.5px solid var(--ink2); }
+  .tbl td { padding: 4px 8px; border-bottom: 1px solid var(--grid); font-variant-numeric: tabular-nums; }
+  .hover:hover { outline: 2px solid var(--s1); outline-offset: 1px; }
+  .tip { position: fixed; max-width: 300px; background: var(--surface); border: 1px solid var(--axis); border-radius: 6px; padding: 7px 10px; font-size: 12px; color: var(--ink); box-shadow: 0 4px 14px rgba(0,0,0,.18); pointer-events: none; display: none; z-index: 5; }
+  .tip b { display: block; }
+  .tip span { color: var(--ink2); }
+  .src { color: var(--mut); font-size: 12.5px; border-top: 1px solid var(--grid); margin-top: 30px; padding-top: 12px; }
+</style>
+
+<div class="wrap">
+<h1>The Gap Map — receive-path scheduling, 2026</h1>
+<p class="lede">Where every mechanism in the field sits, what remains unoccupied, where our measured regime boundary splits the design space, and which claims survived the 49-paper review. Numbers are from <b>FINDINGS.md</b> (measured); schematic placements are marked as such.</p>
+
+<h2>The verdict board</h2>
+<div class="board">
+  <div class="card"><div class="k">C-A · admission order > width</div><span class="pill p-true">TRUE + MEASURED</span><div class="t">Order dominates: 27–40× (synthetic), 13×/170× (real traces)</div><div class="d">Theory near: SRPT emulatable via 8 FIFO queues; order conditions proven under state-dependent capacity. Host-side capped form unclaimed. Rival: Rakaia (OSDI'26, P2C, artifact public).</div></div>
+  <div class="card"><div class="k">C-B · regime boundary</div><span class="pill p-true">CENTRAL CLAIM</span><div class="t">Placement owns moderate regimes; admission owns bursts</div><div class="d">Precedent at other layers (microbursts, Pallas); drawn at the receive host with production traces = novel. TRACE: placement spread collapses to ~1×; order spread persists.</div></div>
+  <div class="card"><div class="k">C-C · receiver-assigned ports</div><span class="pill p-open">OPEN</span><div class="t">Primitive owned; transport-integrated form unclaimed</div><div class="d">DPDK rte_thash owns the primitive; PSP RFC = kernel precedent; the connectionless per-message form has no prior art (medium-high confidence).</div></div>
+  <div class="card"><div class="k">C-D · buffer coloring</div><span class="pill p-narrow">NARROWED — Sepia owns strong form</span><div class="t">Residue: transport-keyed dynamic coloring</div><div class="d">Sepia (OSDI'26): static per-core pools, conflict-miss scope, Intel-only, placement exogenous. Build on its color model with attribution; their §limitations invites the Genoa test.</div></div>
+  <div class="card"><div class="k">C-E · grants as interleaving</div><span class="pill p-open">OPEN</span><div class="t">Overcommit width = receive-core co-residency control</div><div class="d">Adjacent admissions exist for other resources (MemChannel→DIMM, Concur→GPU KV). Ayesta-Righter's release-time formulation is the theory vocabulary.</div></div>
+  <div class="card"><div class="k">C-F · theory corner</div><span class="pill p-narrow">NARROW + REAL</span><div class="t">History-dependent service rates × migration × min-max</div><div class="d">Three mature literatures each hold one edge (see the triangle). Measured laws M1/M3/M4 are the axioms any theory must fit.</div></div>
+</div>
+
+<h2>1 · The design space: who decides what, and the one gap</h2>
+<p class="sub">Each layer of the receive path with its published mechanisms, what each decides, and what it never decides. The right column is the decision no layer makes — the gap.</p>
+<div class="panel">
+<div class="legend"><span class="sw f"></span>field mechanism <span class="sw m"></span>our result/mechanism <span class="sw o"></span>open decision</div>
+<table class="mx">
+<tr><th style="width:150px">Layer</th><th>Mechanisms (unit · information · actuator)</th><th>Decides</th><th>Never decides</th></tr>
+<tr><td class="rowh">NIC hashing</td><td class="cell-field"><span class="who"><b>RSS</b> · flow · header hash · queue</span> <span class="who"><b>Symmetric RSS</b>, <b>FlowMage</b> (LLM-config)</span></td><td class="who">flow → queue, fixed by hash at connect time</td><td class="who">anything per message; transport state</td></tr>
+<tr><td>Indirection</td><td class="cell-field"><span class="who"><b>RSS++</b> · bucket · backlog @10Hz–10kHz · table rewrite</span></td><td class="who">bucket → queue, periodic rebalance</td><td class="who">hot-flow split; reorder cost; cross-CCD</td></tr>
+<tr><td>Software steering</td><td class="cell-field"><span class="who"><b>RPS/RFS/aRFS</b>, <b>mFS</b> (NUMA-aware, Cloud'25), <b>Reframer/FAJITA</b> (deliberate delay for affinity)</span></td><td class="who">flow → core, monitoring-driven</td><td class="who">per-message; pre-DMA; cache state</td></tr>
+<tr><td>Buffers / cache</td><td class="cell-field"><span class="who"><b>Sepia</b> (OSDI'26, per-core colored pools), <b>rxBisect</b> (ring split), <b>TiNA</b> (chiplet tiers), <b>CEIO</b></span></td><td class="who">where DMA bytes land / how buffers move</td><td class="who">which core processes; transport; placement-keyed colors</td></tr>
+<tr><td>Transports</td><td class="cell-field"><span class="who"><b>Homa</b>, <b>SIRD</b> (NSDI'25), <b>Breakwater</b></span></td><td class="who">wire order (SRPT grants), admission pacing</td><td class="who">core placement; host admission; buffers</td></tr>
+<tr><td>Host message sched</td><td class="cell-field"><span class="who"><b>KCM</b>, <b>Rakaia</b> (OSDI'26: P2C onto per-core FIFOs, work steal)</span></td><td class="who">message → core, POST-DMA</td><td class="who">pre-DMA target; cache state; transport state</td></tr>
+<tr><td>Elastic cores</td><td class="cell-field"><span class="who"><b>Spillway</b> (SIGCOMM'26), <b>FlexNet</b> (HotNets'25)</span></td><td class="who">how many cores are active</td><td class="who">which message lands where</td></tr>
+<tr><td>Theory</td><td class="cell-field"><span class="who"><b>Migration LB</b> (fixed speeds) · <b>State-dependent rates</b> (single server, queue-length state) · <b>Setup costs</b></span></td><td class="who">competitive ratios on one edge each</td><td class="who">the three-edge intersection</td></tr>
+<tr><td style="color:var(--s1)"><b>The gap</b></td><td class="cell-mine"><span class="who"><b>Reins / one-scheduler thesis:</b> the transport's credit stream decides <b>per message, pre-DMA</b>: admission order × admission width × core placement × buffer color — coordinated by one controller, regime-dependent by measurement</span></td><td class="cell-mine who" colspan="2">the decision all seven layers leave open — and no prior work coordinates even two of them</td></tr>
+</table>
+<p class="foot">Mechanism placements verified against the deep dives (Sepia, Rakaia read full-text 2026-09-22); "never decides" columns are each paper's own scope.</p>
+</div>
+
+<h2>2 · The actuator × sensor matrix</h2>
+<p class="sub">Any mechanism is a choice of sensor → cost function → actuator. Six actuators, four sensors. The field occupies five cells; the routing of the search updates two.</p>
+<div class="panel">
+<div class="legend"><span class="sw f"></span>occupied (field) <span class="sw m"></span>ours (measured this program) <span class="sw o"></span>open — and what remains of it after the review</div>
+<table class="mx">
+<tr><th style="width:170px">actuator ↓ / sensor →</th><th>backlog count</th><th>message headers (size/SRPT)</th><th>completion events</th><th>per-core cache counters</th></tr>
+<tr><td class="rowh">queue / core choice (per message)</td>
+  <td class="cell-field"><span class="who"><b>RSS++</b> (bucket), <b>Rakaia</b> (P2C post-DMA)</span></td>
+  <td class="cell-mine"><span class="who"><b>Reins</b> (port carries the queue; SRPT over pending) — <b>MEASURED</b></span></td>
+  <td class="cell-mine"><span class="who"><b>Hint channel</b> — coverage 95.2% (K3 measured)</span></td>
+  <td class="cell-mine"><span class="who"><b>pacache</b> — falsified strong form; sensor-staleness law (§PACACHE)</span></td></tr>
+<tr><td class="rowh">grant timing / order / width</td>
+  <td class="cell-open"><span class="who"><b>OPEN</b> — width as host co-residency: §KCOMMIT measured; order > width; ns-3 corroborated. Adjacent: MemChannel (DIMM), Concur (GPU KV)</span></td>
+  <td class="cell-field"><span class="who"><b>Homa/SIRD</b> (SRPT grants, network-side)</span></td>
+  <td class="cell-open"><span class="who"><b>OPEN</b> — grants as the interleaving generator; Ayesta-Righter release-times as vocabulary</span></td>
+  <td class="cell-open"><span class="who"><b>OPEN</b> — grant pacing vs cache state unexplored</span></td></tr>
+<tr><td class="rowh">buffer physical address</td>
+  <td class="cell-field"><span class="who"><b>Sepia</b> (OSDI'26 — per-core colored pools, conflict-miss scope)</span></td>
+  <td class="cell-mine"><span class="who"><b>Residue: transport-keyed dynamic color</b> (pool serves the assigned core's slice; re-color on migration) — build on Sepia's model</span></td>
+  <td class="cell-open"><span class="who"><b>OPEN</b> — re-color at drained boundaries</span></td>
+  <td class="cell-open"><span class="who"><b>OPEN</b> — color choice from measured core state</span></td></tr>
+<tr><td class="rowh">softirq steering (post-DMA)</td>
+  <td class="cell-field"><span class="who"><b>Gen2/Gen3</b> (batch, reorder 14–27%)</span></td>
+  <td class="cell-open"><span class="who"><b>OPEN</b></span></td>
+  <td class="cell-open"><span class="who"><b>OPEN</b></span></td>
+  <td class="cell-open"><span class="who"><b>OPEN</b></span></td></tr>
+<tr><td class="rowh">NIC rules (rate-limited)</td>
+  <td class="cell-field"><span class="who"><b>aRFS/ntuple</b>, <b>FlowMage</b></span></td>
+  <td class="cell-open"><span class="who"><b>OPEN</b></span></td>
+  <td class="cell-open"><span class="who"><b>OPEN</b></span></td>
+  <td class="cell-open"><span class="who"><b>OPEN</b></span></td></tr>
+<tr><td class="rowh">migration (post-hoc)</td>
+  <td class="cell-field"><span class="who"><b>flowlet</b> (ours, stickiness θ), <b>ooo_okay</b> (flow-level)</span></td>
+  <td class="cell-mine"><span class="who"><b>credit-defined flowlets</b> (ours) — matches exact placement at every load ≤0.8</span></td>
+  <td class="cell-field"><span class="who"><b>Capybara</b> (TX-drain, server-level)</span></td>
+  <td class="cell-open"><span class="who"><b>OPEN</b></span></td></tr>
+</table>
+<p class="foot">Blue = measured by this program. Dashed red = still-open cell after the 49-paper review — the colored cells with dashed borders are the remaining white space, and the two that pay (grant width × header info; buffer color × placement) are on the CloudLab critical path.</p>
+</div>
+
+<h2>3 · The regime boundary — where each knob's leverage lives</h2>
+<p class="sub">Schematic placement, real numbers (FINDINGS.md). Two bars per regime: how much <b>core placement</b> buys at a fixed admission policy (RSS → exact), and how much <b>admission order</b> buys at a fixed width (FIFO → SRPT). Log scale: bar length = leverage ratio.</p>
+<div class="panel fig">
+<svg viewBox="0 0 980 300" role="img" aria-label="Leverage of placement versus admission order across regimes" style="max-width:100%; height:auto;">
+  <!-- axis -->
+  <line x1="200" y1="20" x2="200" y2="255" stroke="var(--axis)" stroke-width="1.5"/>
+  <line x1="200" y1="255" x2="950" y2="255" stroke="var(--axis)" stroke-width="1.5"/>
+  <g class="axis-t">
+    <text x="200" y="272" text-anchor="middle">1×</text>
+    <text x="330" y="272" text-anchor="middle">10×</text>
+    <text x="460" y="272" text-anchor="middle">100×</text>
+    <text x="590" y="272" text-anchor="middle">1000×</text>
+    <text x="590" y="293" text-anchor="middle">leverage ratio (log scale) — tail at worse policy ÷ tail at better policy</text>
+  </g>
+  <g stroke="var(--grid)" stroke-width="1">
+    <line x1="330" y1="20" x2="330" y2="255"/><line x1="460" y1="20" x2="460" y2="255"/><line x1="590" y1="20" x2="590" y2="255"/>
+  </g>
+  <!-- labels: log positions: log10(v): 1x->200, 10x->330, 100x->460, 1000x->590 => x=200+130*log10(r) -->
+  <!-- GROUP 1: synthetic trains (W-AI @0.8) -->
+  <text class="grp" x="16" y="48">Synthetic trains @0.8 load</text>
+  <!-- placement spread: rss 1839 / pax 84 -> 21.9x -> x=200+130*1.34=374 ; from 84 (base=1x? no: ratio 21.9 -> end 200+130*1.34=374) -->
+  <rect x="200" y="38" width="174" height="15" rx="3" fill="var(--s2)"/>
+  <text class="bar-t" x="382" y="50" style="font-size:11px; fill:var(--ink)">21.9× (rss 1839 → exact 84)</text>
+  <!-- order spread: FIFO 12564 / SRPT 470 -> 26.7x -> x=200+130*1.42=385 -->
+  <rect x="200" y="62" width="185" height="15" rx="3" fill="var(--s1)"/>
+  <text x="393" y="74" style="font-size:11px; fill:var(--ink)">26.7× (FIFO 12564 → SRPT 470, K=8)</text>
+  <!-- GROUP 2: production traces -->
+  <text class="grp" x="16" y="128">Production agentic traces (45s prefix)</text>
+  <!-- placement spread: rss 1308 / pax 1357 -> 0.96x -> nil: draw as 1x stub -->
+  <rect x="200" y="118" width="6" height="15" rx="2" fill="var(--s2)"/>
+  <text x="216" y="130" style="font-size:11px; fill:var(--ink)">0.96× — placement spread COLLAPSES (rss 1308 ≈ exact 1357)</text>
+  <!-- order spread: FIFO 31847 / SRPT 2411 -> 13.2x -> x=200+130*1.12=346 -->
+  <rect x="200" y="142" width="146" height="15" rx="3" fill="var(--s1)"/>
+  <text x="354" y="154" style="font-size:11px; fill:var(--ink)">13.2× (FIFO 31847 → SRPT 2411); short class: 170× (4.1M → 33k)</text>
+  <!-- width/absorption: completion 43k -> 87k -->
+  <rect x="200" y="166" width="130" height="15" rx="3" fill="var(--s3)"/>
+  <text x="338" y="178" style="font-size:11px; fill:var(--ink)">2.0× completion (uncapped 43k → capped+SRPT 87k)</text>
+  <!-- GROUP 2: moderate single-message regime (PA @0.8) -->
+  <text class="grp" x="16" y="222">Moderate regime, per-message @0.8 (§PA)</text>
+  <rect x="200" y="212" width="6" height="15" rx="2" fill="var(--s2)"/>
+  <text x="216" y="224" style="font-size:11px; fill:var(--ink)">two-choice ≈ exact (20.9 ≈ 18.8) — placement policy nearly saturated</text>
+  <!-- p99.9 order-breakage: pa2 390 -> pax 45 => 9.1x -->
+  <rect x="200" y="236" width="106" height="15" rx="3" fill="var(--s1)"/>
+  <text x="314" y="248" style="font-size:11px; fill:var(--ink)">8.7× at p99.9: two-choice 391 → exact 45 (power-of-two breaks for long units)</text>
+</svg>
+<p class="foot">Schematic placement of measured points (numbers from FINDINGS.md §W-AI, §KCOMMIT, §TRACE; same-run baselines). Read: the vertical axis is "leverage of the knob" — how many times the tail improves from the worse to the better setting of that knob at fixed everything else. <b>The placement bar collapses from 22× to ~1× exactly when the workload becomes production-bursty, while the order bar persists (27×→13×) and absorption (width) appears as a 2× completion lever.</b></p>
+</div>
+
+<h2>4 · The theory triangle — three edges held, one corner open</h2>
+<p class="sub">Three mature literatures each hold one edge of the triangle; every one holds the other two edges fixed.</p>
+<div class="panel">
+<svg viewBox="0 0 980 330" style="max-width:100%; height:auto;">
+  <polygon points="490,30 180,270 800,270" fill="none" stroke="var(--axis)" stroke-width="2" stroke-dasharray="0"/>
+  <!-- edge 1: bottom -->
+  <rect x="330" y="252" width="320" height="36" rx="6" fill="var(--seq2)"/>
+  <text x="490" y="275" text-anchor="middle" style="font-size:13px; font-weight:600; fill:var(--ink)">EDGE HELD: migration theory</text>
+  <text x="490" y="316" text-anchor="middle" class="axis-t">fixed machine speeds, min-max objective — Sanders 1+ε bounded migration; Megow O(log log) reassignment; Albers tight 4/3–1.466; Azar Ω(log n) without migration</text>
+  <!-- edge 2: left -->
+  <rect x="60" y="130" width="240" height="52" rx="6" fill="var(--seq2)"/>
+  <text x="180" y="150" text-anchor="middle" style="font-size:12px; font-weight:600; fill:var(--ink)">EDGE 2: state-dependent rates</text>
+  <text x="180" y="168" text-anchor="middle" class="axis-t">single server; state = QUEUE LENGTH C(j);</text>
+  <text x="180" y="184" text-anchor="middle" class="axis-t">LRPT/SRPT theorems via cost-to-capacity ratio — Ayesta-Righter PEIS'20</text>
+  <!-- edge 3: right -->
+  <rect x="680" y="130" width="240" height="52" rx="6" fill="var(--seq2)"/>
+  <text x="800" y="150" text-anchor="middle" style="font-size:12px; font-weight:600; fill:var(--ink)">EDGE 3: our measured physics</text>
+  <text x="800" y="168" text-anchor="middle" class="axis-t">M1: C(j) decreasing (+65%/pkt interleaving) ·</text>
+  <text x="800" y="184" text-anchor="middle" class="axis-t">M3: residency decays with WORK (history) · M4: cross-CCD cost</text>
+  <!-- center: open corner -->
+  <circle cx="490" cy="150" r="64" fill="var(--seq1)" stroke="var(--crit)" stroke-width="2" stroke-dasharray="6 4"/>
+  <text x="490" y="138" text-anchor="middle" style="font-size:13px; font-weight:700; fill:var(--ink)">OPEN CORNER</text>
+  <text x="490" y="156" text-anchor="middle" class="axis-t">per-machine HISTORY-dependent</text>
+  <text x="490" y="172" text-anchor="middle" class="axis-t">service rates under migration,</text>
+  <text x="490" y="188" text-anchor="middle" class="axis-t">min-max objective</text>
+  <text x="490" y="242" text-anchor="middle" class="axis-t">each literature holds one edge fixed; the corner is where the receive path lives</text>
+</svg>
+<p class="foot">Edge 2's state is queue length, not job history — that distinction is what keeps the corner open. Our M1 (interleaving) is a decreasing C(j); M3 is the history law; M4 prices migration. A restricted model (two cache states per machine, unit jobs) plus the Ayesta-Righter release-time equivalence is the entry point for a theorem.</p>
+</div>
+
+<h2>4 · The one-scheduler thesis — the knobs and who owns which regime</h2>
+<p class="sub">The grant stream is one controller with three knobs; the data says which knob binds where.</p>
+<div class="panel">
+<table class="tbl">
+<tr><th>Regime</th><th>Binding knob</th><th>Measured leverage</th><th>Evidence</th></tr>
+<tr><td>Moderate concurrency (W1 @0.8, §PA)</td><td>Placement</td><td>two-choice ≈ exact (18.8 vs 19.0); placement beats flowlet-with-migration; nil under CCD split</td><td>FINDINGS §PA, §W-AI</td></tr>
+<tr><td>Trains + bursts (W-AI @0.8)</td><td>Order (short-class) + placement</td><td>order: FIFO→SRPT 27×; placement: rss→exact 22×; short-class 75×</td><td>§KCOMMIT, §W-AI</td></tr>
+<tr><td>Production bursts (real traces)</td><td>Admission order + width</td><td>order 13× p99 / 170× short; cap+SRPT 2× completion; placement ≈ nil (0.96×)</td><td>§TRACE</td></tr>
+<tr><td>Overload (0.9)</td><td>Width (absorption) then order</td><td>uncapped all policies ~50–60×; cap+SRPT restores</td><td>§KCOMMIT</td></tr>
+</table>
+<p class="foot">Thesis: <b style="color:var(--ink)">the receiver-driven transport schedules the host</b> — grants carry order, width, and placement as three knobs of one controller, and no paper coordinates even two of them. The regime boundary is the paper's organizing figure; the knob map above is its result.</p>
+</div>
+
+<div class="src">
+Sources: full review in <b>~/deep-research-output/rx-placement-admission/</b> (49-paper database, deep dives, verdict appendix). Key collision/precedent papers: Sepia (OSDI'26), Rakaia (OSDI'26), rxBisect (OSDI'25), TiNA (ASPLOS'26), SIRD (NSDI'25), Pallas (ATC'25), microbursts-regime (ToMPECS'25), MemChannel (NSDI'26), Spillway (SIGCOMM'26), host-stack-latency (SIGCOMM'26), Ayesta-Prabhu-Righter (PEIS'20), Sanders (ICALP'04), Megow, Albers (Algorithmica), Devanur. Schematic panels marked; numeric bars are measured (FINDINGS.md).
+</div>
+</div>

@@ -74,8 +74,16 @@ If UDP/TCP fail → K1 fires, stop and reassess. *(sportgen was rewritten
 
 ```bash
 ssh root@10.10.1.1
-cd /root/k2 && ./k2_ddio.sh 10.10.1.10
+cd /root/k2 && ./k2_ddio.sh clnode337.clemson.cloudlab.us 10.10.1.10 enp195s0np0
 ```
+
+**Network policy (CloudLab control-net rule):** the first argument is the
+sender's *control-net hostname* — used for orchestration ssh only; the
+second is the sender's *experiment* address (10.10.1.x), used only as
+sportgen's `--dip`. Experiment traffic rides the experiment LAN and only
+the experiment LAN; orchestration never shares it, because ssh bytes
+during a measurement cell are background traffic corrupting the DDIO
+result.
 
 Streams 1400B UDP at ~1 Mpps with source ports empirically steered to three
 queues (consumer's own, same-CCD other core, other-CCD), consumed by a
@@ -134,3 +142,15 @@ everything), don't skip the deploy build step, and don't trust
 `perf`-derived queue mappings on a node where `irqbalance` is running
 (setup.sh disabled it — re-check with `systemctl is-active irqbalance`
 after any reboot).
+
+## The gap map (docs/gap-map.html) (docs/gap-map.html)
+
+Open `docs/gap-map.html` in a browser for the one-page picture of the whole
+program: the verdict board (six claims, post-review), the design-space stack
+(who decides what — and the one decision no layer makes), the actuator×sensor
+matrix with measured/open/occupied cells, the regime-boundary chart
+(placement's leverage collapses 22×→~1× on production bursts while admission
+order persists 27×→13×), and the theory triangle. Every numeric bar is
+cross-checked against `flowlet-eval/FINDINGS.md`; schematic panels are marked
+as such. Source-of-truth review: `~/deep-research-output/rx-placement-admission/`
+(49-paper database, deep dives, verdict appendix).

@@ -24,6 +24,8 @@
 #include <string.h>
 #include <sys/ioctl.h>
 #include <sys/socket.h>
+#include <sys/time.h>
+#include <time.h>
 #include <unistd.h>
 
 #define PAYLOAD 32
@@ -47,6 +49,7 @@ struct cfg {
 	struct in_addr saddr, daddr;
 	unsigned short sport, dport;
 	int n, batch, pause, proto;
+	int spin;			/* busy-wait pacing (holds the rate) */
 	unsigned plen;			/* L4 payload bytes (default 32) */
 	const char *iface, *sip, *dip;
 };
@@ -63,7 +66,7 @@ usage(const char *why)
 {
 	fprintf(stderr,
 "usage: sportgen --dip IP --dport N --sport N [--n N] [--plen 1..1400]\n"
-"       [--proto udp|146|tcp] [--batch N] [--pause us] [--iface IF] [--sip IP]\n"
+"       [--proto udp|146|tcp] [--batch N] [--pause us] [--spin] [--iface IF] [--sip IP]\n"
 "       (%s)\n", why);
 	exit(2);
 }
@@ -119,6 +122,7 @@ main(int argc, char **argv)
 	struct udp_wire *udp;
 	struct tcp_wire *tcp;
 	int fd, i, one, l4len, total, sndbuf;
+	unsigned long long target_ns = 0;
 	char sipstr[INET_ADDRSTRLEN], dipstr[INET_ADDRSTRLEN];
 
 	memset(&cfg, 0, sizeof(cfg));
@@ -154,6 +158,8 @@ main(int argc, char **argv)
 			cfg.batch = strtoul(argv[++i], NULL, 0);
 		else if (!strcmp(argv[i], "--pause") && i + 1 < argc)
 			cfg.pause = strtoul(argv[++i], NULL, 0);
+		else if (!strcmp(argv[i], "--spin"))
+			cfg.spin = 1;
 		else if (!strcmp(argv[i], "--plen") && i + 1 < argc) {
 			cfg.plen = strtoul(argv[++i], NULL, 0);
 			if (cfg.plen < 1 || cfg.plen > 1400)
@@ -251,8 +257,37 @@ main(int argc, char **argv)
 		if (sendto(fd, pkt, total, 0, (struct sockaddr *)&dst,
 			   sizeof(dst)) < 0)
 			die("sendto");
-		if ((i + 1) % cfg.batch == 0)
-			usleep(cfg.pause);
+		if ((i + 1) % cfg.batch == 0) {
+			if (cfg.spin) {
+				/* busy-wait to the next absolute deadline:
+				 * usleep granularity (~1 ms hrtimer slack)
+				 * collapses the rate; spinning holds it. */
+				unsigned long long now_ns;
+				struct timespec ts;
+				if (target_ns == 0) {
+					clock_gettime(CLOCK_MONOTONIC, &ts);
+					target_ns = (unsigned long long)
+						    ts.tv_sec * 1000000000ULL +
+						    ts.tv_nsec +
+						    (unsigned long long)
+						    cfg.pause * 1000ULL;
+					continue;
+				}
+				do {
+					clock_gettime(CLOCK_MONOTONIC, &ts);
+					now_ns = (unsigned long long)
+						 ts.tv_sec * 1000000000ULL +
+						 ts.tv_nsec;
+				} while (now_ns < target_ns);
+				/* resync if >5 ms behind (else drift forever) */
+				if (now_ns > target_ns + 5000000ULL)
+					target_ns = now_ns;
+				target_ns += (unsigned long long)
+					     cfg.pause * 1000ULL;
+			} else {
+				usleep(cfg.pause);
+			}
+		}
 	}
 	close(fd);
 
