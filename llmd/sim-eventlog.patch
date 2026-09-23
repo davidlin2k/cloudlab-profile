@@ -1,0 +1,71 @@
+diff --git a/pkg/common/publisher.go b/pkg/common/publisher.go
+index 1f1db5b..fa2ada1 100644
+--- a/pkg/common/publisher.go
++++ b/pkg/common/publisher.go
+@@ -19,9 +19,12 @@ package common
+ import (
+ 	"context"
+ 	"encoding/binary"
++	"encoding/json"
+ 	"fmt"
++	"os"
+ 	"strconv"
+ 	"strings"
++	"sync"
+ 	"sync/atomic"
+ 	"time"
+ 
+@@ -80,6 +83,8 @@ type Publisher struct {
+ 	socket   zmq4.Socket
+ 	endpoint string
+ 	seqNum   uint64
++	elog     *os.File
++	emu      sync.Mutex
+ }
+ 
+ // NewPublisher creates a new ZMQ publisher.
+@@ -120,10 +125,21 @@ func NewPublisher(ctx context.Context, endpoint string) (*Publisher, error) {
+ 		}()
+ 	}
+ 
+-	return &Publisher{
++	pub := &Publisher{
+ 		socket:   socket,
+ 		endpoint: endpoint,
+-	}, nil
++	}
++	// event log: ground truth for convergence measurements. Set
++	// KV_EVENT_LOG to a file path to record every published batch's
++	// wall-clock publish time, sequence number, topic and payload size.
++	if path := os.Getenv("KV_EVENT_LOG"); path != "" {
++		if f, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644); err == nil {
++			pub.elog = f
++		} else {
++			log.FromContext(ctx).Error(err, "cannot open KV_EVENT_LOG", "path", path)
++		}
++	}
++	return pub, nil
+ }
+ 
+ // PublishEvent marshals batch, assigns the next sequence number, and sends
+@@ -143,6 +159,20 @@ func (p *Publisher) PublishEvent(ctx context.Context, topic string, batch interf
+ 	// send topic, sequence, payload
+ 	msg := zmq4.NewMsgFrom([]byte(topic), EncodeSeq(seq), payload)
+ 
++	// ground-truth event log: record the publish-ready wall time
++	// immediately before the socket send
++	if p.elog != nil {
++		p.emu.Lock()
++		b, _ := json.Marshal(map[string]any{
++			"wall_ns": time.Now().UnixNano(),
++			"seq":     seq,
++			"topic":   topic,
++			"bytes":   len(payload),
++		})
++		p.elog.Write(append(b, '\n'))
++		p.emu.Unlock()
++	}
++
+ 	if err = p.socket.Send(msg); err != nil {
+ 		return 0, nil, fmt.Errorf("failed to send message to topic %s: %w", topic, err)
+ 	}

@@ -1,0 +1,36 @@
+apiVersion: llm-d.ai/v1
+kind: EndpointPickerConfig
+plugins:
+- type: file-discovery
+  parameters:
+    path: /etc/epp/endpoints.yaml
+    watchFile: true
+- type: token-producer
+  parameters:
+    modelName: TinyLlama/TinyLlama-1.1B-Chat-v1.0
+    vllm:
+      url: http://10.10.1.14:8082
+- type: precise-prefix-cache-producer
+  parameters:
+    tokenProcessorConfig:
+      blockSizeTokens: 16
+    kvEventsConfig:
+      zmqEndpoint: tcp://0.0.0.0:5557
+    indexerConfig:
+      kvBlockIndexConfig:
+        enableMetrics: true
+        metricsLoggingInterval: 10000000000
+- type: prefix-cache-scorer
+  parameters:
+    prefixMatchInfoProducerName: precise-prefix-cache-producer
+- type: max-score-picker
+- type: single-profile-handler
+schedulingProfiles:
+- name: default
+  plugins:
+  - pluginRef: max-score-picker
+  - pluginRef: prefix-cache-scorer
+    weight: 10
+dataLayer:
+  discovery:
+    pluginRef: file-discovery

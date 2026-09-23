@@ -1,0 +1,14 @@
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 127.0.0.1:4317
+exporters:
+  file:
+    path: /var/log/llmd/spans.json
+    flush_interval: 200ms
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      exporters: [file]
