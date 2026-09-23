@@ -23,10 +23,10 @@ with open(src) as f, open(dst, "w") as out:
     for line in f:
         r = json.loads(line)
         hids = r["blocks"]
-        # one trace block = up to 512 tokens (Mooncake's block size).
-        # Requests whose input exceeds len(blocks)*512 get truncated
-        # prompts (hit rate is block-structure based, not token-count).
-        per = min(512, max(16, int(r["input_len"] / max(len(hids), 1))))
+        # one trace block = up to SEG tokens; requests whose input
+        # exceeds len(blocks)*SEG get truncated prompts (hit rate is
+        # block-structure based, not token-count based).
+        per = min(SEG, max(16, int(r["input_len"] / max(len(hids), 1))))
         parts = []
         for h in hids:
             t = segs.get(h)
