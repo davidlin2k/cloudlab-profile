@@ -1,0 +1,1 @@
+rate=2414125 tok/s live=150000 tokens=1090398937 errs=0 stalls=5667100 p50_itl_ms=0 p99_itl_ms=232

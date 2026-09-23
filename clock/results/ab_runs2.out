@@ -1,0 +1,37 @@
+== proxy N=50000 mode=aligned 23:07:12
+4
+0
+0
+emitters_up=4 phase=aligned
+emitters_up=0 phase=aligned
+emitters_up=0 phase=aligned
+0
+rate=1457581 tok/s live=50000 tokens=591895563 errs=0 stalls=0 p50_itl_ms=0 p99_itl_ms=232
+== bypass N=50000 mode=aligned 23:14:26
+4
+0
+0
+emitters_up=4 phase=aligned
+emitters_up=0 phase=aligned
+emitters_up=0 phase=aligned
+0
+  connect_timeout (live=16668)
+== proxy N=150000 mode=aligned 23:23:19
+0
+0
+4
+emitters_up=0 phase=aligned
+emitters_up=4 phase=aligned
+emitters_up=0 phase=aligned
+0
+rate=2414125 tok/s live=150000 tokens=1090398937 errs=0 stalls=5667100 p50_itl_ms=0 p99_itl_ms=232
+== bypass N=150000 mode=aligned 23:31:25
+0
+0
+4
+emitters_up=0 phase=aligned
+emitters_up=0 phase=aligned
+emitters_up=4 phase=aligned
+0
+  connect_timeout (live=50000)
+ab_runs_complete

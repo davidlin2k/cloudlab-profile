@@ -6,3 +6,4 @@ emitters_up=0 phase=aligned
 emitters_up=0 phase=aligned
 emitters_up=4 phase=aligned
 0
+chmod: cannot access '/tmp/clock/burst-50000.pcap': No such file or directory

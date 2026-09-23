@@ -28,3 +28,40 @@ emitters_up=0 phase=per-engine
 emitters_up=0 phase=per-engine
 emitters_up=0 phase=per-engine
 0
+  rep 1: live=0 rate=0 p99=0 stalls=0 overruns=30400
+  rep 2: live=0 rate=0 p99=0 stalls=0 overruns=50873
+  rep 3: live=0 rate=0 p99=0 stalls=0 overruns=71411
+== per-engine N=100000 21:44:30
+4
+0
+0
+emitters_up=4 phase=per-engine
+emitters_up=0 phase=per-engine
+emitters_up=0 phase=per-engine
+0
+  rep 1: live=100000 rate=3251332 p99=233 stalls=720109 overruns=44601
+  rep 2: live=100000 rate=3284335 p99=233 stalls=1475923 overruns=65350
+  rep 3: live=100000 rate=2551495 p99=233 stalls=2257873 overruns=85852
+== per-engine N=150000 21:49:20
+4
+0
+0
+emitters_up=4 phase=per-engine
+emitters_up=0 phase=per-engine
+emitters_up=0 phase=per-engine
+0
+  rep 1: live=150000 rate=3059199 p99=232 stalls=1668667 overruns=196687
+  rep 2: live=150000 rate=3380426 p99=232 stalls=3013073 overruns=344774
+  rep 3: live=150000 rate=3702255 p99=232 stalls=4207989 overruns=492505
+== per-engine N=200000 21:54:31
+0
+4
+0
+emitters_up=0 phase=per-engine
+emitters_up=0 phase=per-engine
+emitters_up=4 phase=per-engine
+0
+  rep 1: live=200000 rate=1140341 p99=232 stalls=2313753 overruns=198973
+  rep 2: live=200000 rate=4317525 p99=232 stalls=3757580 overruns=316781
+  rep 3: live=200000 rate=3056995 p99=232 stalls=5009878 overruns=435289
+1

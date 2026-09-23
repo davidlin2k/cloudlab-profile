@@ -33,7 +33,8 @@ var (
 	live   atomic.Int64
 	lastT  atomic.Int64 // unix ms of last window sample
 	lastC  atomic.Uint64
-	stalls atomic.Uint64
+	stalls  atomic.Uint64
+	stallMs atomic.Uint64 // total gap ms when dt > 1s
 	latMu  sync.Mutex
 	latMs  []int64 // inter-token latency samples (capped)
 )
@@ -43,6 +44,7 @@ const maxSamples = 400000
 func recordLat(dt int64) {
 	if dt > 1000 {
 		stalls.Add(1)
+		stallMs.Add(uint64(dt))
 	}
 	latMu.Lock()
 	if len(latMs) < maxSamples {
@@ -127,8 +129,8 @@ func statsLine() string {
 	sort.Slice(cp, func(i, j int) bool { return cp[i] < cp[j] })
 	p50 := percentile(cp, 0.5)
 	p99 := percentile(cp, 0.99)
-	return fmt.Sprintf("live=%d tokens=%d errs=%d stalls=%d p50_itl_ms=%d p99_itl_ms=%d",
-		live.Load(), okToks.Load(), errs.Load(), stalls.Load(), p50, p99)
+	return fmt.Sprintf("live=%d tokens=%d errs=%d stalls=%d stall_s=%.0f p50_itl_ms=%d p99_itl_ms=%d",
+		live.Load(), okToks.Load(), errs.Load(), stalls.Load(), float64(stallMs.Load())/1000, p50, p99)
 }
 
 func main() {

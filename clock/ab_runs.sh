@@ -23,27 +23,26 @@ sample_hop() {  # $1 = label, $2 = N, $3 = seconds
       ssh -o ConnectTimeout=5 davidlin@$N1.clemson.cloudlab.us \
         'python3 - << "PYEOF"
 import socket
-s = socket.socket(socket.AF_UNIX); s.connect("/run/haproxy/admin.sock")
-s.sendall(b"show stat\n"); d = b""
-while True:
-    c = s.recv(65536)
-    if not c: break
-    d += c
-for line in d.decode().strip().splitlines():
+def hap(cmd, keys):
+    s = socket.socket(socket.AF_UNIX); s.settimeout(3)
+    s.connect("/run/haproxy/admin.sock")
+    s.sendall(cmd + b"\n"); d = b""
+    try:
+        while True:
+            c = s.recv(65536)
+            if not c: break
+            d += c
+    except socket.timeout:
+        pass
+    s.sendall(b"quit\n"); s.close()
+    return d.decode()
+for line in hap(b"show stat", None).strip().splitlines():
     f = line.split(",")
     if len(f) > 9 and f[1] in ("FRONTEND", "BACKEND"):
         print("hap", f[0], f[1], "scur="+f[4], "bin="+f[8], "bout="+f[9])
-s.close()
-s = socket.socket(socket.AF_UNIX); s.connect("/run/haproxy/admin.sock")
-s.sendall(b"show info\n"); d = b""
-while True:
-    c = s.recv(65536)
-    if not c: break
-    d += c
-for line in d.decode().splitlines():
+for line in hap(b"show info", None).splitlines():
     if line.startswith(("Run_queue", "Threads", "CurrConns", "CumConns")):
         print("hap", line.replace("\t", " "))
-s.close()
 PYEOF' 2>/dev/null
       # HAProxy per-thread CPU
       ssh -o ConnectTimeout=5 davidlin@$N1.clemson.cloudlab.us \
