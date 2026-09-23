@@ -4,6 +4,8 @@
 # node_shortname is tx1|tx2|tx3 (clnode323|386|322); pods default 2.
 set -u
 IP=${1:?node ip}; SHORT=${2:?tx1|tx2|tx3}; N=${3:-2}; BLOCKS=${4:-256}; EPP=${5:-10.10.1.1}
+sudo pkill -xc llm-d-inference 2>/dev/null || true
+sleep 1
 sudo mkdir -p /var/log/llmd
 for pod in $(seq 0 $((N-1))); do
   PORT=$((8000+pod))
