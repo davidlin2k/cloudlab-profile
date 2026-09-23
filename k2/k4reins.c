@@ -322,7 +322,21 @@ static void *thr(void *ap)
 	if (g_last_roll == 0) g_last_roll = now_s();
 	int ord[MAXP];			/* drain order: smalls first */
 	for (int k = 0; k < a->nports; k++) ord[k] = k;
+	struct timespec rto = { .tv_sec = 0, .tv_nsec = 2000000 };
 	while (now_s() < t_end) {
+		/* wall-clock ledger windows: roll on schedule even when
+		 * no packets arrive (idle tail must not freeze the
+		 * ledger); the roll check runs every loop iteration */
+		double tnow = now_s();
+		if (tnow - g_last_roll >= WINDOW_MS / 1000.0) {
+			pthread_mutex_lock(&g_roll_mx);
+			if (tnow - g_last_roll >= WINDOW_MS / 1000.0) {
+				ledger_roll(tnow - g_last_roll);
+				g_last_roll = tnow;
+				g_window_id++;
+			}
+			pthread_mutex_unlock(&g_roll_mx);
+		}
 		for (int kk = 0; kk < a->nports; kk++) {
 			int k = ord[kk];
 			int j = a->pidx[k];
@@ -353,7 +367,7 @@ static void *thr(void *ap)
 				mmsg[k][i].msg_len = 0;
 			}
 			int got = recvmmsg(fds[k], mmsg[k], want,
-					   MSG_DONTWAIT, NULL);
+					   MSG_DONTWAIT, &rto);
 			if (got <= 0) continue;
 			if (g_srpt && g_bulkport[j])
 				port_tok[k] -= got;
@@ -392,16 +406,10 @@ static void *thr(void *ap)
 						g_window_id + STICKY_WIN;
 				}
 			}
-			if (t - g_last_roll >= WINDOW_MS / 1000.0) {
-				pthread_mutex_lock(&g_roll_mx);
-				if (t - g_last_roll >= WINDOW_MS / 1000.0) {
-					ledger_roll(t - g_last_roll);
-					g_last_roll = t;
-					g_window_id++;	/* new admission window */
-				}
-				pthread_mutex_unlock(&g_roll_mx);
-			}
 			if (my_window != g_window_id) {
+				/* window bookkeeping: reset per-window
+				 * budget/token state (the roll itself
+				 * now happens at the top of the loop) */
 				my_window = g_window_id;
 				bulk_echoed = 0;	/* window reset */
 				/* demand-adaptive bulk budget: the group's

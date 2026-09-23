@@ -131,17 +131,10 @@ int main(int argc, char **argv)
 	uint64_t sent = 0;
 	uint64_t last_switch = 0;
 
-	/* fully open-loop: send on a timer, never wait for echoes. */
+	/* open-loop send on a timer; echoes are drained CONTINUOUSLY
+	 * (between ticks too) so the measured RTT excludes the sender's
+	 * own inter-send idle time */
 	while (sent < (uint64_t)n && now_ns() < t_end) {
-		uint64_t tn = now_ns();
-		if (tn < t_next) continue;	/* busy-poll to the tick */
-		t_next += gap;
-		if (t_next < tn) t_next = tn + gap;
-		put64(req + plen - 10, now_ns());
-		da.sin_port = htons(port_for[cur]);
-		if (sendto(fd, req, plen, 0, (struct sockaddr *)&da, sizeof(da)) < 0)
-			die("sendto");
-		quuse[cur]++; sent++;
 		/* drain any pending echoes (non-blocking) */
 		for (;;) {
 			char rbuf[PL];
@@ -184,6 +177,15 @@ int main(int argc, char **argv)
 				}
 			}
 		}
+		uint64_t tn = now_ns();
+		if (tn < t_next) continue;	/* busy-poll to the tick */
+		t_next += gap;
+		if (t_next < tn) t_next = tn + gap;
+		put64(req + plen - 10, now_ns());
+		da.sin_port = htons(port_for[cur]);
+		if (sendto(fd, req, plen, 0, (struct sockaddr *)&da, sizeof(da)) < 0)
+			die("sendto");
+		quuse[cur]++; sent++;
 	}
 	/* drain trailing echoes for up to 10s after the send window */
 	uint64_t drain_end = now_ns() + 10000000000ull;
