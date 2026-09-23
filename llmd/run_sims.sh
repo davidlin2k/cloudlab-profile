@@ -13,6 +13,7 @@ for pod in $(seq 0 $((N-1))); do
     --model TinyLlama-$SHORT-$pod --served-model-name TinyLlama-$SHORT-$pod \
     --port $PORT --mode random --force-dummy-tokenizer \
     --enable-kvcache --kv-cache-size $BLOCKS --block-size 16 \
+    --max-model-len 32768 \
     --zmq-endpoint tcp://$EPP:5557 --event-batch-size 16 \
     > /var/log/llmd/sim-$SHORT-$pod.log 2>&1 &"
 done
