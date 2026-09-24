@@ -8,7 +8,10 @@ IFACE=enp195s0np0
 TQ=7
 IRQ=$(grep -E "mlx5_comp${TQ}@pci:0000:c3" /proc/interrupts | awk '{print $1}' | tr -d ':')
 case "$POLICY" in
-  P0)  APP_CPU=8;  NAPI_CPU="" ;;
+  # P1 = identical wiring to P0: the deferral lives in the BOOTED kernel
+  # (pre-6.5 mainline = ksoftirqd deferral); the P1 batch runs in one
+  # kernel session and the manifest records the uname either way.
+  P0|P1) APP_CPU=8;  NAPI_CPU="" ;;
   P0X) APP_CPU=9;  NAPI_CPU="" ;;
   P2)  APP_CPU=8;  NAPI_CPU=8 ;;
   P3)  APP_CPU=8;  NAPI_CPU=40 ;;

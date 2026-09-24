@@ -126,7 +126,9 @@ int main(int argc, char **argv)
 	 * socket-drop counter (SO_RXQ_OVFL), 1s window rates on stderr, echo
 	 * mode (W2 server), self schedstat (frequency-independent app cost). */
 	int echo = 0, refc_fd = -1, skip = 0;
+	char dump_arg[256] = "";
 	static uint32_t lhist[1 << 20];
+	static uint32_t whist[1024];	/* per-1s-window latency p50 (Fig 5) */
 	unsigned long long nlat = 0, lat_sum = 0, lat_max = 0;
 	unsigned long long sock_drops = 0, echoed = 0, wins = 0, win_pkts = 0;
 	uint32_t last_d = 0;
@@ -155,13 +157,15 @@ int main(int argc, char **argv)
 			echo = 1;
 		else if (!strcmp(argv[i], "--skip") && i + 1 < argc)
 			skip = atoi(argv[++i]);
+		else if (!strcmp(argv[i], "--dump"))
+			snprintf(dump_arg, sizeof(dump_arg), "%s", argv[++i]);
 		else if (!strcmp(argv[i], "--all"))
 			all = 1;	/* also count syscall-side cycles/misses:
 					 * for UDP the skb->user copy runs in THIS
 					 * thread's recvmmsg, so tot - user exposes
 					 * the DMA'd payload's cache state */
 		else
-			die("usage: k2_rx --port N --core N [--secs 15] [--hist] [--all] [--echo] [--skip W]");
+			die("usage: k2_rx --port N --core N [--secs 15] [--hist] [--all] [--echo] [--skip W] [--dump F]");
 	}
 	pin(core);
 	cyc_fd = miss_fd = -1;
@@ -303,6 +307,7 @@ int main(int argc, char **argv)
 				if (l > lat_max) lat_max = l;
 				unsigned b = l / 1000;
 				lhist[b < (1u << 20) ? b : (1u << 20) - 1]++;
+				whist[b < 1024 ? b : 1023]++;
 			}
 			if (echo && mm[i].msg_hdr.msg_namelen)
 				echoed += sendto(fd, bufs[i], len, 0,
@@ -358,10 +363,22 @@ int main(int argc, char **argv)
 		}
 		double nw = now_s();
 		if (nw - win_t0 >= 1.0) {
-			fprintf(stderr,
-				"[k2rx-win] t=%.0f pkts=%llu rate=%.0f drops=%llu\n",
-				nw - (t_end - secs), win_pkts,
-				win_pkts / (nw - win_t0), sock_drops);
+			{
+				unsigned long long totw = 0, accw = 0, wp50 = 0;
+				for (unsigned b2 = 0; b2 < 1024; b2++)
+					totw += whist[b2];
+				for (unsigned b2 = 0; b2 < 1024; b2++) {
+					accw += whist[b2];
+					if (!wp50 && accw * 2 >= totw)
+						wp50 = b2;
+				}
+				fprintf(stderr,
+					"[k2rx-win] t=%.0f pkts=%llu rate=%.0f drops=%llu wp50_us=%llu\n",
+					nw - (t_end - secs), win_pkts,
+					win_pkts / (nw - win_t0), sock_drops,
+					totw ? wp50 : 0);
+				memset(whist, 0, sizeof(whist));
+			}
 			wins++;
 			win_pkts = 0;
 			win_t0 = nw;
@@ -440,6 +457,16 @@ int main(int argc, char **argv)
 		       "near=%.2f dram=%.2f fcache=%.2f",
 		       pkts ? (double)tc / pkts : -1.0,
 		       fr[0], fr[1], fr[2], fr[3], fr[4]);
+	}
+	if (dump_arg[0]) {
+		FILE *df = fopen(dump_arg, "w");
+		if (df) {
+			for (unsigned long long b = 0; b < (1ull << 20); b++)
+				if (lhist[b]) fprintf(df, "%llu %u\n", b, lhist[b]);
+			fclose(df);
+		} else {
+			fprintf(stderr, "k2_rx: cannot write %s\n", dump_arg);
+		}
 	}
 	printf("\n");
 	return 0;

@@ -26,6 +26,40 @@
 #define PL 1600
 
 static void die(const char *m) { perror(m); exit(1); }
+
+/* W5 load profiles: "t_seconds rate_pps" lines, piecewise linear. */
+static double prof_t[256];
+static double prof_r[256];
+static int nprof;
+
+static void load_profile(const char *path, double scale)
+{
+	FILE *f = fopen(path, "r");
+	if (!f)
+		die("profile");
+	while (nprof < 256 && fscanf(f, "%lf %lf", &prof_t[nprof],
+				    &prof_r[nprof]) == 2) {
+		prof_r[nprof] *= scale;
+		nprof++;
+	}
+	fclose(f);
+	if (nprof < 1)
+		die("profile empty");
+}
+
+static double rate_at(double t)
+{
+	if (t <= prof_t[0])
+		return prof_r[0];
+	for (int i = 1; i < nprof; i++) {
+		if (t <= prof_t[i]) {
+			double f = (t - prof_t[i - 1]) /
+				   (prof_t[i] - prof_t[i - 1] + 1e-9);
+			return prof_r[i - 1] + f * (prof_r[i] - prof_r[i - 1]);
+		}
+	}
+	return prof_r[nprof - 1];
+}
 static uint64_t now_ns(void)
 {
 	struct timespec ts;
@@ -40,6 +74,9 @@ int main(int argc, char **argv)
 	int plen = 300, batch = VLEN, core = -1;
 	int sport = 0, dport = 0, sip = 0;
 	char dip[64] = "10.10.1.1";
+	char prof_arg[256] = "";
+	double scale = 1.0;
+	unsigned long long secs = 0;
 	for (int i = 1; i < argc; i++) {
 		if (!strcmp(argv[i], "--dip")) snprintf(dip, sizeof(dip), "%s", argv[++i]);
 		else if (!strcmp(argv[i], "--sip")) sip = atoi(argv[++i]);
@@ -50,8 +87,15 @@ int main(int argc, char **argv)
 		else if (!strcmp(argv[i], "--plen")) plen = atoi(argv[++i]);
 		else if (!strcmp(argv[i], "--batch")) batch = atoi(argv[++i]);
 		else if (!strcmp(argv[i], "--core")) core = atoi(argv[++i]);
+		else if (!strcmp(argv[i], "--profile")) snprintf(prof_arg, sizeof(prof_arg), "%s", argv[++i]);
+		else if (!strcmp(argv[i], "--scale")) scale = atof(argv[++i]);
+		else if (!strcmp(argv[i], "--secs")) secs = strtoull(argv[++i], NULL, 10);
 		else { fprintf(stderr, "k5blast: unknown arg %s\n", argv[i]); return 1; }
 	}
+	if (prof_arg[0])
+		load_profile(prof_arg, scale);
+	if (secs)
+		n = ~0ull;
 	if (!sport || !dport || !sip || !n) {
 		fprintf(stderr, "usage: k5blast --dip A --sip OCT --sport P "
 			"--dport Q --n N [--plen L --batch B --core C]\n");
@@ -99,13 +143,18 @@ int main(int argc, char **argv)
 	uint64_t t0 = now_ns();
 	uint64_t t_next = t0;		/* next batch deadline when paced */
 	uint64_t t_status = t0 + 2000000000ull;
-	while (sent < n) {
-		if (rate > 0) {
+	while (sent < n && (!secs || now_ns() - t0 < secs * 1000000000ull)) {
+		if (rate > 0 || nprof) {
 			uint64_t tn;
 			while ((tn = now_ns()) < t_next)
 				;	/* spin to the batch deadline */
+			long long crate = rate;
+			if (nprof)
+				crate = (long long)rate_at((double)(tn - t0) / 1e9);
+			if (crate < 1)
+				crate = 1;
 			t_next += (uint64_t)((double)batch * 1e9 /
-					     (double)rate);
+					     (double)crate);
 			if (t_next < tn)	/* fell behind: catch up */
 				t_next = tn;
 		}

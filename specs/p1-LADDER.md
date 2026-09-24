@@ -23,9 +23,28 @@ costs?
   2. Low load (0.25x knee, W2 round trip): P0 p99 within 10% of the
      P4 p99 (inline is the latency floor); P2 p99 >= 2x P0 (same-core
      deferral is the latency cost); P3 between.
-  3. Model: knee_pred = f/(c_net+c_app) (P0/P2), f/(s*(c_net+c_app))
-     (P3), min(f/c_net, f/c_app) (P4) within +/-25% of measured knee
-     across plen 64/512/1400 (Fig 4).
+  3. Model (form F, two-worker queue per placement): knee_pred =
+     1e9/(c_app+c_net) (P0/P2, one logical CPU serializes the two
+     workers), (2/s)*1e9/(c_app+c_net) (P3, both workers on one
+     physical core; s = SMT slowdown factor, m = 2/s capacity factor),
+     1e9/max(c_app,c_net) (P4) within +/-25% of measured knee across
+     plen 64/512/1400 (Fig 4). Per-packet costs are the placement's
+     own in-situ measurements (ns/packet); form F is falsified if a
+     predicted knee misses measured by >25% -- claim Dropped per the
+     skeleton contract, not re-fit after the fact.
+
+- Calibration anchors (cal-1 + calsmt, 2026-09-24, plen 64): knee(P0)
+  ~= 525k pps (100% delivery at 450k, 57% at 600k) anchors the load
+  grid (130k..1300k pps = 0.25..2.5x knee). Costs at 450k pps:
+  P0 c_app=1060 c_net=517 ns (form F predicts 634k); P2 983/877;
+  P3 1456/1383 in-situ; P4 1133/1138 (predicts 880k). SMT factor
+  s = 1.24 (cyc/pkt 220.8->275.0 with the sibling burning; the p2
+  pair agrees at 1.24). Sanity already visible at 450k: rx->dequeue
+  p50 = 264 us (P0) vs 254 us (P2) vs 15.5 us (P3) vs 12.5 us (P4).
+  Spec version note: v2 (2026-09-24 03:15Z) adds the calibration
+  anchors and the explicit model form (reason: measured costs existed
+  only after cal-1). fig1-3 runs started 03:04Z under v1; their
+  prediction check uses the v1 numbers above (unchanged in substance).
 - Builds on: K2AGG (five-sender port-authored incast rig), K3LOAD,
   K5CAP (k5blast spin pacing), K4PART/AN-001 (timer/gate discipline),
   Mogul & Ramakrishnan TOCS'97 (livelock), the 2016 deferral + 2023
