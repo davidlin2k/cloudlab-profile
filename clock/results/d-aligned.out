@@ -1,0 +1,45 @@
+== aligned N=25000 00:25:34
+4
+4
+4
+emitters_up=4 phase=aligned
+emitters_up=4 phase=aligned
+emitters_up=4 phase=aligned
+0
+  rep 1: live=25000 rate=994621 stall_s=0 drops=0 slow=1 slip=651171 em_cpu=834.9
+  rep 2: live=25000 rate=1000104 stall_s=0 drops=0 slow=4 slip=1146216 em_cpu=846.2
+  rep 3: live=25000 rate=1006537 stall_s=0 drops=0 slow=6 slip=355937 em_cpu=1225.9
+== aligned N=50000 00:29:53
+4
+4
+4
+emitters_up=4 phase=aligned
+emitters_up=4 phase=aligned
+emitters_up=4 phase=aligned
+0
+  rep 1: live=50000 rate=2000837 stall_s=0 drops=0 slow=20 slip=707538 em_cpu=1855.5
+  rep 2: live=50000 rate=2034005 stall_s=0 drops=0 slow=22 slip=1227402 em_cpu=1880.2
+  rep 3: live=50000 rate=1794011 stall_s=0 drops=0 slow=14 slip=360537 em_cpu=1814.3
+== aligned N=75000 00:34:19
+4
+4
+4
+emitters_up=4 phase=aligned
+emitters_up=4 phase=aligned
+emitters_up=4 phase=aligned
+0
+  rep 1: live=75000 rate=3463402 stall_s=1564 drops=0 slow=67 slip=846486 em_cpu=3222.8
+  rep 2: live=75000 rate=2987825 stall_s=1991 drops=0 slow=103 slip=1385127 em_cpu=10.9
+  rep 3: live=75000 rate=1555558 stall_s=1991 drops=0 slow=31 slip=420957 em_cpu=2580.4
+== aligned N=100000 00:39:01
+4
+4
+4
+emitters_up=4 phase=aligned
+emitters_up=4 phase=aligned
+emitters_up=4 phase=aligned
+0
+  rep 1: live=100000 rate=2971716 stall_s=1578668 drops=0 slow=133 slip=965827 em_cpu=457.1
+  rep 2: live=100000 rate=3970590 stall_s=2761672 drops=0 slow=188 slip=1522982 em_cpu=144.1
+  rep 3: live=100000 rate=3970590 stall_s=2761672 drops=0 slow=188 slip=2008627 em_cpu=14.1
+0

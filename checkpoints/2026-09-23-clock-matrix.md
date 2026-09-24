@@ -134,6 +134,35 @@ Bypass ITL signature: p50=26ms (the raw step clock) vs proxy p50=0
   coalesced / p99 232ms (HAProxy batching) - the proxy's automatic
   coalescing is directly visible (PI point 5 confirmed).
 
+## Achieved-alignment measurement (PI point 3) — THE SMEAR (2026-09-24 00:40 UTC)
+burst_analyze on the proxy-NIC captures (A/B run):
+- 50k "aligned": fraction of each 25ms step's packets in its first
+  1ms = p50 0.042 (random-phase baseline = 0.040). peakedness 1.5.
+- 150k "aligned": p50 0.040. peakedness 1.6.
+THE STEP IS ALREADY A SMEAR AT THE WIRE. One-token-one-segment at
+50k streams = 25k write() syscalls per 1ms slot = the write path
+serializes the "burst" across ~the whole step regardless of phase.
+Achieved wire alignment ~uniform at both scales.
+Consequences:
+(1) The aligned-vs-random contrast at 50k+ is NULL BY CONSTRUCTION -
+    any D-matrix null result must be reported WITH the per-cell
+    achieved-alignment measure as the explanation.
+(2) Wire-level incast requires the fix set: per-step coalesce +
+    MULTIPLEX (one connection carrying all streams' frames in one
+    write per step is the only way a step fits in <1ms). The blue-
+    print's fix #1 is not an optimization, it is the ENABLER of a
+    burst at all. Desynchronization acts at the enqueue level.
+(3) Segmentation ratio is load-dependent: vLLM at low rate = 1
+    segment/frame (validated); at 1.9M tok/s the capture shows
+    ~1.16M segs/s carrying 1.88M frames/s = 1.6 frames/segment
+    (sender-side batching). "One token one segment" holds only at
+    low rates.
+(4) What the clock DOES produce at the wire: a 25ms sawtooth arrival
+    process (phase-locked rate waves) even when smeared - the host's
+    "smooth independent arrivals" assumption is still violated, but
+    as periodic rate modulation, not as instant incast. This reframes
+    the mechanism and must be stated as measured.
+
 ## Data locations
 - clock/results/{aligned,random}.csv + *-master*.out (workstation repo)
 - /tmp/clock-inst-{aligned,random}.jsonl on n1 (1 Hz layer counters)

@@ -1,0 +1,1183 @@
+== sample 1 t=00:13:10.034296347
+streams=12500 tokens=60000517 bytes=5760049632 dropped=379668 slow_writes=24 slot_overruns=13536 steps=7982 cpu_s=814.5 slot_pass_us=107
+streams=12500 tokens=59979167 bytes=5758000032 dropped=378786 slow_writes=23 slot_overruns=14072 steps=7977 cpu_s=813.6 slot_pass_us=94
+streams=12500 tokens=60048456 bytes=5764651776 dropped=366148 slow_writes=14 slot_overruns=13606 steps=7990 cpu_s=815.5 slot_pass_us=172
+streams=12500 tokens=60147067 bytes=5774118432 dropped=375357 slow_writes=27 slot_overruns=13534 steps=7992 cpu_s=811.8 slot_pass_us=97
+streams=12500 tokens=60120814 bytes=5771598144 dropped=390086 slow_writes=22 slot_overruns=14371 steps=7983 cpu_s=820.8 slot_pass_us=102
+streams=12500 tokens=60084566 bytes=5768118336 dropped=395571 slow_writes=22 slot_overruns=13330 steps=7979 cpu_s=820.4 slot_pass_us=116
+streams=12500 tokens=60057882 bytes=5765556672 dropped=359823 slow_writes=17 slot_overruns=13376 steps=7974 cpu_s=823.2 slot_pass_us=112
+streams=12500 tokens=60056882 bytes=5765460672 dropped=384909 slow_writes=23 slot_overruns=13424 steps=7973 cpu_s=819.6 slot_pass_us=94
+streams=12500 tokens=60086615 bytes=5768315040 dropped=404759 slow_writes=14 slot_overruns=13570 steps=7981 cpu_s=821.6 slot_pass_us=95
+streams=12500 tokens=60009252 bytes=5760888192 dropped=408300 slow_writes=24 slot_overruns=13584 steps=7972 cpu_s=822.9 slot_pass_us=108
+streams=12500 tokens=60086910 bytes=5768343360 dropped=373710 slow_writes=18 slot_overruns=13601 steps=7978 cpu_s=821.0 slot_pass_us=96
+streams=12500 tokens=60130497 bytes=5772527712 dropped=376268 slow_writes=21 slot_overruns=13430 steps=7980 cpu_s=825.7 slot_pass_us=101
+Average:        0    344000         -    0.00    0.00    0.00    0.00    0.00     -  haproxy
+Average:        0         -    344000    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344002    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344003    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344004    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344005    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344006    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344008    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344009    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344010    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344011    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344012    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344013    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344014    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344015    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344016    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344017    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+live=150000 tokens=678432117 errs=0 stalls=5764987 stall_s=15834010 p50_itl_ms=26 p99_itl_ms=325
+Average:        0    251280 1622.00 1619.00    0.00   33.00 3241.00     -  clocksink
+== sample 2 t=00:13:17.364650185
+streams=12500 tokens=62433937 bytes=5993657856 dropped=412190 slow_writes=26 slot_overruns=13973 steps=8180 cpu_s=31.5 slot_pass_us=157
+streams=12500 tokens=62409990 bytes=5991359040 dropped=413229 slow_writes=24 slot_overruns=14553 steps=8174 cpu_s=29.8 slot_pass_us=161
+streams=12500 tokens=62444545 bytes=5994676320 dropped=407512 slow_writes=15 slot_overruns=14071 steps=8185 cpu_s=31.4 slot_pass_us=96
+streams=12500 tokens=62599261 bytes=6009529056 dropped=410552 slow_writes=31 slot_overruns=13939 steps=8191 cpu_s=29.7 slot_pass_us=109
+streams=12500 tokens=62559935 bytes=6005753760 dropped=425923 slow_writes=27 slot_overruns=14829 steps=8181 cpu_s=30.3 slot_pass_us=96
+streams=12500 tokens=62532790 bytes=6003147840 dropped=436937 slow_writes=22 slot_overruns=13761 steps=8178 cpu_s=29.9 slot_pass_us=166
+streams=12500 tokens=62487534 bytes=5998803264 dropped=392666 slow_writes=18 slot_overruns=13783 steps=8171 cpu_s=29.9 slot_pass_us=102
+streams=12500 tokens=62480945 bytes=5998170720 dropped=423430 slow_writes=24 slot_overruns=13855 steps=8170 cpu_s=33.0 slot_pass_us=140
+streams=12500 tokens=62535282 bytes=6003387072 dropped=443578 slow_writes=17 slot_overruns=14014 steps=8180 cpu_s=32.2 slot_pass_us=94
+streams=12500 tokens=62450245 bytes=5995223520 dropped=442165 slow_writes=25 slot_overruns=14039 steps=8170 cpu_s=30.2 slot_pass_us=101
+streams=12500 tokens=62540488 bytes=6003886848 dropped=408482 slow_writes=18 slot_overruns=14028 steps=8178 cpu_s=31.6 slot_pass_us=95
+streams=12500 tokens=62591969 bytes=6008829024 dropped=414070 slow_writes=24 slot_overruns=13875 steps=8180 cpu_s=30.3 slot_pass_us=96
+Average:        0    344000         -    0.00    0.00    0.00    0.00    0.00     -  haproxy
+Average:        0         -    344000    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344002    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344003    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344004    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344005    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344006    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344008    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344009    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344010    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344011    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344012    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344013    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344014    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344015    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344016    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344017    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+live=150000 tokens=706202165 errs=0 stalls=6062219 stall_s=16762252 p50_itl_ms=26 p99_itl_ms=325
+Average:        0    251280  620.00 1241.00    0.00   10.00 1861.00     -  clocksink
+== sample 3 t=00:13:24.079899305
+streams=12500 tokens=64810927 bytes=6221848992 dropped=444710 slow_writes=26 slot_overruns=14410 steps=8373 cpu_s=30.2 slot_pass_us=93
+streams=12500 tokens=64789612 bytes=6219802752 dropped=446157 slow_writes=30 slot_overruns=15024 steps=8367 cpu_s=31.0 slot_pass_us=125
+streams=12500 tokens=64805991 bytes=6221375136 dropped=446113 slow_writes=18 slot_overruns=14509 steps=8377 cpu_s=28.4 slot_pass_us=98
+streams=12500 tokens=64997995 bytes=6239807520 dropped=449264 slow_writes=32 slot_overruns=14366 steps=8386 cpu_s=30.9 slot_pass_us=103
+streams=12500 tokens=64898283 bytes=6230235168 dropped=462555 slow_writes=33 slot_overruns=15275 steps=8371 cpu_s=31.6 slot_pass_us=174
+streams=12500 tokens=64891025 bytes=6229538400 dropped=478696 slow_writes=27 slot_overruns=14176 steps=8370 cpu_s=30.8 slot_pass_us=94
+streams=12500 tokens=64866668 bytes=6227200128 dropped=426051 slow_writes=21 slot_overruns=14202 steps=8364 cpu_s=31.5 slot_pass_us=108
+streams=12500 tokens=64860033 bytes=6226563168 dropped=456887 slow_writes=25 slot_overruns=14270 steps=8363 cpu_s=29.7 slot_pass_us=94
+streams=12500 tokens=64899272 bytes=6230330112 dropped=479650 slow_writes=17 slot_overruns=14440 steps=8372 cpu_s=28.8 slot_pass_us=151
+streams=12500 tokens=64848937 bytes=6225497952 dropped=477700 slow_writes=32 slot_overruns=14471 steps=8365 cpu_s=31.7 slot_pass_us=94
+streams=12500 tokens=64931414 bytes=6233415744 dropped=441660 slow_writes=20 slot_overruns=14435 steps=8371 cpu_s=29.5 slot_pass_us=102
+streams=12500 tokens=64990282 bytes=6239067072 dropped=453852 slow_writes=25 slot_overruns=14270 steps=8375 cpu_s=32.1 slot_pass_us=102
+Average:        0    344000         -    0.00    0.00    0.00    0.00    0.00     -  haproxy
+Average:        0         -    344000    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344002    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344003    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344004    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344005    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344006    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344008    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344009    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344010    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344011    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344012    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344013    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344014    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344015    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344016    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344017    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+live=150000 tokens=735767058 errs=0 stalls=6365433 stall_s=17693695 p50_itl_ms=26 p99_itl_ms=325
+Average:        0    251280  357.00 1187.00    0.00   12.00 1544.00     -  clocksink
+== sample 4 t=00:13:30.928088558
+streams=12500 tokens=67255168 bytes=6456496128 dropped=476281 slow_writes=28 slot_overruns=14849 steps=8571 cpu_s=29.5 slot_pass_us=104
+streams=12500 tokens=67204765 bytes=6451657440 dropped=481017 slow_writes=31 slot_overruns=15467 steps=8563 cpu_s=29.3 slot_pass_us=135
+streams=12500 tokens=67207588 bytes=6451928448 dropped=482154 slow_writes=18 slot_overruns=14957 steps=8572 cpu_s=31.6 slot_pass_us=122
+streams=12500 tokens=67389703 bytes=6469411488 dropped=487083 slow_writes=35 slot_overruns=14763 steps=8581 cpu_s=29.5 slot_pass_us=95
+streams=12500 tokens=67286607 bytes=6459514272 dropped=499256 slow_writes=36 slot_overruns=15714 steps=8565 cpu_s=29.5 slot_pass_us=137
+streams=12500 tokens=67290344 bytes=6459873024 dropped=516973 slow_writes=28 slot_overruns=14598 steps=8565 cpu_s=28.8 slot_pass_us=99
+streams=12500 tokens=67259791 bytes=6456939936 dropped=457973 slow_writes=22 slot_overruns=14622 steps=8558 cpu_s=30.0 slot_pass_us=94
+streams=12500 tokens=67252767 bytes=6456265632 dropped=489214 slow_writes=27 slot_overruns=14697 steps=8557 cpu_s=31.7 slot_pass_us=99
+streams=12500 tokens=67302240 bytes=6461015040 dropped=514186 slow_writes=17 slot_overruns=14859 steps=8567 cpu_s=31.4 slot_pass_us=209
+streams=12500 tokens=67272241 bytes=6458135136 dropped=507796 slow_writes=33 slot_overruns=14913 steps=8561 cpu_s=29.3 slot_pass_us=108
+streams=12500 tokens=67351551 bytes=6465748896 dropped=471540 slow_writes=21 slot_overruns=14850 steps=8567 cpu_s=30.7 slot_pass_us=160
+streams=12500 tokens=67416929 bytes=6472025184 dropped=489801 slow_writes=26 slot_overruns=14700 steps=8572 cpu_s=29.3 slot_pass_us=237
+Average:        0    344000         -    0.00    0.00    0.00    0.00    0.00     -  haproxy
+Average:        0         -    344000    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344002    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344003    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344004    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344005    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344006    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344008    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344009    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344010    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344011    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344012    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344013    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344014    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344015    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344016    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344017    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+live=150000 tokens=763575785 errs=0 stalls=6664029 stall_s=18598279 p50_itl_ms=26 p99_itl_ms=325
+Average:        0    251280  405.00 1085.00    0.00    8.00 1490.00     -  clocksink
+== sample 5 t=00:13:37.562658551
+streams=12500 tokens=69623994 bytes=6683903424 dropped=506337 slow_writes=30 slot_overruns=15252 steps=8763 cpu_s=29.7 slot_pass_us=103
+streams=12500 tokens=69538815 bytes=6675726240 dropped=509537 slow_writes=32 slot_overruns=15918 steps=8752 cpu_s=30.9 slot_pass_us=104
+streams=12500 tokens=69591211 bytes=6680756256 dropped=511081 slow_writes=24 slot_overruns=15380 steps=8765 cpu_s=30.5 slot_pass_us=95
+streams=12500 tokens=69724675 bytes=6693568800 dropped=522648 slow_writes=39 slot_overruns=15172 steps=8771 cpu_s=30.2 slot_pass_us=95
+streams=12500 tokens=69631443 bytes=6684618528 dropped=529661 slow_writes=40 slot_overruns=16171 steps=8755 cpu_s=31.5 slot_pass_us=114
+streams=12500 tokens=69634138 bytes=6684877248 dropped=548310 slow_writes=30 slot_overruns=14998 steps=8755 cpu_s=30.5 slot_pass_us=158
+streams=12500 tokens=69618847 bytes=6683409312 dropped=486414 slow_writes=22 slot_overruns=15037 steps=8749 cpu_s=30.5 slot_pass_us=111
+streams=12500 tokens=69624056 bytes=6683909376 dropped=517949 slow_writes=33 slot_overruns=15126 steps=8749 cpu_s=29.7 slot_pass_us=176
+streams=12500 tokens=69671309 bytes=6688445664 dropped=545228 slow_writes=18 slot_overruns=15292 steps=8759 cpu_s=28.8 slot_pass_us=97
+streams=12500 tokens=69644612 bytes=6685882752 dropped=535487 slow_writes=34 slot_overruns=15353 steps=8753 cpu_s=30.7 slot_pass_us=187
+streams=12500 tokens=69758143 bytes=6696781728 dropped=502460 slow_writes=23 slot_overruns=15272 steps=8762 cpu_s=28.9 slot_pass_us=104
+streams=12500 tokens=69836251 bytes=6704280096 dropped=520579 slow_writes=27 slot_overruns=15105 steps=8768 cpu_s=31.1 slot_pass_us=95
+Average:        0    344000         -    0.00    0.00    0.00    0.00    0.00     -  haproxy
+Average:        0         -    344000    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344002    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344003    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344004    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344005    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344006    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344008    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344009    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344010    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344011    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344012    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344013    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344014    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344015    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344016    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344017    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0    251280 1361.00 1463.00    0.00   21.00 2824.00     -  clocksink
+== sample 6 t=00:13:45.842105423
+streams=12500 tokens=72610633 bytes=6970620768 dropped=536796 slow_writes=32 slot_overruns=15788 steps=9004 cpu_s=35.5 slot_pass_us=129
+streams=12500 tokens=72501145 bytes=6960109920 dropped=547118 slow_writes=33 slot_overruns=16461 steps=8992 cpu_s=36.0 slot_pass_us=161
+streams=12500 tokens=72543754 bytes=6964200384 dropped=546047 slow_writes=25 slot_overruns=15921 steps=9004 cpu_s=36.9 slot_pass_us=378
+streams=12500 tokens=72707959 bytes=6979964064 dropped=564475 slow_writes=43 slot_overruns=15719 steps=9012 cpu_s=35.6 slot_pass_us=148
+streams=12500 tokens=72598154 bytes=6969422784 dropped=562960 slow_writes=42 slot_overruns=16704 steps=8995 cpu_s=37.6 slot_pass_us=160
+streams=12500 tokens=72596647 bytes=6969278112 dropped=583234 slow_writes=30 slot_overruns=15497 steps=8995 cpu_s=36.2 slot_pass_us=103
+streams=12500 tokens=72567663 bytes=6966495648 dropped=525040 slow_writes=25 slot_overruns=15570 steps=8988 cpu_s=36.0 slot_pass_us=98
+streams=12500 tokens=72600770 bytes=6969673920 dropped=553792 slow_writes=36 slot_overruns=15632 steps=8990 cpu_s=38.5 slot_pass_us=117
+streams=12500 tokens=72663993 bytes=6975743328 dropped=577650 slow_writes=20 slot_overruns=15831 steps=9001 cpu_s=39.1 slot_pass_us=101
+streams=12500 tokens=72659901 bytes=6975350496 dropped=570133 slow_writes=37 slot_overruns=15919 steps=8997 cpu_s=36.3 slot_pass_us=146
+streams=12500 tokens=72755199 bytes=6984499104 dropped=541678 slow_writes=25 slot_overruns=15760 steps=9005 cpu_s=37.4 slot_pass_us=154
+streams=12500 tokens=72859549 bytes=6994516704 dropped=559691 slow_writes=28 slot_overruns=15619 steps=9013 cpu_s=36.5 slot_pass_us=158
+Average:        0    344000         -    0.00    0.00    0.00    0.00    0.00     -  haproxy
+Average:        0         -    344000    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344002    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344003    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344004    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344005    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344006    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344008    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344009    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344010    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344011    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344012    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344013    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344014    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344015    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344016    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344017    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+live=150000 tokens=831420585 errs=0 stalls=7388401 stall_s=20772333 p50_itl_ms=26 p99_itl_ms=325
+Average:        0    251280 1426.00 1715.00    0.00    2.00 3141.00     -  clocksink
+== sample 7 t=00:13:53.410565373
+streams=12500 tokens=75224425 bytes=7221544800 dropped=568299 slow_writes=32 slot_overruns=16246 steps=9215 cpu_s=32.7 slot_pass_us=232
+streams=12500 tokens=75119394 bytes=7211461824 dropped=578910 slow_writes=34 slot_overruns=16962 steps=9204 cpu_s=33.7 slot_pass_us=201
+streams=12500 tokens=75163062 bytes=7215653952 dropped=576790 slow_writes=28 slot_overruns=16380 steps=9216 cpu_s=31.8 slot_pass_us=96
+streams=12500 tokens=75324033 bytes=7231107168 dropped=598429 slow_writes=47 slot_overruns=16178 steps=9224 cpu_s=34.5 slot_pass_us=93
+streams=12500 tokens=75203948 bytes=7219579008 dropped=590426 slow_writes=44 slot_overruns=17198 steps=9206 cpu_s=34.4 slot_pass_us=105
+streams=12500 tokens=75190401 bytes=7218278496 dropped=617006 slow_writes=33 slot_overruns=15973 steps=9205 cpu_s=34.5 slot_pass_us=94
+streams=12500 tokens=75187979 bytes=7218045984 dropped=557813 slow_writes=27 slot_overruns=16023 steps=9201 cpu_s=33.6 slot_pass_us=93
+streams=12500 tokens=75196214 bytes=7218836544 dropped=583379 slow_writes=36 slot_overruns=16097 steps=9200 cpu_s=33.6 slot_pass_us=100
+streams=12500 tokens=75287067 bytes=7227558432 dropped=604602 slow_writes=25 slot_overruns=16311 steps=9213 cpu_s=34.5 slot_pass_us=99
+streams=12500 tokens=75266255 bytes=7225560480 dropped=601300 slow_writes=40 slot_overruns=16409 steps=9208 cpu_s=34.0 slot_pass_us=176
+streams=12500 tokens=75385043 bytes=7236964128 dropped=575527 slow_writes=32 slot_overruns=16208 steps=9218 cpu_s=32.4 slot_pass_us=113
+streams=12500 tokens=75486129 bytes=7246668384 dropped=595591 slow_writes=32 slot_overruns=16061 steps=9226 cpu_s=33.4 slot_pass_us=115
+Average:        0    344000         -    0.00    0.00    0.00    0.00    0.00     -  haproxy
+Average:        0         -    344000    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344002    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344003    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344004    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344005    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344006    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344008    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344009    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344010    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344011    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344012    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344013    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344014    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344015    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344016    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344017    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+live=150000 tokens=859443642 errs=0 stalls=7684364 stall_s=21688186 p50_itl_ms=26 p99_itl_ms=325
+Average:        0    251280 1083.00 1438.00    0.00    0.00 2521.00     -  clocksink
+== sample 8 t=00:14:00.134726003
+streams=12500 tokens=77644279 bytes=7453850784 dropped=598509 slow_writes=35 slot_overruns=16646 steps=9411 cpu_s=29.3 slot_pass_us=127
+streams=12500 tokens=77513257 bytes=7441272672 dropped=610042 slow_writes=38 slot_overruns=17418 steps=9398 cpu_s=28.8 slot_pass_us=143
+streams=12500 tokens=77563931 bytes=7446137376 dropped=600931 slow_writes=32 slot_overruns=16805 steps=9410 cpu_s=32.2 slot_pass_us=106
+streams=12500 tokens=77758107 bytes=7464778272 dropped=626884 slow_writes=48 slot_overruns=16604 steps=9421 cpu_s=29.7 slot_pass_us=120
+streams=12500 tokens=77580568 bytes=7447734528 dropped=617950 slow_writes=44 slot_overruns=17648 steps=9398 cpu_s=29.3 slot_pass_us=97
+streams=12500 tokens=77582974 bytes=7447965504 dropped=649418 slow_writes=35 slot_overruns=16404 steps=9399 cpu_s=29.8 slot_pass_us=158
+streams=12500 tokens=77581728 bytes=7447845888 dropped=585999 slow_writes=27 slot_overruns=16425 steps=9394 cpu_s=29.1 slot_pass_us=144
+streams=12500 tokens=77595177 bytes=7449136992 dropped=609385 slow_writes=39 slot_overruns=16521 steps=9394 cpu_s=30.2 slot_pass_us=152
+streams=12500 tokens=77687772 bytes=7458026112 dropped=628798 slow_writes=27 slot_overruns=16730 steps=9407 cpu_s=30.2 slot_pass_us=104
+streams=12500 tokens=77665279 bytes=7455866784 dropped=629541 slow_writes=40 slot_overruns=16825 steps=9403 cpu_s=29.4 slot_pass_us=97
+streams=12500 tokens=77768721 bytes=7465797216 dropped=604399 slow_writes=33 slot_overruns=16636 steps=9411 cpu_s=30.9 slot_pass_us=153
+streams=12500 tokens=77878306 bytes=7476317376 dropped=628456 slow_writes=32 slot_overruns=16489 steps=9420 cpu_s=31.0 slot_pass_us=160
+Average:        0    344000         -    0.00    0.00    0.00    0.00    0.00     -  haproxy
+Average:        0         -    344000    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344002    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344003    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344004    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344005    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344006    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344008    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344009    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344010    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344011    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344012    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344013    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344014    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344015    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344016    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344017    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+live=150000 tokens=888482973 errs=0 stalls=7993470 stall_s=22629387 p50_itl_ms=26 p99_itl_ms=325
+Average:        0    251280  605.00 1202.00    0.00    0.00 1807.00     -  clocksink
+== sample 9 t=00:14:06.853427100
+streams=12500 tokens=80042869 bytes=7684115424 dropped=624899 slow_writes=40 slot_overruns=17080 steps=9605 cpu_s=30.5 slot_pass_us=112
+streams=12500 tokens=79904995 bytes=7670879520 dropped=643192 slow_writes=39 slot_overruns=17873 steps=9592 cpu_s=30.6 slot_pass_us=145
+streams=12500 tokens=79976190 bytes=7677714240 dropped=626146 slow_writes=36 slot_overruns=17206 steps=9605 cpu_s=29.1 slot_pass_us=98
+streams=12500 tokens=80143132 bytes=7693740672 dropped=654290 slow_writes=52 slot_overruns=17021 steps=9614 cpu_s=30.6 slot_pass_us=122
+streams=12500 tokens=79940248 bytes=7674263808 dropped=645779 slow_writes=47 slot_overruns=18106 steps=9589 cpu_s=31.5 slot_pass_us=154
+streams=12500 tokens=79917924 bytes=7672120704 dropped=679143 slow_writes=37 slot_overruns=16817 steps=9589 cpu_s=30.1 slot_pass_us=92
+streams=12500 tokens=79929019 bytes=7673185824 dropped=613793 slow_writes=29 slot_overruns=16849 steps=9584 cpu_s=31.5 slot_pass_us=104
+streams=12500 tokens=79911051 bytes=7671460896 dropped=633980 slow_writes=42 slot_overruns=16933 steps=9582 cpu_s=31.6 slot_pass_us=93
+streams=12500 tokens=80072538 bytes=7686963648 dropped=656526 slow_writes=28 slot_overruns=17164 steps=9600 cpu_s=31.9 slot_pass_us=164
+streams=12500 tokens=80058694 bytes=7685634624 dropped=658732 slow_writes=40 slot_overruns=17238 steps=9596 cpu_s=32.0 slot_pass_us=93
+streams=12500 tokens=80167540 bytes=7696083840 dropped=633709 slow_writes=34 slot_overruns=17060 steps=9606 cpu_s=29.8 slot_pass_us=95
+streams=12500 tokens=80265982 bytes=7705534272 dropped=658540 slow_writes=36 slot_overruns=16905 steps=9614 cpu_s=29.6 slot_pass_us=117
+Average:        0    344000         -    0.00    0.00    0.00    0.00    0.00     -  haproxy
+Average:        0         -    344000    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344002    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344003    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344004    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344005    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344006    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344008    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344009    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344010    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344011    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344012    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344013    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344014    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344015    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344016    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344017    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+live=150000 tokens=920834358 errs=0 stalls=8338733 stall_s=23678784 p50_itl_ms=26 p99_itl_ms=325
+Average:        0    251280 1196.00 1538.00    0.00    0.00 2734.00     -  clocksink
+== sample 10 t=00:14:14.608503048
+streams=12500 tokens=82994429 bytes=7967465184 dropped=660770 slow_writes=40 slot_overruns=17579 steps=9844 cpu_s=35.5 slot_pass_us=268
+streams=12500 tokens=82797257 bytes=7948536672 dropped=684157 slow_writes=39 slot_overruns=18414 steps=9827 cpu_s=36.9 slot_pass_us=176
+streams=12500 tokens=82823026 bytes=7951010496 dropped=659129 slow_writes=39 slot_overruns=17718 steps=9836 cpu_s=36.9 slot_pass_us=98
+streams=12500 tokens=83044975 bytes=7972317600 dropped=689991 slow_writes=55 slot_overruns=17513 steps=9849 cpu_s=34.9 slot_pass_us=185
+streams=12500 tokens=82843557 bytes=7952981472 dropped=680015 slow_writes=49 slot_overruns=18638 steps=9824 cpu_s=36.1 slot_pass_us=98
+streams=12500 tokens=82838417 bytes=7952488032 dropped=718939 slow_writes=41 slot_overruns=17332 steps=9825 cpu_s=35.9 slot_pass_us=94
+streams=12500 tokens=82830465 bytes=7951724640 dropped=649759 slow_writes=33 slot_overruns=17358 steps=9819 cpu_s=35.8 slot_pass_us=165
+streams=12500 tokens=82800279 bytes=7948826784 dropped=666710 slow_writes=43 slot_overruns=17454 steps=9815 cpu_s=36.0 slot_pass_us=212
+streams=12500 tokens=83001583 bytes=7968151968 dropped=689954 slow_writes=32 slot_overruns=17688 steps=9837 cpu_s=35.2 slot_pass_us=124
+streams=12500 tokens=82958514 bytes=7964017344 dropped=696453 slow_writes=44 slot_overruns=17765 steps=9831 cpu_s=35.1 slot_pass_us=162
+streams=12500 tokens=83100791 bytes=7977675936 dropped=672312 slow_writes=35 slot_overruns=17583 steps=9843 cpu_s=37.1 slot_pass_us=186
+streams=12500 tokens=83175936 bytes=7984889856 dropped=693434 slow_writes=37 slot_overruns=17414 steps=9849 cpu_s=37.6 slot_pass_us=103
+Average:        0    344000         -    0.00    0.00    0.00    0.00    0.00     -  haproxy
+Average:        0         -    344000    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344002    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344003    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344004    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344005    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344006    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344008    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344009    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344010    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344011    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344012    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344013    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344014    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344015    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344016    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344017    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+live=150000 tokens=954805023 errs=0 stalls=8666381 stall_s=24711829 p50_itl_ms=26 p99_itl_ms=325
+Average:        0    251280 1274.00 1487.00    0.00    0.00 2761.00     -  clocksink
+== sample 11 t=00:14:22.496977932
+streams=12500 tokens=85643153 bytes=8221742688 dropped=694453 slow_writes=41 slot_overruns=18050 steps=10059 cpu_s=32.9 slot_pass_us=99
+streams=12500 tokens=85478112 bytes=8205898752 dropped=720243 slow_writes=44 slot_overruns=18924 steps=10044 cpu_s=32.5 slot_pass_us=103
+streams=12500 tokens=85474476 bytes=8205549696 dropped=690306 slow_writes=45 slot_overruns=18217 steps=10050 cpu_s=34.6 slot_pass_us=166
+streams=12500 tokens=85713380 bytes=8228484480 dropped=721628 slow_writes=57 slot_overruns=17975 steps=10065 cpu_s=35.4 slot_pass_us=196
+streams=12500 tokens=85503093 bytes=8208296928 dropped=707979 slow_writes=50 slot_overruns=19160 steps=10039 cpu_s=34.5 slot_pass_us=157
+streams=12500 tokens=85465610 bytes=8204698560 dropped=754314 slow_writes=43 slot_overruns=17802 steps=10038 cpu_s=34.2 slot_pass_us=154
+streams=12500 tokens=85469417 bytes=8205064032 dropped=685767 slow_writes=34 slot_overruns=17834 steps=10033 cpu_s=34.8 slot_pass_us=153
+streams=12500 tokens=85393086 bytes=8197736256 dropped=698926 slow_writes=46 slot_overruns=17932 steps=10025 cpu_s=34.8 slot_pass_us=99
+streams=12500 tokens=85690184 bytes=8226257664 dropped=724785 slow_writes=33 slot_overruns=18180 steps=10055 cpu_s=34.0 slot_pass_us=135
+streams=12500 tokens=85625587 bytes=8220056352 dropped=729464 slow_writes=52 slot_overruns=18241 steps=10047 cpu_s=35.5 slot_pass_us=95
+streams=12500 tokens=85792587 bytes=8236088352 dropped=707692 slow_writes=38 slot_overruns=18062 steps=10062 cpu_s=34.9 slot_pass_us=93
+streams=12500 tokens=85845078 bytes=8241127488 dropped=724240 slow_writes=38 slot_overruns=17881 steps=10065 cpu_s=32.5 slot_pass_us=110
+Average:        0    344000         -    0.00    0.00    0.00    0.00    0.00     -  haproxy
+Average:        0         -    344000    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344002    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344003    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344004    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344005    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344006    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344008    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344009    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344010    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344011    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344012    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344013    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344014    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344015    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344016    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344017    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+live=150000 tokens=986421880 errs=0 stalls=8988566 stall_s=25700780 p50_itl_ms=26 p99_itl_ms=325
+Average:        0    251280  621.78 1052.48    0.00    0.00 1674.26     -  clocksink
+== sample 12 t=00:14:29.926532799
+streams=12500 tokens=88253351 bytes=8472321696 dropped=726864 slow_writes=42 slot_overruns=18514 steps=10270 cpu_s=33.0 slot_pass_us=100
+streams=12500 tokens=88071304 bytes=8454845184 dropped=750736 slow_writes=46 slot_overruns=19418 steps=10254 cpu_s=33.3 slot_pass_us=95
+streams=12500 tokens=88020938 bytes=8450010048 dropped=718842 slow_writes=48 slot_overruns=18691 steps=10256 cpu_s=31.6 slot_pass_us=186
+streams=12500 tokens=88294815 bytes=8476302240 dropped=752594 slow_writes=68 slot_overruns=18433 steps=10274 cpu_s=34.6 slot_pass_us=100
+streams=12500 tokens=88076168 bytes=8455312128 dropped=734983 slow_writes=53 slot_overruns=19650 steps=10247 cpu_s=34.2 slot_pass_us=104
+streams=12500 tokens=88021599 bytes=8450073504 dropped=785883 slow_writes=46 slot_overruns=18263 steps=10245 cpu_s=33.8 slot_pass_us=156
+streams=12500 tokens=88012296 bytes=8449180416 dropped=718008 slow_writes=39 slot_overruns=18292 steps=10239 cpu_s=34.3 slot_pass_us=103
+streams=12500 tokens=87951576 bytes=8443351296 dropped=728018 slow_writes=50 slot_overruns=18378 steps=10232 cpu_s=31.2 slot_pass_us=105
+streams=12500 tokens=88285296 bytes=8475388416 dropped=756296 slow_writes=37 slot_overruns=18668 steps=10265 cpu_s=31.7 slot_pass_us=106
+streams=12500 tokens=88242710 bytes=8471300160 dropped=760853 slow_writes=55 slot_overruns=18721 steps=10259 cpu_s=33.4 slot_pass_us=101
+streams=12500 tokens=88431733 bytes=8489446368 dropped=740590 slow_writes=43 slot_overruns=18528 steps=10275 cpu_s=33.1 slot_pass_us=106
+streams=12500 tokens=88437786 bytes=8490027456 dropped=755761 slow_writes=38 slot_overruns=18314 steps=10275 cpu_s=33.9 slot_pass_us=129
+Average:        0    344000         -    0.00    0.00    0.00    0.00    0.00     -  haproxy
+Average:        0         -    344000    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344002    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344003    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344004    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344005    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344006    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344008    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344009    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344010    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344011    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344012    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344013    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344014    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344015    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344016    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344017    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+live=150000 tokens=1016421518 errs=0 stalls=9315783 stall_s=26701525 p50_itl_ms=26 p99_itl_ms=325
+Average:        0    251280  746.53 1242.57    0.00    0.00 1989.11     -  clocksink
+== sample 13 t=00:14:37.059143081
+streams=12500 tokens=90749393 bytes=8711941728 dropped=755878 slow_writes=42 slot_overruns=18945 steps=10472 cpu_s=30.0 slot_pass_us=103
+streams=12500 tokens=90580659 bytes=8695743264 dropped=780174 slow_writes=48 slot_overruns=19920 steps=10457 cpu_s=29.8 slot_pass_us=95
+streams=12500 tokens=90506945 bytes=8688666720 dropped=745485 slow_writes=51 slot_overruns=19131 steps=10457 cpu_s=32.8 slot_pass_us=138
+streams=12500 tokens=90787196 bytes=8715570816 dropped=785209 slow_writes=68 slot_overruns=18880 steps=10476 cpu_s=30.1 slot_pass_us=205
+streams=12500 tokens=90549357 bytes=8692738272 dropped=761689 slow_writes=57 slot_overruns=20109 steps=10447 cpu_s=30.8 slot_pass_us=132
+streams=12500 tokens=90495012 bytes=8687521152 dropped=812466 slow_writes=46 slot_overruns=18690 steps=10445 cpu_s=30.8 slot_pass_us=172
+streams=12500 tokens=90507058 bytes=8688677568 dropped=748076 slow_writes=39 slot_overruns=18694 steps=10441 cpu_s=30.8 slot_pass_us=128
+streams=12500 tokens=90438848 bytes=8682129408 dropped=753261 slow_writes=51 slot_overruns=18827 steps=10433 cpu_s=32.7 slot_pass_us=140
+streams=12500 tokens=90775417 bytes=8714440032 dropped=784706 slow_writes=38 slot_overruns=19103 steps=10467 cpu_s=32.6 slot_pass_us=96
+streams=12500 tokens=90694356 bytes=8706658176 dropped=790653 slow_writes=57 slot_overruns=19186 steps=10458 cpu_s=30.1 slot_pass_us=147
+streams=12500 tokens=90914299 bytes=8727772704 dropped=771395 slow_writes=45 slot_overruns=18970 steps=10476 cpu_s=31.7 slot_pass_us=149
+streams=12500 tokens=90924755 bytes=8728776480 dropped=782163 slow_writes=38 slot_overruns=18732 steps=10476 cpu_s=30.6 slot_pass_us=117
+Average:        0    344000         -    0.00    0.00    0.00    0.00    0.00     -  haproxy
+Average:        0         -    344000    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344002    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344003    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344004    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344005    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344006    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344008    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344009    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344010    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344011    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344012    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344013    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344014    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344015    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344016    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344017    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+live=150000 tokens=1045180190 errs=0 stalls=9625989 stall_s=27639955 p50_itl_ms=26 p99_itl_ms=325
+Average:        0    251280 1366.34 1471.29    0.00    0.00 2837.62     -  clocksink
+== sample 14 t=00:14:43.759680150
+streams=12500 tokens=93105885 bytes=8938164960 dropped=786789 slow_writes=44 slot_overruns=19367 steps=10663 cpu_s=29.4 slot_pass_us=112
+streams=12500 tokens=92954789 bytes=8923659744 dropped=807630 slow_writes=50 slot_overruns=20360 steps=10650 cpu_s=31.1 slot_pass_us=95
+streams=12500 tokens=92844651 bytes=8913086496 dropped=770155 slow_writes=54 slot_overruns=19563 steps=10646 cpu_s=28.2 slot_pass_us=106
+streams=12500 tokens=93144685 bytes=8941889760 dropped=815253 slow_writes=69 slot_overruns=19317 steps=10667 cpu_s=30.5 slot_pass_us=129
+streams=12500 tokens=92872541 bytes=8915763936 dropped=788498 slow_writes=58 slot_overruns=20557 steps=10635 cpu_s=31.1 slot_pass_us=133
+streams=12500 tokens=92865767 bytes=8915113632 dropped=841697 slow_writes=47 slot_overruns=19113 steps=10637 cpu_s=31.9 slot_pass_us=164
+streams=12500 tokens=92845195 bytes=8913138720 dropped=774797 slow_writes=41 slot_overruns=19110 steps=10631 cpu_s=31.1 slot_pass_us=120
+streams=12500 tokens=92790681 bytes=8907905376 dropped=776431 slow_writes=54 slot_overruns=19234 steps=10623 cpu_s=29.6 slot_pass_us=237
+streams=12500 tokens=93154165 bytes=8942799840 dropped=812294 slow_writes=40 slot_overruns=19532 steps=10659 cpu_s=29.0 slot_pass_us=142
+streams=12500 tokens=93059060 bytes=8933669760 dropped=821000 slow_writes=60 slot_overruns=19634 steps=10649 cpu_s=30.8 slot_pass_us=95
+streams=12500 tokens=93313135 bytes=8958060960 dropped=797598 slow_writes=45 slot_overruns=19378 steps=10670 cpu_s=29.1 slot_pass_us=102
+streams=12500 tokens=93298252 bytes=8956632192 dropped=808616 slow_writes=41 slot_overruns=19145 steps=10668 cpu_s=31.2 slot_pass_us=158
+Average:        0    344000         -    0.00    0.00    0.00    0.00    0.00     -  haproxy
+Average:        0         -    344000    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344002    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344003    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344004    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344005    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344006    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344008    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344009    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344010    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344011    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344012    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344013    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344014    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344015    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344016    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344017    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+live=150000 tokens=1073557516 errs=0 stalls=9928705 stall_s=28546165 p50_itl_ms=26 p99_itl_ms=325
+Average:        0    251280 1174.00 1417.00    0.00    0.00 2591.00     -  clocksink
+== sample 15 t=00:14:50.297312056
+streams=12500 tokens=95461430 bytes=9164297280 dropped=818828 slow_writes=45 slot_overruns=19784 steps=10854 cpu_s=29.0 slot_pass_us=108
+streams=12500 tokens=95289124 bytes=9147755904 dropped=833593 slow_writes=53 slot_overruns=20795 steps=10838 cpu_s=28.0 slot_pass_us=157
+streams=12500 tokens=95185794 bytes=9137836224 dropped=800456 slow_writes=55 slot_overruns=19998 steps=10836 cpu_s=30.5 slot_pass_us=110
+streams=12500 tokens=95478782 bytes=9165963072 dropped=843704 slow_writes=73 slot_overruns=19739 steps=10856 cpu_s=28.0 slot_pass_us=95
+streams=12500 tokens=95197637 bytes=9138973152 dropped=813456 slow_writes=61 slot_overruns=20972 steps=10823 cpu_s=28.5 slot_pass_us=112
+streams=12500 tokens=95199570 bytes=9139158720 dropped=870340 slow_writes=49 slot_overruns=19519 steps=10826 cpu_s=29.1 slot_pass_us=99
+streams=12500 tokens=95167537 bytes=9136083552 dropped=800257 slow_writes=44 slot_overruns=19524 steps=10818 cpu_s=28.4 slot_pass_us=195
+streams=12500 tokens=95117092 bytes=9131240832 dropped=799908 slow_writes=57 slot_overruns=19639 steps=10811 cpu_s=30.8 slot_pass_us=97
+streams=12500 tokens=95450995 bytes=9163295520 dropped=840650 slow_writes=40 slot_overruns=19946 steps=10845 cpu_s=30.6 slot_pass_us=97
+streams=12500 tokens=95371319 bytes=9155646624 dropped=846295 slow_writes=62 slot_overruns=20059 steps=10836 cpu_s=28.7 slot_pass_us=128
+streams=12500 tokens=95658464 bytes=9183212544 dropped=823702 slow_writes=47 slot_overruns=19781 steps=10860 cpu_s=31.3 slot_pass_us=124
+streams=12500 tokens=95660026 bytes=9183362496 dropped=834351 slow_writes=43 slot_overruns=19573 steps=10859 cpu_s=28.8 slot_pass_us=102
+Average:        0    344000         -    0.00    0.00    0.00    0.00    0.00     -  haproxy
+Average:        0         -    344000    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344002    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344003    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344004    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344005    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344006    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344008    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344009    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344010    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344011    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344012    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344013    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344014    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344015    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344016    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344017    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+live=150000 tokens=1104852000 errs=0 stalls=10253075 stall_s=29536237 p50_itl_ms=26 p99_itl_ms=325
+Average:        0    251280 1320.00 1557.00    0.00    0.00 2877.00     -  clocksink
+== sample 16 t=00:14:57.726631222
+streams=12500 tokens=98105838 bytes=9418160448 dropped=849388 slow_writes=48 slot_overruns=20247 steps=11069 cpu_s=34.0 slot_pass_us=101
+streams=12500 tokens=97953094 bytes=9403497024 dropped=864069 slow_writes=56 slot_overruns=21285 steps=11054 cpu_s=35.1 slot_pass_us=109
+streams=12500 tokens=97845923 bytes=9393208608 dropped=834396 slow_writes=56 slot_overruns=20483 steps=11052 cpu_s=32.6 slot_pass_us=145
+streams=12500 tokens=98137167 bytes=9421168032 dropped=872889 slow_writes=76 slot_overruns=20195 steps=11071 cpu_s=34.8 slot_pass_us=94
+streams=12500 tokens=97831481 bytes=9391822176 dropped=842070 slow_writes=64 slot_overruns=21491 steps=11036 cpu_s=34.1 slot_pass_us=165
+streams=12500 tokens=97855811 bytes=9394157856 dropped=901666 slow_writes=50 slot_overruns=19985 steps=11041 cpu_s=34.2 slot_pass_us=162
+streams=12500 tokens=97801351 bytes=9388929696 dropped=828995 slow_writes=47 slot_overruns=19981 steps=11031 cpu_s=35.4 slot_pass_us=177
+streams=12500 tokens=97732600 bytes=9382329600 dropped=831602 slow_writes=61 slot_overruns=20098 steps=11023 cpu_s=33.1 slot_pass_us=94
+streams=12500 tokens=98149471 bytes=9422349216 dropped=867118 slow_writes=40 slot_overruns=20437 steps=11064 cpu_s=33.0 slot_pass_us=95
+streams=12500 tokens=98043100 bytes=9412137600 dropped=874525 slow_writes=64 slot_overruns=20554 steps=11052 cpu_s=34.8 slot_pass_us=95
+streams=12500 tokens=98364612 bytes=9443002752 dropped=858477 slow_writes=48 slot_overruns=20244 steps=11079 cpu_s=32.2 slot_pass_us=215
+streams=12500 tokens=98366700 bytes=9443203200 dropped=865092 slow_writes=43 slot_overruns=20046 steps=11078 cpu_s=34.7 slot_pass_us=161
+Average:        0    344000         -    0.00    0.00    0.00    0.00    0.00     -  haproxy
+Average:        0         -    344000    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344002    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344003    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344004    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344005    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344006    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344008    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344009    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344010    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344011    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344012    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344013    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344014    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344015    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344016    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344017    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+live=150000 tokens=1133961593 errs=0 stalls=10555778 stall_s=30482495 p50_itl_ms=26 p99_itl_ms=325
+Average:        0    251280  487.00 1128.00    0.00    0.00 1615.00     -  clocksink
+== sample 17 t=00:15:04.712701305
+streams=12500 tokens=100562885 bytes=9654036960 dropped=879876 slow_writes=48 slot_overruns=20648 steps=11267 cpu_s=29.8 slot_pass_us=98
+streams=12500 tokens=100359812 bytes=9634541952 dropped=894084 slow_writes=58 slot_overruns=21726 steps=11249 cpu_s=29.4 slot_pass_us=92
+streams=12500 tokens=100273224 bytes=9626229504 dropped=866473 slow_writes=58 slot_overruns=20923 steps=11248 cpu_s=32.3 slot_pass_us=159
+streams=12500 tokens=100560210 bytes=9653780160 dropped=899751 slow_writes=78 slot_overruns=20596 steps=11268 cpu_s=29.2 slot_pass_us=99
+streams=12500 tokens=100239501 bytes=9622992096 dropped=871549 slow_writes=66 slot_overruns=21928 steps=11231 cpu_s=30.0 slot_pass_us=114
+streams=12500 tokens=100271176 bytes=9626032896 dropped=929321 slow_writes=50 slot_overruns=20408 steps=11237 cpu_s=29.4 slot_pass_us=106
+streams=12500 tokens=100233057 bytes=9622373376 dropped=857092 slow_writes=48 slot_overruns=20412 steps=11228 cpu_s=29.3 slot_pass_us=98
+streams=12500 tokens=100131246 bytes=9612599616 dropped=860784 slow_writes=61 slot_overruns=20514 steps=11217 cpu_s=31.0 slot_pass_us=194
+streams=12500 tokens=100596619 bytes=9657275424 dropped=895233 slow_writes=45 slot_overruns=20861 steps=11262 cpu_s=32.3 slot_pass_us=117
+streams=12500 tokens=100466686 bytes=9644801856 dropped=900868 slow_writes=67 slot_overruns=20990 steps=11248 cpu_s=29.8 slot_pass_us=104
+streams=12500 tokens=100782158 bytes=9675087168 dropped=890978 slow_writes=48 slot_overruns=20686 steps=11275 cpu_s=31.0 slot_pass_us=101
+streams=12500 tokens=100800669 bytes=9676864224 dropped=893675 slow_writes=46 slot_overruns=20474 steps=11275 cpu_s=29.5 slot_pass_us=114
+Average:        0    344000         -    0.00    0.00    0.00    0.00    0.00     -  haproxy
+Average:        0         -    344000    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344002    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344003    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344004    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344005    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344006    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344008    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344009    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344010    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344011    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344012    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344013    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344014    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344015    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344016    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344017    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+live=150000 tokens=1161846048 errs=0 stalls=10845741 stall_s=31395374 p50_itl_ms=26 p99_itl_ms=325
+Average:        0    251280  422.00 1057.00    0.00    0.00 1479.00     -  clocksink
+== sample 18 t=00:15:11.249110414
+streams=12500 tokens=102887452 bytes=9877195392 dropped=905329 slow_writes=50 slot_overruns=21045 steps=11455 cpu_s=30.9 slot_pass_us=95
+streams=12500 tokens=102636013 bytes=9853057248 dropped=921971 slow_writes=61 slot_overruns=22149 steps=11433 cpu_s=29.3 slot_pass_us=95
+streams=12500 tokens=102556691 bytes=9845442336 dropped=895612 slow_writes=59 slot_overruns=21348 steps=11433 cpu_s=28.0 slot_pass_us=222
+streams=12500 tokens=102870359 bytes=9875554464 dropped=927176 slow_writes=81 slot_overruns=20996 steps=11454 cpu_s=29.9 slot_pass_us=102
+streams=12500 tokens=102514080 bytes=9841351680 dropped=897027 slow_writes=69 slot_overruns=22371 steps=11415 cpu_s=30.3 slot_pass_us=155
+streams=12500 tokens=102580140 bytes=9847693440 dropped=956066 slow_writes=54 slot_overruns=20813 steps=11424 cpu_s=30.3 slot_pass_us=156
+streams=12500 tokens=102507061 bytes=9840677856 dropped=885684 slow_writes=52 slot_overruns=20825 steps=11412 cpu_s=30.3 slot_pass_us=94
+streams=12500 tokens=102393947 bytes=9829818912 dropped=885625 slow_writes=62 slot_overruns=20953 steps=11400 cpu_s=30.5 slot_pass_us=203
+streams=12500 tokens=102906855 bytes=9879058080 dropped=922148 slow_writes=48 slot_overruns=21264 steps=11448 cpu_s=30.2 slot_pass_us=127
+streams=12500 tokens=102751587 bytes=9864152352 dropped=928426 slow_writes=71 slot_overruns=21414 steps=11433 cpu_s=30.0 slot_pass_us=139
+streams=12500 tokens=103090687 bytes=9896705952 dropped=919888 slow_writes=52 slot_overruns=21091 steps=11462 cpu_s=28.3 slot_pass_us=116
+streams=12500 tokens=103073905 bytes=9895094880 dropped=920413 slow_writes=48 slot_overruns=20871 steps=11459 cpu_s=29.5 slot_pass_us=111
+Average:        0    344000         -    0.00    0.00    0.00    0.00    0.00     -  haproxy
+Average:        0         -    344000    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344002    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344003    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344004    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344005    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344006    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344008    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344009    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344010    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344011    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344012    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344013    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344014    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344015    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344016    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344017    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+live=150000 tokens=1188962825 errs=0 stalls=11132990 stall_s=32267596 p50_itl_ms=26 p99_itl_ms=325
+Average:        0    251280  422.77 1106.93    0.00    0.00 1529.70     -  clocksink
+== sample 19 t=00:15:17.729515094
+streams=12500 tokens=105320760 bytes=10110792960 dropped=934479 slow_writes=51 slot_overruns=21472 steps=11652 cpu_s=29.0 slot_pass_us=93
+streams=12500 tokens=104975469 bytes=10077645024 dropped=947903 slow_writes=63 slot_overruns=22611 steps=11622 cpu_s=28.1 slot_pass_us=129
+streams=12500 tokens=104922005 bytes=10072512480 dropped=924972 slow_writes=59 slot_overruns=21778 steps=11625 cpu_s=30.9 slot_pass_us=93
+streams=12500 tokens=105267500 bytes=10105680000 dropped=954997 slow_writes=84 slot_overruns=21414 steps=11648 cpu_s=28.9 slot_pass_us=107
+streams=12500 tokens=104925666 bytes=10072863936 dropped=922871 slow_writes=69 slot_overruns=22844 steps=11610 cpu_s=29.0 slot_pass_us=139
+streams=12500 tokens=104970992 bytes=10077215232 dropped=986477 slow_writes=54 slot_overruns=21240 steps=11617 cpu_s=29.0 slot_pass_us=157
+streams=12500 tokens=104905286 bytes=10070907456 dropped=913543 slow_writes=53 slot_overruns=21239 steps=11607 cpu_s=30.0 slot_pass_us=102
+streams=12500 tokens=104780744 bytes=10058951424 dropped=911318 slow_writes=65 slot_overruns=21396 steps=11593 cpu_s=29.8 slot_pass_us=168
+streams=12500 tokens=105278185 bytes=10106705760 dropped=950834 slow_writes=48 slot_overruns=21683 steps=11640 cpu_s=29.7 slot_pass_us=98
+streams=12500 tokens=105135113 bytes=10092970848 dropped=957433 slow_writes=73 slot_overruns=21852 steps=11626 cpu_s=28.9 slot_pass_us=93
+streams=12500 tokens=105483064 bytes=10126374144 dropped=952550 slow_writes=52 slot_overruns=21532 steps=11656 cpu_s=29.9 slot_pass_us=113
+streams=12500 tokens=105457499 bytes=10123919904 dropped=949275 slow_writes=48 slot_overruns=21262 steps=11652 cpu_s=29.0 slot_pass_us=130
+Average:        0    344000         -    0.00    0.00    0.00    0.00    0.00     -  haproxy
+Average:        0         -    344000    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344002    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344003    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344004    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344005    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344006    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344008    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344009    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344010    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344011    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344012    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344013    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344014    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344015    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344016    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344017    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+live=150000 tokens=1220616298 errs=0 stalls=11478289 stall_s=33303345 p50_itl_ms=26 p99_itl_ms=325
+Average:        0    251280  379.21 1052.48    0.00    0.00 1431.68     -  clocksink
+== sample 20 t=00:15:25.152141291
+streams=12500 tokens=107889434 bytes=10357385664 dropped=965409 slow_writes=52 slot_overruns=21909 steps=11860 cpu_s=33.0 slot_pass_us=156
+streams=12500 tokens=107499591 bytes=10319960736 dropped=976310 slow_writes=68 slot_overruns=23085 steps=11827 cpu_s=32.9 slot_pass_us=92
+streams=12500 tokens=107469608 bytes=10317082368 dropped=957700 slow_writes=62 slot_overruns=22240 steps=11831 cpu_s=30.2 slot_pass_us=176
+streams=12500 tokens=107823044 bytes=10351012224 dropped=986708 slow_writes=87 slot_overruns=21891 steps=11855 cpu_s=33.3 slot_pass_us=96
+streams=12500 tokens=107457114 bytes=10315882944 dropped=953956 slow_writes=76 slot_overruns=23339 steps=11815 cpu_s=34.4 slot_pass_us=184
+streams=12500 tokens=107478190 bytes=10317906240 dropped=1016780 slow_writes=59 slot_overruns=21700 steps=11820 cpu_s=32.3 slot_pass_us=95
+streams=12500 tokens=107436725 bytes=10313925600 dropped=943515 slow_writes=57 slot_overruns=21668 steps=11811 cpu_s=33.4 slot_pass_us=99
+streams=12500 tokens=107294907 bytes=10300311072 dropped=939503 slow_writes=68 slot_overruns=21870 steps=11797 cpu_s=32.9 slot_pass_us=96
+streams=12500 tokens=107837294 bytes=10352380224 dropped=981679 slow_writes=49 slot_overruns=22137 steps=11848 cpu_s=32.7 slot_pass_us=194
+streams=12500 tokens=107702914 bytes=10339479744 dropped=989578 slow_writes=74 slot_overruns=22313 steps=11834 cpu_s=33.6 slot_pass_us=116
+streams=12500 tokens=108048082 bytes=10372615872 dropped=987512 slow_writes=54 slot_overruns=22002 steps=11864 cpu_s=30.4 slot_pass_us=122
+streams=12500 tokens=108014171 bytes=10369360416 dropped=980187 slow_writes=48 slot_overruns=21710 steps=11859 cpu_s=32.8 slot_pass_us=93
+Average:        0    344000         -    0.00    0.00    0.00    0.00    0.00     -  haproxy
+Average:        0         -    344000    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344002    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344003    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344004    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344005    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344006    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344008    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344009    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344010    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344011    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344012    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344013    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344014    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344015    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344016    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344017    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+live=150000 tokens=1249386401 errs=0 stalls=11781260 stall_s=34214475 p50_itl_ms=26 p99_itl_ms=325
+Average:        0    251280  377.23 1139.60    0.00    0.00 1516.83     -  clocksink
+== sample 21 t=00:15:31.838743900
+streams=12500 tokens=110309603 bytes=10589721888 dropped=995613 slow_writes=54 slot_overruns=22350 steps=12056 cpu_s=29.5 slot_pass_us=97
+streams=12500 tokens=109909479 bytes=10551309984 dropped=1004742 slow_writes=70 slot_overruns=23546 steps=12022 cpu_s=30.1 slot_pass_us=106
+streams=12500 tokens=109904496 bytes=10550831616 dropped=985406 slow_writes=65 slot_overruns=22676 steps=12028 cpu_s=31.3 slot_pass_us=127
+streams=12500 tokens=110240014 bytes=10583041344 dropped=1015113 slow_writes=90 slot_overruns=22343 steps=12051 cpu_s=28.9 slot_pass_us=122
+streams=12500 tokens=109867805 bytes=10547309280 dropped=980829 slow_writes=76 slot_overruns=23794 steps=12010 cpu_s=29.7 slot_pass_us=110
+streams=12500 tokens=109911454 bytes=10551499584 dropped=1046020 slow_writes=60 slot_overruns=22121 steps=12017 cpu_s=30.5 slot_pass_us=120
+streams=12500 tokens=109859517 bytes=10546513632 dropped=970886 slow_writes=60 slot_overruns=22082 steps=12007 cpu_s=29.9 slot_pass_us=97
+streams=12500 tokens=109737620 bytes=10534811520 dropped=966965 slow_writes=68 slot_overruns=22300 steps=11994 cpu_s=29.9 slot_pass_us=92
+streams=12500 tokens=110257652 bytes=10584734592 dropped=1008883 slow_writes=50 slot_overruns=22566 steps=12043 cpu_s=29.5 slot_pass_us=98
+streams=12500 tokens=110135261 bytes=10572985056 dropped=1019817 slow_writes=75 slot_overruns=22741 steps=12031 cpu_s=29.5 slot_pass_us=94
+streams=12500 tokens=110497061 bytes=10607717856 dropped=1020042 slow_writes=58 slot_overruns=22458 steps=12063 cpu_s=31.4 slot_pass_us=93
+streams=12500 tokens=110444463 bytes=10602668352 dropped=1008711 slow_writes=52 slot_overruns=22129 steps=12056 cpu_s=30.2 slot_pass_us=103
+Average:        0    344000         -    0.00    0.00    0.00    0.00    0.00     -  haproxy
+Average:        0         -    344000    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344002    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344003    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344004    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344005    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344006    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344008    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344009    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344010    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344011    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344012    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344013    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344014    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344015    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344016    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344017    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+live=150000 tokens=1279248200 errs=0 stalls=12092923 stall_s=35160926 p50_itl_ms=26 p99_itl_ms=325
+Average:        0    251280  324.75 1195.05    0.00    0.00 1519.80     -  clocksink
+== sample 22 t=00:15:38.801527766
+streams=12500 tokens=112755474 bytes=10824525504 dropped=1024820 slow_writes=56 slot_overruns=22781 steps=12254 cpu_s=31.4 slot_pass_us=96
+streams=12500 tokens=112328034 bytes=10783491264 dropped=1032836 slow_writes=72 slot_overruns=24003 steps=12217 cpu_s=31.5 slot_pass_us=184
+streams=12500 tokens=112329720 bytes=10783653120 dropped=1010134 slow_writes=67 slot_overruns=23111 steps=12224 cpu_s=29.8 slot_pass_us=106
+streams=12500 tokens=112679313 bytes=10817214048 dropped=1043222 slow_writes=92 slot_overruns=22782 steps=12248 cpu_s=31.1 slot_pass_us=156
+streams=12500 tokens=112291431 bytes=10779977376 dropped=1007183 slow_writes=78 slot_overruns=24260 steps=12206 cpu_s=31.1 slot_pass_us=110
+streams=12500 tokens=112329235 bytes=10783606560 dropped=1075080 slow_writes=63 slot_overruns=22562 steps=12213 cpu_s=31.3 slot_pass_us=200
+streams=12500 tokens=112247015 bytes=10775713440 dropped=995854 slow_writes=64 slot_overruns=22492 steps=12200 cpu_s=32.0 slot_pass_us=145
+streams=12500 tokens=112149138 bytes=10766317248 dropped=994530 slow_writes=70 slot_overruns=22718 steps=12190 cpu_s=32.0 slot_pass_us=114
+streams=12500 tokens=112679581 bytes=10817239776 dropped=1036958 slow_writes=53 slot_overruns=22998 steps=12239 cpu_s=31.1 slot_pass_us=100
+streams=12500 tokens=112571053 bytes=10806821088 dropped=1046541 slow_writes=75 slot_overruns=23190 steps=12228 cpu_s=31.4 slot_pass_us=153
+streams=12500 tokens=112920089 bytes=10840328544 dropped=1052988 slow_writes=61 slot_overruns=22894 steps=12259 cpu_s=29.4 slot_pass_us=142
+streams=12500 tokens=112844429 bytes=10833065184 dropped=1035506 slow_writes=56 slot_overruns=22558 steps=12250 cpu_s=31.6 slot_pass_us=191
+Average:        0    344000         -    0.00    0.00    0.00    0.00    0.00     -  haproxy
+Average:        0         -    344000    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344002    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344003    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344004    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344005    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344006    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344008    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344009    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344010    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344011    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344012    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344013    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344014    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344015    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344016    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344017    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+live=150000 tokens=1306944588 errs=0 stalls=12380389 stall_s=36050824 p50_itl_ms=26 p99_itl_ms=325
+Average:        0    251280  403.00 1133.00    0.00    0.00 1536.00     -  clocksink
+== sample 23 t=00:15:45.440879514
+streams=12500 tokens=115091458 bytes=11048779968 dropped=1051341 slow_writes=58 slot_overruns=23185 steps=12443 cpu_s=28.0 slot_pass_us=133
+streams=12500 tokens=114649218 bytes=11006324928 dropped=1061611 slow_writes=75 slot_overruns=24446 steps=12405 cpu_s=28.8 slot_pass_us=179
+streams=12500 tokens=114666695 bytes=11008002720 dropped=1035680 slow_writes=68 slot_overruns=23535 steps=12413 cpu_s=30.9 slot_pass_us=161
+streams=12500 tokens=115026034 bytes=11042499264 dropped=1071489 slow_writes=93 slot_overruns=23200 steps=12439 cpu_s=28.3 slot_pass_us=120
+streams=12500 tokens=114617446 bytes=11003274816 dropped=1031162 slow_writes=79 slot_overruns=24705 steps=12394 cpu_s=28.9 slot_pass_us=168
+streams=12500 tokens=114675717 bytes=11008868832 dropped=1103033 slow_writes=68 slot_overruns=22948 steps=12403 cpu_s=30.1 slot_pass_us=101
+streams=12500 tokens=114549332 bytes=10996735872 dropped=1022216 slow_writes=67 slot_overruns=22918 steps=12387 cpu_s=28.9 slot_pass_us=193
+streams=12500 tokens=114485301 bytes=10990588896 dropped=1019270 slow_writes=70 slot_overruns=23133 steps=12378 cpu_s=28.7 slot_pass_us=120
+streams=12500 tokens=115013910 bytes=11041335360 dropped=1065141 slow_writes=57 slot_overruns=23410 steps=12428 cpu_s=28.6 slot_pass_us=110
+streams=12500 tokens=114893333 bytes=11029759968 dropped=1072115 slow_writes=77 slot_overruns=23600 steps=12416 cpu_s=28.2 slot_pass_us=103
+streams=12500 tokens=115250435 bytes=11064041760 dropped=1082807 slow_writes=62 slot_overruns=23295 steps=12448 cpu_s=29.8 slot_pass_us=123
+streams=12500 tokens=115170297 bytes=11056348512 dropped=1061602 slow_writes=60 slot_overruns=22998 steps=12438 cpu_s=28.5 slot_pass_us=96
+Average:        0    344000         -    0.00    0.00    0.00    0.00    0.00     -  haproxy
+Average:        0         -    344000    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344002    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344003    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344004    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344005    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344006    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344008    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344009    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344010    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344011    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344012    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344013    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344014    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344015    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344016    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344017    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+live=150000 tokens=1334595537 errs=0 stalls=12669923 stall_s=36939933 p50_itl_ms=26 p99_itl_ms=325
+Average:        0    251280  343.00  940.00    0.00    0.00 1283.00     -  clocksink
+== sample 24 t=00:15:51.974916839
+streams=12500 tokens=117426529 bytes=11272946784 dropped=1077886 slow_writes=58 slot_overruns=23604 steps=12632 cpu_s=29.8 slot_pass_us=181
+streams=12500 tokens=116970319 bytes=11229150624 dropped=1086965 slow_writes=77 slot_overruns=24918 steps=12593 cpu_s=31.3 slot_pass_us=98
+streams=12500 tokens=117014051 bytes=11233348896 dropped=1063265 slow_writes=70 slot_overruns=23966 steps=12603 cpu_s=28.0 slot_pass_us=129
+streams=12500 tokens=117344544 bytes=11265076224 dropped=1101023 slow_writes=95 slot_overruns=23598 steps=12626 cpu_s=29.8 slot_pass_us=97
+streams=12500 tokens=116904174 bytes=11222800704 dropped=1056923 slow_writes=82 slot_overruns=25148 steps=12579 cpu_s=29.8 slot_pass_us=107
+streams=12500 tokens=116988012 bytes=11230849152 dropped=1131980 slow_writes=73 slot_overruns=23372 steps=12590 cpu_s=30.3 slot_pass_us=155
+streams=12500 tokens=116856012 bytes=11218177152 dropped=1049333 slow_writes=69 slot_overruns=23342 steps=12573 cpu_s=30.4 slot_pass_us=95
+streams=12500 tokens=116772592 bytes=11210168832 dropped=1044457 slow_writes=71 slot_overruns=23552 steps=12563 cpu_s=30.8 slot_pass_us=163
+streams=12500 tokens=117350293 bytes=11265628128 dropped=1091282 slow_writes=58 slot_overruns=23796 steps=12617 cpu_s=30.9 slot_pass_us=95
+streams=12500 tokens=117217657 bytes=11252895072 dropped=1099865 slow_writes=81 slot_overruns=24035 steps=12604 cpu_s=29.1 slot_pass_us=128
+streams=12500 tokens=117613966 bytes=11290940736 dropped=1109187 slow_writes=65 slot_overruns=23700 steps=12639 cpu_s=28.8 slot_pass_us=156
+streams=12500 tokens=117506932 bytes=11280665472 dropped=1087449 slow_writes=63 slot_overruns=23399 steps=12627 cpu_s=30.3 slot_pass_us=137
+Average:        0    344000         -    0.00    0.00    0.00    0.00    0.00     -  haproxy
+Average:        0         -    344000    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344002    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344003    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344004    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344005    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344006    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344008    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344009    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344010    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344011    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344012    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344013    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344014    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344015    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344016    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344017    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+live=150000 tokens=1364914885 errs=0 stalls=12989186 stall_s=37923185 p50_itl_ms=26 p99_itl_ms=325
+Average:        0    251280  413.00 1045.00    0.00    0.00 1458.00     -  clocksink
+== sample 25 t=00:15:59.238885657
+streams=12500 tokens=120034395 bytes=11523301920 dropped=1108359 slow_writes=63 slot_overruns=24057 steps=12843 cpu_s=31.2 slot_pass_us=103
+streams=12500 tokens=119582795 bytes=11479948320 dropped=1115564 slow_writes=77 slot_overruns=25413 steps=12804 cpu_s=31.4 slot_pass_us=95
+streams=12500 tokens=119606646 bytes=11482238016 dropped=1095636 slow_writes=70 slot_overruns=24433 steps=12813 cpu_s=33.5 slot_pass_us=166
+streams=12500 tokens=119923366 bytes=11512643136 dropped=1136542 slow_writes=95 slot_overruns=24047 steps=12835 cpu_s=31.2 slot_pass_us=147
+streams=12500 tokens=119511050 bytes=11473060800 dropped=1087516 slow_writes=84 slot_overruns=25613 steps=12790 cpu_s=31.9 slot_pass_us=149
+streams=12500 tokens=119582087 bytes=11479880352 dropped=1162894 slow_writes=77 slot_overruns=23830 steps=12800 cpu_s=32.2 slot_pass_us=96
+streams=12500 tokens=119445930 bytes=11466809280 dropped=1079090 slow_writes=69 slot_overruns=23802 steps=12783 cpu_s=31.3 slot_pass_us=116
+streams=12500 tokens=119343219 bytes=11456949024 dropped=1073867 slow_writes=71 slot_overruns=24018 steps=12771 cpu_s=31.4 slot_pass_us=168
+streams=12500 tokens=119983108 bytes=11518378368 dropped=1122136 slow_writes=59 slot_overruns=24242 steps=12831 cpu_s=32.2 slot_pass_us=95
+streams=12500 tokens=119808440 bytes=11501610240 dropped=1134055 slow_writes=82 slot_overruns=24491 steps=12814 cpu_s=31.5 slot_pass_us=164
+streams=12500 tokens=120220764 bytes=11541193344 dropped=1139842 slow_writes=66 slot_overruns=24156 steps=12850 cpu_s=33.2 slot_pass_us=96
+streams=12500 tokens=120082075 bytes=11527879200 dropped=1117202 slow_writes=69 slot_overruns=23864 steps=12836 cpu_s=34.7 slot_pass_us=157
+Average:        0    344000         -    0.00    0.00    0.00    0.00    0.00     -  haproxy
+Average:        0         -    344000    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344002    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344003    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344004    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344005    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344006    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344008    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344009    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344010    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344011    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344012    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344013    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344014    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344015    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344016    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344017    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+live=150000 tokens=1393222987 errs=0 stalls=13286684 stall_s=38836149 p50_itl_ms=26 p99_itl_ms=325
+Average:        0    251280  422.00 1025.00    0.00    0.00 1447.00     -  clocksink
+== sample 26 t=00:16:05.918658276
+streams=12500 tokens=122354041 bytes=11745987936 dropped=1138672 slow_writes=64 slot_overruns=24479 steps=13031 cpu_s=29.7 slot_pass_us=95
+streams=12500 tokens=121915910 bytes=11703927360 dropped=1145365 slow_writes=84 slot_overruns=25875 steps=12994 cpu_s=31.1 slot_pass_us=100
+streams=12500 tokens=121943890 bytes=11706613440 dropped=1125468 slow_writes=72 slot_overruns=24853 steps=13003 cpu_s=28.7 slot_pass_us=94
+streams=12500 tokens=122288807 bytes=11739725472 dropped=1166983 slow_writes=98 slot_overruns=24450 steps=13027 cpu_s=30.5 slot_pass_us=167
+streams=12500 tokens=121845730 bytes=11697190080 dropped=1115339 slow_writes=88 slot_overruns=26057 steps=12980 cpu_s=31.3 slot_pass_us=101
+streams=12500 tokens=121915435 bytes=11703881760 dropped=1191969 slow_writes=79 slot_overruns=24255 steps=12989 cpu_s=31.2 slot_pass_us=180
+streams=12500 tokens=121774140 bytes=11690317440 dropped=1105310 slow_writes=70 slot_overruns=24202 steps=12971 cpu_s=30.0 slot_pass_us=129
+streams=12500 tokens=121671859 bytes=11680498464 dropped=1099567 slow_writes=78 slot_overruns=24422 steps=12960 cpu_s=32.5 slot_pass_us=94
+streams=12500 tokens=122313285 bytes=11742075360 dropped=1153204 slow_writes=62 slot_overruns=24660 steps=13019 cpu_s=30.1 slot_pass_us=176
+streams=12500 tokens=122115607 bytes=11723098272 dropped=1164394 slow_writes=83 slot_overruns=24910 steps=13001 cpu_s=29.5 slot_pass_us=155
+streams=12500 tokens=122566759 bytes=11766408864 dropped=1168864 slow_writes=66 slot_overruns=24579 steps=13040 cpu_s=29.3 slot_pass_us=106
+streams=12500 tokens=122399438 bytes=11750346048 dropped=1144877 slow_writes=70 slot_overruns=24280 steps=13023 cpu_s=28.1 slot_pass_us=101
+Average:        0    344000         -    0.00    1.00    0.00    0.00    1.00     -  haproxy
+Average:        0         -    344000    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344002    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344003    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344004    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344005    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344006    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344008    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344009    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344010    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344011    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344012    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344013    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344014    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344015    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344016    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344017    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+live=150000 tokens=1421565713 errs=0 stalls=13573355 stall_s=39730778 p50_itl_ms=26 p99_itl_ms=325
+Average:        0    251280  399.00 1096.00    0.00    0.00 1495.00     -  clocksink
+== sample 27 t=00:16:12.597823385
+streams=12500 tokens=124780804 bytes=11978957184 dropped=1169895 slow_writes=68 slot_overruns=24899 steps=13228 cpu_s=28.9 slot_pass_us=173
+streams=12500 tokens=124316589 bytes=11934392544 dropped=1179127 slow_writes=86 slot_overruns=26336 steps=13188 cpu_s=29.2 slot_pass_us=97
+streams=12500 tokens=124348444 bytes=11937450624 dropped=1153878 slow_writes=73 slot_overruns=25283 steps=13197 cpu_s=31.2 slot_pass_us=95
+streams=12500 tokens=124724581 bytes=11973559776 dropped=1197839 slow_writes=98 slot_overruns=24868 steps=13224 cpu_s=29.0 slot_pass_us=113
+streams=12500 tokens=124281502 bytes=11931024192 dropped=1142056 slow_writes=90 slot_overruns=26524 steps=13176 cpu_s=29.5 slot_pass_us=194
+streams=12500 tokens=124309410 bytes=11933703360 dropped=1223001 slow_writes=80 slot_overruns=24694 steps=13183 cpu_s=29.0 slot_pass_us=151
+streams=12500 tokens=124171903 bytes=11920502688 dropped=1133432 slow_writes=72 slot_overruns=24617 steps=13165 cpu_s=29.4 slot_pass_us=105
+streams=12500 tokens=124090631 bytes=11912700576 dropped=1126382 slow_writes=79 slot_overruns=24840 steps=13155 cpu_s=29.3 slot_pass_us=176
+streams=12500 tokens=124732720 bytes=11974341120 dropped=1183791 slow_writes=65 slot_overruns=25086 steps=13215 cpu_s=29.8 slot_pass_us=139
+streams=12500 tokens=124522850 bytes=11954193600 dropped=1194149 slow_writes=87 slot_overruns=25354 steps=13196 cpu_s=29.7 slot_pass_us=147
+streams=12500 tokens=124998934 bytes=11999897664 dropped=1199184 slow_writes=75 slot_overruns=25016 steps=13237 cpu_s=30.4 slot_pass_us=114
+streams=12500 tokens=124795899 bytes=11980406304 dropped=1173489 slow_writes=77 slot_overruns=24705 steps=13217 cpu_s=33.1 slot_pass_us=113
+Average:        0    344000         -    0.00    0.00    0.00    0.00    0.00     -  haproxy
+Average:        0         -    344000    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344002    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344003    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344004    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344005    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344006    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344008    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344009    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344010    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344011    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344012    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344013    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344014    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344015    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344016    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344017    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+live=150000 tokens=1450009475 errs=0 stalls=13881051 stall_s=40654808 p50_itl_ms=26 p99_itl_ms=325
+Average:        0    251280  410.00 1036.00    0.00    0.00 1446.00     -  clocksink
+== sample 28 t=00:16:19.351214974
+streams=12500 tokens=127304735 bytes=12221254560 dropped=1200513 slow_writes=72 slot_overruns=25341 steps=13432 cpu_s=31.6 slot_pass_us=97
+streams=12500 tokens=126801226 bytes=12172917696 dropped=1209652 slow_writes=88 slot_overruns=26823 steps=13389 cpu_s=33.4 slot_pass_us=101
+streams=12500 tokens=126845839 bytes=12177200544 dropped=1181544 slow_writes=74 slot_overruns=25706 steps=13399 cpu_s=30.4 slot_pass_us=141
+streams=12500 tokens=127228954 bytes=12213979584 dropped=1231001 slow_writes=100 slot_overruns=25301 steps=13427 cpu_s=31.4 slot_pass_us=121
+streams=12500 tokens=126754048 bytes=12168388608 dropped=1169518 slow_writes=90 slot_overruns=26980 steps=13376 cpu_s=32.8 slot_pass_us=111
+streams=12500 tokens=126782941 bytes=12171162336 dropped=1253970 slow_writes=87 slot_overruns=25125 steps=13384 cpu_s=31.8 slot_pass_us=92
+streams=12500 tokens=126618408 bytes=12155367168 dropped=1161901 slow_writes=75 slot_overruns=25054 steps=13363 cpu_s=31.9 slot_pass_us=136
+streams=12500 tokens=126546327 bytes=12148447392 dropped=1154544 slow_writes=84 slot_overruns=25267 steps=13354 cpu_s=33.1 slot_pass_us=161
+streams=12500 tokens=127246695 bytes=12215682720 dropped=1212985 slow_writes=65 slot_overruns=25539 steps=13419 cpu_s=32.2 slot_pass_us=159
+streams=12500 tokens=127029436 bytes=12194825856 dropped=1228401 slow_writes=88 slot_overruns=25807 steps=13400 cpu_s=32.4 slot_pass_us=168
+streams=12500 tokens=127516649 bytes=12241598304 dropped=1231465 slow_writes=76 slot_overruns=25464 steps=13441 cpu_s=31.5 slot_pass_us=180
+streams=12500 tokens=127292895 bytes=12220117920 dropped=1201483 slow_writes=80 slot_overruns=25150 steps=13419 cpu_s=30.5 slot_pass_us=99
+Average:        0    344000         -    0.00    0.00    0.00    0.00    0.00     -  haproxy
+Average:        0         -    344000    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344002    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344003    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344004    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344005    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344006    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344008    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344009    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344010    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344011    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344012    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344013    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344014    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344015    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344016    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344017    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+live=150000 tokens=1479231226 errs=0 stalls=14188200 stall_s=41609755 p50_itl_ms=26 p99_itl_ms=325
+Average:        0    251280  401.00 1046.00    0.00    0.00 1447.00     -  clocksink
+== sample 29 t=00:16:26.515300710
+streams=12500 tokens=129698461 bytes=12451052256 dropped=1231751 slow_writes=75 slot_overruns=25742 steps=13626 cpu_s=28.4 slot_pass_us=113
+streams=12500 tokens=129213858 bytes=12404530368 dropped=1234550 slow_writes=88 slot_overruns=27283 steps=13584 cpu_s=31.0 slot_pass_us=116
+streams=12500 tokens=129230736 bytes=12406150656 dropped=1209019 slow_writes=74 slot_overruns=26140 steps=13592 cpu_s=31.1 slot_pass_us=96
+streams=12500 tokens=129627707 bytes=12444259872 dropped=1262271 slow_writes=100 slot_overruns=25714 steps=13622 cpu_s=28.2 slot_pass_us=110
+streams=12500 tokens=129150424 bytes=12398440704 dropped=1198091 slow_writes=92 slot_overruns=27422 steps=13570 cpu_s=28.7 slot_pass_us=93
+streams=12500 tokens=129184659 bytes=12401727264 dropped=1285229 slow_writes=88 slot_overruns=25538 steps=13578 cpu_s=28.8 slot_pass_us=140
+streams=12500 tokens=129015022 bytes=12385442112 dropped=1190267 slow_writes=75 slot_overruns=25493 steps=13557 cpu_s=28.7 slot_pass_us=120
+streams=12500 tokens=128948999 bytes=12379103904 dropped=1180510 slow_writes=84 slot_overruns=25663 steps=13548 cpu_s=29.5 slot_pass_us=148
+streams=12500 tokens=129650097 bytes=12446409312 dropped=1239202 slow_writes=67 slot_overruns=25953 steps=13613 cpu_s=28.6 slot_pass_us=96
+streams=12500 tokens=129420667 bytes=12424384032 dropped=1259357 slow_writes=88 slot_overruns=26210 steps=13593 cpu_s=29.1 slot_pass_us=99
+streams=12500 tokens=129916917 bytes=12472024032 dropped=1261168 slow_writes=77 slot_overruns=25880 steps=13636 cpu_s=28.8 slot_pass_us=102
+streams=12500 tokens=129680448 bytes=12449323008 dropped=1226423 slow_writes=82 slot_overruns=25558 steps=13612 cpu_s=30.7 slot_pass_us=116
+Average:        0    344000         -    0.00    0.00    0.00    0.00    0.00     -  haproxy
+Average:        0         -    344000    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344002    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344003    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344004    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344005    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344006    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344008    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344009    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344010    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344011    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344012    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344013    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344014    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344015    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344016    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344017    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+live=150000 tokens=1510648283 errs=0 stalls=14501142 stall_s=42593503 p50_itl_ms=26 p99_itl_ms=325
+Average:        0    251280  421.00 1080.00    0.00    0.00 1501.00     -  clocksink
+== sample 30 t=00:16:33.617930878
+streams=12500 tokens=132224330 bytes=12693535680 dropped=1263702 slow_writes=75 slot_overruns=26193 steps=13831 cpu_s=31.4 slot_pass_us=111
+streams=12500 tokens=131759117 bytes=12648875232 dropped=1261645 slow_writes=89 slot_overruns=27778 steps=13790 cpu_s=30.0 slot_pass_us=165
+streams=12500 tokens=131748946 bytes=12647898816 dropped=1240878 slow_writes=76 slot_overruns=26576 steps=13796 cpu_s=31.0 slot_pass_us=99
+streams=12500 tokens=132143268 bytes=12685753728 dropped=1291772 slow_writes=100 slot_overruns=26167 steps=13826 cpu_s=32.0 slot_pass_us=97
+streams=12500 tokens=131681922 bytes=12641464512 dropped=1229070 slow_writes=94 slot_overruns=27912 steps=13775 cpu_s=32.7 slot_pass_us=109
+streams=12500 tokens=131697356 bytes=12642946176 dropped=1315971 slow_writes=92 slot_overruns=26003 steps=13782 cpu_s=32.5 slot_pass_us=93
+streams=12500 tokens=131512592 bytes=12625208832 dropped=1217721 slow_writes=79 slot_overruns=25960 steps=13760 cpu_s=33.4 slot_pass_us=204
+streams=12500 tokens=131446091 bytes=12618824736 dropped=1208449 slow_writes=87 slot_overruns=26110 steps=13750 cpu_s=33.0 slot_pass_us=102
+streams=12500 tokens=132198143 bytes=12691021728 dropped=1268413 slow_writes=70 slot_overruns=26383 steps=13819 cpu_s=32.7 slot_pass_us=165
+streams=12500 tokens=131951638 bytes=12667357248 dropped=1290861 slow_writes=91 slot_overruns=26669 steps=13798 cpu_s=33.4 slot_pass_us=137
+streams=12500 tokens=132480067 bytes=12718086432 dropped=1296920 slow_writes=79 slot_overruns=26332 steps=13844 cpu_s=32.5 slot_pass_us=117
+streams=12500 tokens=132217605 bytes=12692890080 dropped=1257310 slow_writes=82 slot_overruns=26010 steps=13818 cpu_s=30.9 slot_pass_us=162
+Average:        0    344000         -    0.00    0.00    0.00    0.00    0.00     -  haproxy
+Average:        0         -    344000    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344002    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344003    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344004    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344005    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344006    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344008    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344009    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344010    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344011    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344012    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344013    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344014    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344015    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344016    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344017    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+live=150000 tokens=1539850531 errs=0 stalls=14813289 stall_s=43520612 p50_itl_ms=26 p99_itl_ms=325
+Average:        0    251280  479.00 1104.00    0.00    0.00 1583.00     -  clocksink
+== sample 31 t=00:16:40.625213037
+streams=12500 tokens=134689793 bytes=12930220032 dropped=1297075 slow_writes=77 slot_overruns=26637 steps=14031 cpu_s=31.2 slot_pass_us=167
+streams=12500 tokens=134225505 bytes=12885648480 dropped=1287672 slow_writes=93 slot_overruns=28245 steps=13990 cpu_s=31.4 slot_pass_us=114
+streams=12500 tokens=134233757 bytes=12886440672 dropped=1268613 slow_writes=78 slot_overruns=27026 steps=13997 cpu_s=32.0 slot_pass_us=137
+streams=12500 tokens=134603982 bytes=12921982272 dropped=1318506 slow_writes=104 slot_overruns=26606 steps=14024 cpu_s=31.2 slot_pass_us=102
+streams=12500 tokens=134156299 bytes=12879004704 dropped=1259678 slow_writes=96 slot_overruns=28383 steps=13976 cpu_s=30.5 slot_pass_us=96
+streams=12500 tokens=134199392 bytes=12883141632 dropped=1345624 slow_writes=96 slot_overruns=26443 steps=13984 cpu_s=31.1 slot_pass_us=98
+streams=12500 tokens=134010282 bytes=12864987072 dropped=1245013 slow_writes=81 slot_overruns=26400 steps=13961 cpu_s=30.3 slot_pass_us=194
+streams=12500 tokens=133931631 bytes=12857436576 dropped=1235417 slow_writes=87 slot_overruns=26532 steps=13951 cpu_s=30.0 slot_pass_us=98
+streams=12500 tokens=134715918 bytes=12932728128 dropped=1300551 slow_writes=71 slot_overruns=26831 steps=14023 cpu_s=30.4 slot_pass_us=95
+streams=12500 tokens=134450862 bytes=12907282752 dropped=1321482 slow_writes=93 slot_overruns=27111 steps=14001 cpu_s=30.3 slot_pass_us=94
+streams=12500 tokens=134989358 bytes=12958978368 dropped=1333658 slow_writes=83 slot_overruns=26785 steps=14047 cpu_s=30.4 slot_pass_us=188
+streams=12500 tokens=134728056 bytes=12933893280 dropped=1287507 slow_writes=83 slot_overruns=26442 steps=14021 cpu_s=32.8 slot_pass_us=103
+Average:        0    344000         -    0.00    0.00    0.00    0.00    0.00     -  haproxy
+Average:        0         -    344000    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344002    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344003    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344004    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344005    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344006    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344008    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344009    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344010    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344011    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344012    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344013    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344014    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344015    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344016    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344017    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+live=150000 tokens=1569334484 errs=0 stalls=15125432 stall_s=44465087 p50_itl_ms=26 p99_itl_ms=325
+Average:        0    251280  459.00 1071.00    0.00    0.00 1530.00     -  clocksink
+== sample 32 t=00:16:47.473406000
+streams=12500 tokens=137124651 bytes=13163966496 dropped=1330528 slow_writes=78 slot_overruns=27047 steps=14228 cpu_s=29.4 slot_pass_us=97
+streams=12500 tokens=136660807 bytes=13119437472 dropped=1312638 slow_writes=93 slot_overruns=28705 steps=14186 cpu_s=28.6 slot_pass_us=212
+streams=12500 tokens=136667024 bytes=13120034304 dropped=1297116 slow_writes=81 slot_overruns=27465 steps=14194 cpu_s=29.5 slot_pass_us=97
+streams=12500 tokens=137017726 bytes=13153701696 dropped=1348388 slow_writes=104 slot_overruns=27029 steps=14220 cpu_s=28.4 slot_pass_us=102
+streams=12500 tokens=136537645 bytes=13107613920 dropped=1285967 slow_writes=103 slot_overruns=28855 steps=14168 cpu_s=31.1 slot_pass_us=97
+streams=12500 tokens=136623547 bytes=13115860512 dropped=1371490 slow_writes=100 slot_overruns=26862 steps=14180 cpu_s=30.9 slot_pass_us=93
+streams=12500 tokens=136407664 bytes=13095135744 dropped=1272675 slow_writes=81 slot_overruns=26827 steps=14156 cpu_s=30.9 slot_pass_us=95
+streams=12500 tokens=136334952 bytes=13088155392 dropped=1264690 slow_writes=90 slot_overruns=26964 steps=14146 cpu_s=31.5 slot_pass_us=92
+streams=12500 tokens=137158006 bytes=13167168576 dropped=1333436 slow_writes=71 slot_overruns=27250 steps=14221 cpu_s=31.1 slot_pass_us=103
+streams=12500 tokens=136878564 bytes=13140342144 dropped=1351450 slow_writes=95 slot_overruns=27541 steps=14197 cpu_s=31.7 slot_pass_us=96
+streams=12500 tokens=137415665 bytes=13191903840 dropped=1369858 slow_writes=85 slot_overruns=27223 steps=14244 cpu_s=31.0 slot_pass_us=95
+streams=12500 tokens=137165178 bytes=13167857088 dropped=1316631 slow_writes=85 slot_overruns=26843 steps=14218 cpu_s=29.5 slot_pass_us=160
+Average:        0    344000         -    0.00    0.00    0.00    0.00    0.00     -  haproxy
+Average:        0         -    344000    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344002    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344003    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344004    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344005    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344006    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344008    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344009    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344010    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344011    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344012    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344013    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344014    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344015    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344016    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344017    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+live=150000 tokens=1600304890 errs=0 stalls=15458539 stall_s=45464143 p50_itl_ms=26 p99_itl_ms=325
+Average:        0    251280  465.00 1092.00    0.00    0.00 1557.00     -  clocksink
+== sample 33 t=00:16:54.701179238
+streams=12500 tokens=139678330 bytes=13409119680 dropped=1364396 slow_writes=83 slot_overruns=27544 steps=14435 cpu_s=33.8 slot_pass_us=183
+streams=12500 tokens=139210411 bytes=13364199456 dropped=1338067 slow_writes=95 slot_overruns=29214 steps=14392 cpu_s=32.5 slot_pass_us=142
+streams=12500 tokens=139198156 bytes=13363022976 dropped=1329154 slow_writes=85 slot_overruns=27917 steps=14399 cpu_s=33.1 slot_pass_us=136
+streams=12500 tokens=139554002 bytes=13397184192 dropped=1380939 slow_writes=107 slot_overruns=27477 steps=14425 cpu_s=32.9 slot_pass_us=168
+streams=12500 tokens=139065798 bytes=13350316608 dropped=1315846 slow_writes=104 slot_overruns=29349 steps=14373 cpu_s=32.2 slot_pass_us=123
+streams=12500 tokens=139191399 bytes=13362374304 dropped=1402561 slow_writes=101 slot_overruns=27303 steps=14388 cpu_s=32.7 slot_pass_us=107
+streams=12500 tokens=138966089 bytes=13340744544 dropped=1301709 slow_writes=85 slot_overruns=27252 steps=14362 cpu_s=32.1 slot_pass_us=104
+streams=12500 tokens=138883933 bytes=13332857568 dropped=1294943 slow_writes=93 slot_overruns=27422 steps=14352 cpu_s=31.5 slot_pass_us=107
+streams=12500 tokens=139724147 bytes=13413518112 dropped=1367358 slow_writes=75 slot_overruns=27722 steps=14429 cpu_s=31.4 slot_pass_us=198
+streams=12500 tokens=139434224 bytes=13385685504 dropped=1383313 slow_writes=99 slot_overruns=28036 steps=14404 cpu_s=33.2 slot_pass_us=95
+streams=12500 tokens=140016700 bytes=13441603200 dropped=1406349 slow_writes=88 slot_overruns=27662 steps=14455 cpu_s=31.3 slot_pass_us=98
+streams=12500 tokens=139732764 bytes=13414345344 dropped=1349058 slow_writes=86 slot_overruns=27270 steps=14426 cpu_s=32.9 slot_pass_us=148
+Average:        0    344000         -    0.00    0.00    0.00    0.00    0.00     -  haproxy
+Average:        0         -    344000    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344002    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344003    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344004    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344005    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344006    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344008    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344009    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344010    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344011    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344012    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344013    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344014    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344015    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344016    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344017    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+live=150000 tokens=1636255492 errs=0 stalls=15841129 stall_s=46614800 p50_itl_ms=26 p99_itl_ms=325
+Average:        0    251280  389.11 1100.99    0.00    0.00 1490.10     -  clocksink
+== sample 34 t=00:17:02.960383737
+streams=12500 tokens=142668619 bytes=13696187424 dropped=1403236 slow_writes=85 slot_overruns=28053 steps=14678 cpu_s=36.4 slot_pass_us=102
+streams=12500 tokens=142157248 bytes=13647095808 dropped=1369484 slow_writes=95 slot_overruns=29775 steps=14631 cpu_s=35.5 slot_pass_us=126
+streams=12500 tokens=142166753 bytes=13648008288 dropped=1360691 slow_writes=89 slot_overruns=28419 steps=14640 cpu_s=38.2 slot_pass_us=157
+streams=12500 tokens=142567978 bytes=13686525888 dropped=1417031 slow_writes=112 slot_overruns=28007 steps=14669 cpu_s=36.7 slot_pass_us=99
+streams=12500 tokens=142036502 bytes=13635504192 dropped=1349593 slow_writes=105 slot_overruns=29896 steps=14613 cpu_s=36.5 slot_pass_us=143
+streams=12500 tokens=142197171 bytes=13650928416 dropped=1435377 slow_writes=103 slot_overruns=27847 steps=14631 cpu_s=36.9 slot_pass_us=149
+streams=12500 tokens=141902645 bytes=13622653920 dropped=1334175 slow_writes=88 slot_overruns=27760 steps=14600 cpu_s=39.0 slot_pass_us=94
+streams=12500 tokens=141844655 bytes=13617086880 dropped=1328719 slow_writes=97 slot_overruns=27962 steps=14592 cpu_s=38.6 slot_pass_us=99
+streams=12500 tokens=142710789 bytes=13700235744 dropped=1405720 slow_writes=81 slot_overruns=28238 steps=14671 cpu_s=39.5 slot_pass_us=104
+streams=12500 tokens=142412005 bytes=13671552480 dropped=1418091 slow_writes=100 slot_overruns=28565 steps=14645 cpu_s=36.7 slot_pass_us=174
+streams=12500 tokens=143015614 bytes=13729498944 dropped=1444025 slow_writes=88 slot_overruns=28184 steps=14698 cpu_s=37.8 slot_pass_us=106
+streams=12500 tokens=142721973 bytes=13701309408 dropped=1383873 slow_writes=87 slot_overruns=27760 steps=14668 cpu_s=35.8 slot_pass_us=160
+Average:        0    344000         -    0.00    0.00    0.00    0.00    0.00     -  haproxy
+Average:        0         -    344000    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344002    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344003    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344004    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344005    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344006    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344008    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344009    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344010    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344011    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344012    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344013    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344014    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344015    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344016    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344017    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+live=150000 tokens=1666381216 errs=0 stalls=16155441 stall_s=47586077 p50_itl_ms=26 p99_itl_ms=325
+Average:        0    251280  422.00 1013.00    0.00    7.00 1435.00     -  clocksink
+== sample 35 t=00:17:10.082304048
+streams=12500 tokens=145269417 bytes=13945864032 dropped=1435854 slow_writes=89 slot_overruns=28501 steps=14888 cpu_s=31.7 slot_pass_us=94
+streams=12500 tokens=144726083 bytes=13893703968 dropped=1397361 slow_writes=99 slot_overruns=30246 steps=14838 cpu_s=33.4 slot_pass_us=95
+streams=12500 tokens=144800687 bytes=13900865952 dropped=1385542 slow_writes=91 slot_overruns=28889 steps=14852 cpu_s=32.2 slot_pass_us=93
+streams=12500 tokens=145185980 bytes=13937854080 dropped=1448990 slow_writes=115 slot_overruns=28455 steps=14881 cpu_s=32.2 slot_pass_us=121
+streams=12500 tokens=144631898 bytes=13884662208 dropped=1379119 slow_writes=107 slot_overruns=30402 steps=14823 cpu_s=32.5 slot_pass_us=141
+streams=12500 tokens=144767432 bytes=13897673472 dropped=1465042 slow_writes=104 slot_overruns=28297 steps=14839 cpu_s=32.6 slot_pass_us=93
+streams=12500 tokens=144515997 bytes=13873535712 dropped=1364281 slow_writes=90 slot_overruns=28196 steps=14811 cpu_s=34.3 slot_pass_us=99
+streams=12500 tokens=144420518 bytes=13864369728 dropped=1359059 slow_writes=98 slot_overruns=28421 steps=14801 cpu_s=31.4 slot_pass_us=96
+streams=12500 tokens=145316882 bytes=13950420672 dropped=1437166 slow_writes=84 slot_overruns=28699 steps=14882 cpu_s=33.0 slot_pass_us=100
+streams=12500 tokens=144955671 bytes=13915744416 dropped=1449374 slow_writes=101 slot_overruns=29025 steps=14852 cpu_s=32.2 slot_pass_us=132
+streams=12500 tokens=145608072 bytes=13978374912 dropped=1478028 slow_writes=89 slot_overruns=28649 steps=14909 cpu_s=31.0 slot_pass_us=102
+streams=12500 tokens=145292886 bytes=13948117056 dropped=1413942 slow_writes=89 slot_overruns=28210 steps=14876 cpu_s=33.2 slot_pass_us=135
+Average:        0    344000         -    0.00    0.00    0.00    0.00    0.00     -  haproxy
+Average:        0         -    344000    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344002    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344003    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344004    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344005    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344006    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344008    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344009    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344010    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344011    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344012    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344013    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344014    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344015    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344016    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344017    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+live=150000 tokens=1698681798 errs=0 stalls=16500327 stall_s=48643585 p50_itl_ms=26 p99_itl_ms=325
+Average:        0    251280  411.00 1054.00    0.00   10.00 1465.00     -  clocksink
+== sample 36 t=00:17:17.767610164
+streams=12500 tokens=147911186 bytes=14199473856 dropped=1468982 slow_writes=93 slot_overruns=28970 steps=15102 cpu_s=31.9 slot_pass_us=92
+streams=12500 tokens=147347024 bytes=14145314304 dropped=1426780 slow_writes=99 slot_overruns=30748 steps=15051 cpu_s=31.6 slot_pass_us=109
+streams=12500 tokens=147479305 bytes=14158013280 dropped=1413892 slow_writes=93 slot_overruns=29357 steps=15069 cpu_s=34.2 slot_pass_us=177
+streams=12500 tokens=147822037 bytes=14190915552 dropped=1482318 slow_writes=118 slot_overruns=28904 steps=15095 cpu_s=32.3 slot_pass_us=112
+streams=12500 tokens=147248449 bytes=14135851104 dropped=1412557 slow_writes=111 slot_overruns=30900 steps=15035 cpu_s=31.7 slot_pass_us=154
+streams=12500 tokens=147411529 bytes=14151506784 dropped=1495917 slow_writes=104 slot_overruns=28783 steps=15053 cpu_s=31.5 slot_pass_us=253
+streams=12500 tokens=147116318 bytes=14123166528 dropped=1399236 slow_writes=90 slot_overruns=28636 steps=15022 cpu_s=32.1 slot_pass_us=170
+streams=12500 tokens=147053129 bytes=14117100384 dropped=1387797 slow_writes=102 slot_overruns=28898 steps=15013 cpu_s=34.5 slot_pass_us=104
+streams=12500 tokens=148006450 bytes=14208619200 dropped=1472529 slow_writes=84 slot_overruns=29147 steps=15100 cpu_s=33.0 slot_pass_us=155
+streams=12500 tokens=147634283 bytes=14172891168 dropped=1483224 slow_writes=104 slot_overruns=29501 steps=15068 cpu_s=32.4 slot_pass_us=159
+streams=12500 tokens=148295632 bytes=14236380672 dropped=1514997 slow_writes=89 slot_overruns=29141 steps=15126 cpu_s=33.9 slot_pass_us=151
+streams=12500 tokens=147962040 bytes=14204355840 dropped=1445160 slow_writes=95 slot_overruns=28679 steps=15093 cpu_s=35.0 slot_pass_us=103
+Average:        0    344000         -    0.00    0.00    0.00    0.00    0.00     -  haproxy
+Average:        0         -    344000    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344002    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344003    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344004    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344005    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344006    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344008    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344009    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344010    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344011    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344012    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344013    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344014    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344015    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344016    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344017    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+live=150000 tokens=1726924336 errs=0 stalls=16801462 stall_s=49572402 p50_itl_ms=26 p99_itl_ms=325
+Average:        0    251280  423.00 1004.00    0.00   10.00 1427.00     -  clocksink
+== sample 37 t=00:17:24.512336572
+streams=12500 tokens=150452005 bytes=14443392480 dropped=1503206 slow_writes=95 slot_overruns=29438 steps=15308 cpu_s=31.8 slot_pass_us=174
+streams=12500 tokens=149855337 bytes=14386112352 dropped=1455533 slow_writes=103 slot_overruns=31241 steps=15253 cpu_s=32.4 slot_pass_us=98
+streams=12500 tokens=149999976 bytes=14399997696 dropped=1444459 slow_writes=93 slot_overruns=29786 steps=15273 cpu_s=30.4 slot_pass_us=98
+streams=12500 tokens=150344496 bytes=14433071616 dropped=1515397 slow_writes=122 slot_overruns=29359 steps=15299 cpu_s=31.6 slot_pass_us=147
+streams=12500 tokens=149741749 bytes=14375207904 dropped=1444228 slow_writes=113 slot_overruns=31385 steps=15237 cpu_s=32.0 slot_pass_us=118
+streams=12500 tokens=149906313 bytes=14391006048 dropped=1526134 slow_writes=111 slot_overruns=29246 steps=15255 cpu_s=31.6 slot_pass_us=99
+streams=12500 tokens=149587420 bytes=14360392320 dropped=1430373 slow_writes=91 slot_overruns=29084 steps=15222 cpu_s=32.7 slot_pass_us=97
+streams=12500 tokens=149537627 bytes=14355612192 dropped=1417825 slow_writes=106 slot_overruns=29336 steps=15215 cpu_s=32.8 slot_pass_us=120
+streams=12500 tokens=150522991 bytes=14450207136 dropped=1507101 slow_writes=85 slot_overruns=29616 steps=15305 cpu_s=31.8 slot_pass_us=94
+streams=12500 tokens=150138228 bytes=14413269888 dropped=1516713 slow_writes=104 slot_overruns=29980 steps=15271 cpu_s=32.0 slot_pass_us=117
+streams=12500 tokens=150811769 bytes=14477929824 dropped=1548826 slow_writes=90 slot_overruns=29579 steps=15330 cpu_s=32.2 slot_pass_us=164
+streams=12500 tokens=150465258 bytes=14444664768 dropped=1479420 slow_writes=97 slot_overruns=29130 steps=15296 cpu_s=30.0 slot_pass_us=171
+Average:        0    344000         -    0.00    0.00    0.00    0.00    0.00     -  haproxy
+Average:        0         -    344000    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344002    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344003    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344004    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344005    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344006    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344008    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344009    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344010    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344011    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344012    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344013    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344014    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344015    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344016    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+Average:        0         -    344017    0.00    0.00    0.00    0.00    0.00     -  |__haproxy
+live=150000 tokens=1758267887 errs=0 stalls=17132269 stall_s=50564901 p50_itl_ms=26 p99_itl_ms=325
+Average:        0    251280  389.00 1044.00    0.00    9.00 1433.00     -  clocksink

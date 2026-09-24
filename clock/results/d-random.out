@@ -1,0 +1,45 @@
+== random N=25000 00:43:57
+4
+4
+4
+emitters_up=4 phase=random
+emitters_up=4 phase=random
+emitters_up=4 phase=random
+0
+  rep 1: live=25000 rate=998966 stall_s=0 drops=0 slow=2 slip=589941 em_cpu=1277.7
+  rep 2: live=25000 rate=1002118 stall_s=0 drops=0 slow=2 slip=1029370 em_cpu=1108.3
+  rep 3: live=25000 rate=997089 stall_s=0 drops=0 slow=2 slip=1469469 em_cpu=1105.7
+== random N=50000 00:48:16
+4
+4
+4
+emitters_up=4 phase=random
+emitters_up=4 phase=random
+emitters_up=4 phase=random
+0
+  rep 1: live=50000 rate=2034287 stall_s=0 drops=0 slow=9 slip=623446 em_cpu=2579.7
+  rep 2: live=50000 rate=1981974 stall_s=0 drops=0 slow=12 slip=1066660 em_cpu=2226.2
+  rep 3: live=50000 rate=1991647 stall_s=0 drops=0 slow=12 slip=1512139 em_cpu=2231.6
+== random N=75000 00:52:41
+4
+4
+4
+emitters_up=4 phase=random
+emitters_up=4 phase=random
+emitters_up=4 phase=random
+0
+  rep 1: live=75000 rate=3012944 stall_s=7 drops=0 slow=26 slip=641430 em_cpu=4196.9
+  rep 2: live=75000 rate=2993639 stall_s=1618 drops=0 slow=32 slip=1033570 em_cpu=3361.2
+  rep 3: live=75000 rate=4462061 stall_s=2788 drops=0 slow=43 slip=1418229 em_cpu=3364.8
+== random N=100000 00:57:18
+4
+4
+4
+emitters_up=4 phase=random
+emitters_up=4 phase=random
+emitters_up=4 phase=random
+0
+  rep 1: live=100000 rate=2038339 stall_s=1373971 drops=0 slow=44 slip=753942 em_cpu=5952.7
+  rep 2: live=100000 rate=4288409 stall_s=2731267 drops=0 slow=56 slip=1200358 em_cpu=4450.3
+  rep 3: live=100000 rate=3982796 stall_s=4045092 drops=0 slow=67 slip=1647729 em_cpu=4429.7
+1

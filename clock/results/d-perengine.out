@@ -1,0 +1,45 @@
+== per-engine N=25000 01:02:09
+4
+4
+4
+emitters_up=4 phase=per-engine
+emitters_up=4 phase=per-engine
+emitters_up=4 phase=per-engine
+0
+  rep 1: live=25000 rate=998306 stall_s=0 drops=0 slow=6 slip=617256 em_cpu=1284.5
+  rep 2: live=25000 rate=997737 stall_s=0 drops=0 slow=6 slip=1085183 em_cpu=1109.4
+  rep 3: live=25000 rate=994647 stall_s=0 drops=0 slow=8 slip=1553314 em_cpu=1106.5
+== per-engine N=50000 01:06:28
+4
+4
+4
+emitters_up=4 phase=per-engine
+emitters_up=4 phase=per-engine
+emitters_up=4 phase=per-engine
+0
+  rep 1: live=50000 rate=2130260 stall_s=0 drops=0 slow=17 slip=646066 em_cpu=2728.5
+  rep 2: live=50000 rate=2031709 stall_s=0 drops=0 slow=18 slip=1076585 em_cpu=2213.4
+  rep 3: live=50000 rate=1988946 stall_s=0 drops=0 slow=25 slip=1506559 em_cpu=2204.7
+== per-engine N=75000 01:10:59
+4
+4
+4
+emitters_up=4 phase=per-engine
+emitters_up=4 phase=per-engine
+emitters_up=4 phase=per-engine
+0
+  rep 1: live=75000 rate=3005415 stall_s=1526 drops=0 slow=24 slip=656318 em_cpu=4375.8
+  rep 2: live=75000 rate=3000112 stall_s=1533 drops=0 slow=38 slip=1041157 em_cpu=3352.7
+  rep 3: live=75000 rate=4339442 stall_s=2585 drops=0 slow=42 slip=1425634 em_cpu=3344.7
+== per-engine N=100000 01:15:42
+4
+4
+4
+emitters_up=4 phase=per-engine
+emitters_up=4 phase=per-engine
+emitters_up=4 phase=per-engine
+0
+  rep 1: live=100000 rate=4019087 stall_s=1503437 drops=0 slow=63 slip=759308 em_cpu=6136.2
+  rep 2: live=100000 rate=2473521 stall_s=2829529 drops=0 slow=96 slip=1185110 em_cpu=4379.9
+  rep 3: live=100000 rate=4124136 stall_s=4208325 drops=0 slow=113 slip=1612348 em_cpu=4357.1
+1

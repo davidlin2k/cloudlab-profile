@@ -24,3 +24,12 @@ emitters_up=4 phase=aligned
 emitters_up=4 phase=aligned
 emitters_up=4 phase=aligned
 0
+rate=2470893 tok/s live=150000 tokens=2112180622 errs=0 stalls=12192822 stall_s=19080122 p50_itl_ms=0 p99_itl_ms=292
+== bypass N=150000 mode=aligned 00:09:09
+4
+4
+4
+emitters_up=4 phase=aligned
+emitters_up=4 phase=aligned
+emitters_up=4 phase=aligned
+0
