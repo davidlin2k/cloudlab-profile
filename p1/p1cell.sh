@@ -27,7 +27,7 @@ echo "== p1cell $CELL rep$REP $START_ISO warm=$WARM meas=$MEAS"
 # exact-name strays only (pkill -f self-matches the invoking shell)
 pkill -xc k2_rx >/dev/null 2>&1; pkill -xc k5blast >/dev/null 2>&1; pkill -xc k4send >/dev/null 2>&1
 for o in $TXOCTS; do
-  ssh -n -o StrictHostKeyChecking=no -o ConnectTimeout=8 davidlin@10.10.1.$o \
+  ssh -n -o ControlPath=/tmp/p1mux-%r@%h -o ControlPersist=600 -o StrictHostKeyChecking=no -o ConnectTimeout=8 davidlin@10.10.1.$o \
     "sudo pkill -xc k5blast >/dev/null 2>&1; sudo pkill -xc k4send >/dev/null 2>&1; true" 2>/dev/null
 done
 exec 9>/dev/cpu_dma_latency; echo 0 >&9
@@ -60,11 +60,11 @@ SPORTS=($W1_SPORTS); LPORTS=($W2_LPORTS); OCTS=($TXOCTS)
 for idx in 0 1 2 3 4; do
   o=${OCTS[$idx]}
   if [ "$WORK" = W1 ]; then
-    ssh -n -o StrictHostKeyChecking=no -o ConnectTimeout=8 davidlin@10.10.1.$o \
+    ssh -n -o ControlPath=/tmp/p1mux-%r@%h -o ControlPersist=600 -o StrictHostKeyChecking=no -o ConnectTimeout=8 davidlin@10.10.1.$o \
       "sudo bash -c 'nohup /root/k2/k5blast --dip 10.10.1.1 --sip $o --sport ${SPORTS[$idx]} --dport 7777 --n $N --rate $RPS_PER --plen $PLEN --core 4 >/tmp/p1snd-$o.txt 2>&1 </dev/null &'" \
       || echo "FAIL launch sender $o"
   else
-    ssh -n -o StrictHostKeyChecking=no -o ConnectTimeout=8 davidlin@10.10.1.$o \
+    ssh -n -o ControlPath=/tmp/p1mux-%r@%h -o ControlPersist=600 -o StrictHostKeyChecking=no -o ConnectTimeout=8 davidlin@10.10.1.$o \
       "sudo bash -c 'nohup /root/k2/k4send --dip 10.10.1.1 --sip $o --qmap 0:7778 --lport ${LPORTS[$idx]} --n $N --plen $PLEN --depth 32 --rate $RPS_PER --follow 0 --core 4 --dump /tmp/p1hist-$o.txt >/tmp/p1snd-$o.txt 2>&1 </dev/null &'" \
       || echo "FAIL launch sender $o"
   fi
@@ -81,14 +81,14 @@ for o in $TXOCTS; do
   for try in 1 2 3 4; do
     [ -s "$OUT/sender-$o.txt" ] && grep -q "sent=" "$OUT/sender-$o.txt" && break
     sleep 1
-    ssh -n -o StrictHostKeyChecking=no -o ConnectTimeout=8 davidlin@10.10.1.$o \
+    ssh -n -o ControlPath=/tmp/p1mux-%r@%h -o ControlPersist=600 -o StrictHostKeyChecking=no -o ConnectTimeout=8 davidlin@10.10.1.$o \
       "cat /tmp/p1snd-$o.txt" > "$OUT/sender-$o.txt" 2>/dev/null
   done
   if [ "$WORK" = W2 ]; then
     for try in 1 2 3 4; do
       [ -s "$OUT/hist-$o.txt" ] && break
       sleep 1
-      ssh -n -o StrictHostKeyChecking=no -o ConnectTimeout=8 davidlin@10.10.1.$o \
+      ssh -n -o ControlPath=/tmp/p1mux-%r@%h -o ControlPersist=600 -o StrictHostKeyChecking=no -o ConnectTimeout=8 davidlin@10.10.1.$o \
         "cat /tmp/p1hist-$o.txt" > "$OUT/hist-$o.txt" 2>/dev/null
     done
   fi
@@ -152,7 +152,7 @@ awk -v s="$SENT" -v r="$RPS_PER" -v t="$TOT" \
 cat > "$OUT/manifest.json" <<EOF
 {
   "run_id": "p1-LADDER/$(date -u +%F)/$CELL/rep$REP",
-  "spec": "p1-LADDER", "spec_version": 1,
+  "spec": "p1-LADDER", "spec_version": ${SPEC_VERSION:-2},
   "git": {"harness": "$(cat /root/p1/harness-sha 2>/dev/null || echo uncommitted)", "analysis": "n/a"},
   "time": {"start": "$START_ISO", "end": "$END_ISO", "warmup_s": $WARM, "measure_s": $MEAS},
   "nodes": {"receiver": "clnode366", "senders": ["clnode311", "clnode312", "clnode313", "clnode331", "tx0"]},
