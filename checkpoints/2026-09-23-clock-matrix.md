@@ -197,3 +197,16 @@ Next: D2 tokens-diff rerun (in flight) -> spot burst captures per
 cell for the achieved-alignment covariate -> fan-in escalation for
 the retransmission signature -> coalesce+multiplex emitter (the
 enabler of real wire bursts).
+
+## CHECKPOINT 2026-09-24 02:40 UTC — work stops here (PI)
+Records written per lab handbook: notes/C1-CLOCK-1.md (result note),
+FINDINGS.md C1-CLOCK.1 + C1-CLOCK.2 (level H), CLAIMS.md C-001/C-002
+(pending) + C-003 (contested), AN-001, AN-002.
+State at stop: D2 tokens-diff rerun RUNNING in background (launched
+02:0x; outputs land in clock/results/d2-*.out and <mode>.csv —
+UNANALYZED at stop time). Everything else committed and pushed.
+Next session in order: (1) analyze D2 (d_analyze.py, tokens diff),
+(2) per-cell spot burst captures 25k-100k for the achieved-alignment
+covariate, (3) fan-in escalation (more source IPs/ports) for
+ExaServe's retransmission signature, (4) coalesce+multiplex emitter
+to make real wire bursts possible, (5) F-C1-CLOCK-1 generation.

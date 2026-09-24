@@ -1,0 +1,10 @@
+== random N=25000 01:41:28
+4
+4
+4
+emitters_up=4 phase=random
+emitters_up=4 phase=random
+emitters_up=4 phase=random
+0
+  rep 1: live=25000 rate=1004565 tok=86285591 stall_s=0 drops=0 slow=5 slip=590690
+  rep 2: live=25000 rate=1000829 tok=163610854 stall_s=0 drops=0 slow=6 slip=1030374

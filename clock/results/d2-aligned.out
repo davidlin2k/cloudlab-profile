@@ -29,3 +29,17 @@ emitters_up=4 phase=aligned
 emitters_up=4 phase=aligned
 0
   rep 1: live=75000 rate=2989949 tok=275023726 stall_s=705 drops=0 slow=71 slip=810962
+  rep 2: live=75000 rate=2998183 tok=507376115 stall_s=2408 drops=0 slow=118 slip=1356443
+  rep 3: live=75000 rate=4370133 tok=739051598 stall_s=2542 drops=0 slow=160 slip=1900948
+== aligned N=100000 01:36:32
+4
+4
+4
+emitters_up=4 phase=aligned
+emitters_up=4 phase=aligned
+emitters_up=4 phase=aligned
+0
+  rep 1: live=100000 rate=2504436 tok=414214460 stall_s=1488672 drops=0 slow=107 slip=966133
+  rep 2: live=100000 rate=4148024 tok=725826409 stall_s=2879020 drops=0 slow=171 slip=1539880
+  rep 3: live=100000 rate=4025954 tok=1034443568 stall_s=4182826 drops=0 slow=227 slip=2113559
+1
