@@ -35,9 +35,9 @@ non-P0 low-rate W1 row in the fig1-3 matrix — those cells are being
 re-run (fig1-3b/fig1-3c); the matrix's P0 and W2 rows stand.
 
 ## Claims touched
-C-p1-1 (characterization, Figs. 1–3): supported in part — the low-load
-latency side of the trade-off is now measured at full delivery.
-C-p1-2 (knee model): untouched here; graded with Fig. 4.
+C-005 (low-load latency side of the trade-off, Figs. 1–2): supported in
+part — measured at full delivery (ledger status Pending, PI's call).
+C-007 (knee model): untouched here; graded with Fig. 4.
 
 ## Next
 Complete fig1-3b/fig1-3c re-runs and the wedge A/B (chain6), then the
