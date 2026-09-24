@@ -218,11 +218,11 @@ def main():
         wire, allp, ring = ethtool_delta(run)
         bproc, bdrop = softnet_delta(run)
         close_wire = abs(wire - sent) <= 0.02 * max(sent, 1)
-        acc = pkts_true + int(kv.get("sockdrops", 0)) + bdrop + ring
-        close_layers = abs(wire - acc) <= 0.03 * max(wire, 1)
         # parse_kv key "pkts" substring-matches "mpkts=" too, so
         # kv["pkts"] == pkts + mpkts; recover the true total
         pkts_true = int(kv.get("pkts", 0)) - int(kv.get("mpkts", 0))
+        acc = pkts_true + int(kv.get("sockdrops", 0)) + bdrop + ring
+        close_layers = abs(wire - acc) <= 0.03 * max(wire, 1)
         pk = kv.get("mpkts", 0) or pkts_true or 1
         # c_net basis: napi kthread runtime for threaded arms; inline
         # arm = cpu8 busy minus the app thread's own runtime (P0X: all

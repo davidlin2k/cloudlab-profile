@@ -1,0 +1,4 @@
+tag cell policy workload rate plen rep gates_ok offered goodput deliv lat_p50 lat_p90 lat_p99 lat_p999 under_slo resp censored sockdrops app_ns c_net_ns cyc refcyc cpu8_busy_s softirq_s napi_s wire_ok layers_ok
+smoke46 W1-P0-r130000-p64 P0 W1 130000 64 1 1 130000 129396 0.999 108.5 158.5 183.5 194.5 - - - 1 1276 21 476.1 219.7 10.06 0.00 0.00 1 1
+smoke46 W1-P0X-r130000-p64 P0X W1 130000 64 1 1 130000 129385 0.999 11.5 22.5 26.5 39.5 - - - 1 1153 16 561.3 259.0 0.13 0.00 0.00 1 1
+smoke46 W1-P2-r130000-p64 P2 W1 130000 64 1 1 130000 129379 0.999 114.5 169.5 191.5 197.5 - - - 1 978 1059 463.6 214.0 15.51 0.00 8.63 1 1
