@@ -102,6 +102,7 @@ def collect(rows, pol, work, key, rate=None):
 
 def fig1(rows, out, knee):
     fig, ax = create_subplots(figsize=(3.5, 2.7))
+    dmax = 0.0
     for pol in POL_ORDER:
         pts = collect(rows, pol, "W1", "goodput")
         if not pts:
@@ -113,6 +114,7 @@ def fig1(rows, out, knee):
             ys.append(m)
             lo.append(m - l)
             hi.append(h - m)
+        dmax = max([dmax] + [m + e for m, e in zip(ys, hi)])
         ax.errorbar(xs, ys, yerr=[lo, hi], marker=MARKERS[pol], ms=5, lw=1.6,
                     color=COLORS[pol], label=POL_LABEL[pol], capsize=2,
                     linestyle=LINES[pol],
@@ -124,11 +126,13 @@ def fig1(rows, out, knee):
         if wedged:
             ax.scatter(wedged, [(0.015 + 0.012 * j) * knee] * len(wedged),
                        marker="x", color=COLORS[pol], s=28, zorder=4)
-    ax.plot([0, 2.6], [0, 2.6 * knee], ":", color="0.55", lw=1.0,
+    # offered reference spans the full x range and exits the frame top
+    ax.plot([0, 3.05], [0, 3.05 * knee], ":", color="0.55", lw=1.0,
             label="offered")
     ax.set_xlabel("offered rate / knee")
     ax.set_ylabel("goodput (pps)")
-    ax.set_ylim(bottom=0)
+    ax.set_xlim(0, 3.05)
+    ax.set_ylim(0, dmax * 1.12)
     ax.legend(loc="upper center", bbox_to_anchor=(0.5, -0.22), ncol=3,
               fontsize=7)
     return finalize_figure(fig, os.path.join(out, "fig1"),
@@ -207,13 +211,20 @@ def fig3(rows, out, rate=390000.0):
     for xi, (a, h) in enumerate(zip(app, hidden)):
         ax.annotate(f"{a + h:.0f}", xy=(xi, a + h), xytext=(0, 2),
                     textcoords="offset points", ha="center", fontsize=7)
+        for y, v in ((a / 2, a), (a + h / 2, h)):
+            if v > 120:
+                ax.annotate(f"{v:.0f}", xy=(xi, y), ha="center", va="center",
+                            fontsize=6, color="white")
+        if h <= 120:
+            ax.annotate(f"+{h:.0f} hidden", xy=(xi, a), xytext=(0, -9),
+                        textcoords="offset points", ha="center", fontsize=6,
+                        color=PALETTE["red_strong"])
     ax.set_xticks(list(x))
     ax.set_xticklabels([POL_SHORT[p] for p in pols], rotation=15, ha="right",
                        fontsize=8)
     ax.set_ylabel("CPU time per packet (ns)")
-    ax.set_ylim(bottom=0, top=max(a + h for a, h in zip(app, hidden)) * 1.2)
-    ax.legend(loc="upper center", bbox_to_anchor=(0.5, 1.06), ncol=2,
-              fontsize=8)
+    ax.set_ylim(bottom=0, top=max(a + h for a, h in zip(app, hidden)) * 1.3)
+    ax.legend(loc="upper right", fontsize=8)
     return finalize_figure(fig, os.path.join(out, "fig3"),
                            formats=["png", "pdf"])
 
