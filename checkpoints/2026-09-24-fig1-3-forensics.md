@@ -79,12 +79,19 @@ cells) running on rx as chain2 (started 07:00Z, done ~09:16Z).
   with tags wedge-m0/wedge-m1 (= the pin label), interleaved policy
   order, to start when fig1-3b completes. Rule: anything varying mid-run
   gets its variable in the TAG.
-- Contained mystery: in the tossed block, some consumers died at
-  t=14-20s without a summary (empty consumer.txt, last win line at the
-  death second, no dmesg entry, recvmmsg and histogram paths verified
-  non-fatal and guarded). The earlier chains' logs and the process tree
-  rule out concurrent drivers. Cause unresolved; watch for recurrence in
-  fig1-3b and chain3. Affected runs are in the tossed block only so far.
+- Contained mystery: RESOLVED 08:10Z — it was concurrent drivers after
+  all, via a stale flag: the failed relaunch's script still executed its
+  trailing `touch /root/p1/CHAIN2-DONE`, so my later waiter2 checked the
+  condition instantly true and `exec`'d chain3 immediately (the exec is
+  why ps showed no "waiter2"). From 07:52Z chain2 and chain3 each cell
+  start killed the other's consumer mid-run: empty consumer.txt, the
+  55s cells (wait $APP_PID returns early), and the t=14-20s win-line
+  cut-offs all follow. The wedge-m rep2/3 empties (07:14-07:24Z) are the
+  same class from the earlier failed relaunches' ghost iterations. All
+  data touched by an overlap window is being re-run; guards: the sweep
+  (k3sweep.sh) plus the rule that a completion flag is created ONLY by
+  the run that owns it, and drivers are matched by comm + exact cmdline
+  fragment (never a superstring of the sweep's own name).
 - fig1-3b (the W1 re-run, 72 cells) is healthy and sequential (~117 s
   per cell from 07:38Z; expected CHAIN2-DONE ~10:05Z). Then chain3
   (24 cells, ~47 min) completes the wedge A/B. chain3 will be launched
