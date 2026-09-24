@@ -53,7 +53,8 @@ def read_rows(paths):
     rows = []
     for r in merged.values():
         live = fnum(r.get("goodput")) > 0 or fnum(r.get("sockdrops")) > 0
-        if live:
+        full = fnum(r.get("snd_full"), 5) == 5
+        if live and full:
             rows.append(r)
     return rows
 

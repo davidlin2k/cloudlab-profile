@@ -70,7 +70,14 @@ def read_rows(paths):
         live = fnum(r.get("goodput")) > 0 or fnum(r.get("sockdrops")) > 0
         flowsplit = (r.get("tag") == "fig1-3" and r.get("workload") == "W1"
                      and r.get("policy") != "P0")
-        if live and not flowsplit:
+        # generator budget gate: a failed sender launch (throttled ssh)
+        # delivers at 0.8x nominal with the row internally consistent --
+        # it must not sit on the nominal x of a curve
+        off, rate = fnum(r.get("offered")), fnum(r.get("rate"))
+        genok = off == off and rate == rate and rate > 0 \
+            and 0.95 <= off / rate <= 1.05
+        full = fnum(r.get("snd_full"), 5) == 5
+        if live and not flowsplit and genok and full:
             rows.append(r)
         else:
             dropped += 1

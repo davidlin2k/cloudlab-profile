@@ -150,7 +150,7 @@ def main():
     print("tag cell policy workload rate plen rep gates_ok offered goodput deliv "
           "lat_p50 lat_p90 lat_p99 lat_p999 under_slo resp censored sockdrops "
           "app_ns c_net_ns cyc refcyc cpu8_busy_s softirq_s napi_s "
-          "wire_ok layers_ok")
+          "wire_ok layers_ok snd_full")
     for mpath in sorted(glob.glob(base + "/*/rep*/manifest.json")):
         run = os.path.dirname(mpath)
         try:
@@ -168,10 +168,14 @@ def main():
                              "cyc/pkt", "refcyc/pkt", "app_ns/pkt",
                              "p50_us", "p90_us", "p99_us", "p99.9_us"])
         snd = ""
+        snd_full = 0
         for p in sorted(glob.glob(os.path.join(run, "sender-*.txt"))):
+            full = False
             for ln in open(p):
                 if ln.startswith("[k5blast] dip=") or ln.startswith("[k4send] sip="):
                     snd += ln
+                    full = True
+            snd_full += 1 if full else 0
         skv = parse_kv(snd, ["sent", "resp", "censored"])
         sent = int(skv.get("sent", 0))
         offered = sent / (warm + meas + 1) if sent else 0
@@ -234,7 +238,7 @@ def main():
         else:
             c_net = "%.0f" % (max(cs["cpu8_busy_s"] - cs["app_s"], 0.0) * 1e9 / pk)
         print("%s %s %s %s %d %d %d %s %.0f %.0f %.3f %s %s %s %s %s %s %s %s "
-              "%.0f %s %.1f %.1f %.2f %.2f %.2f %d %d" % (
+              "%.0f %s %.1f %.1f %.2f %.2f %.2f %d %d %d" % (
                   tag, cell_path_cell(run), cell["policy"], cell["workload"],
                   cell["rate"], cell["plen"], cell["rep"], "1" if gates_ok else "0",
                   offered, goodput,
@@ -246,7 +250,7 @@ def main():
                   kv.get("app_ns/pkt", -1), c_net,
                   kv.get("cyc/pkt", -1), kv.get("refcyc/pkt", -1),
                   cs["cpu8_busy_s"], cs["softirq_s"], cs["napi_s"],
-                  int(close_wire), int(close_layers)))
+                  int(close_wire), int(close_layers), snd_full))
 
 def cell_path_cell(run):
     # .../results/TAG/<CELL>/rep<k> -> <CELL>
