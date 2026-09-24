@@ -15,8 +15,8 @@ for arm in mis-P4 mis-P3 ali-P4 ali-P3 P2 unpin; do
     echo "== batch cell $arm rep$rep $(date -u +%FT%TZ)"
     bash /root/k2/wdiag.sh cell $arm 195 $rep > /root/p1/wdiag/cell-$arm-$rep.log 2>&1
     python3 /root/k2/wdiageval.py /root/p1/wdiag/wdiag-$arm-rep$rep >> /root/p1/wdiag/cell-$arm-$rep.log 2>&1
-    tail -1 /root/p1/wdiag/cell-$arm-$rep.log
-    if [ -z "$FIRST" ] && grep -q ONSET /root/p1/wdiag/cell-$arm-$rep.log; then
+    tail -3 /root/p1/wdiag/cell-$arm-$rep.log
+    if [ -z "$FIRST" ] && grep -qE "ONSET|WEDGE-CLASS" /root/p1/wdiag/cell-$arm-$rep.log; then
       FIRST=$arm
       echo "== FIRST CONFIRMED WEDGE ($arm rep$rep): recovery NOW (decision 4) $(date -u +%FT%TZ)"
       bash /root/k2/wdiag.sh recovery $arm 20 > /root/p1/wdiag/recovery.log 2>&1

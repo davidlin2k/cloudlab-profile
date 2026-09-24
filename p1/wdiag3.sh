@@ -58,18 +58,18 @@ reset_() {
 }
 
 snap_aff() {
-  O="$1"
-  echo "irq=$IRQ" > "$O"
-  echo "smp_affinity_list: $(cat /proc/irq/$IRQ/smp_affinity_list)" >> "$O"
-  echo "effective_affinity_list: $(cat /proc/irq/$IRQ/effective_affinity_list 2>/dev/null || echo n/a)" >> "$O"
+  SO="$1"
+  echo "irq=$IRQ" > "$SO"
+  echo "smp_affinity_list: $(cat /proc/irq/$IRQ/smp_affinity_list)" >> "$SO"
+  echo "effective_affinity_list: $(cat /proc/irq/$IRQ/effective_affinity_list 2>/dev/null || echo n/a)" >> "$SO"
   MI=$(eval "$KTHREAD_CMD")
-  echo "napi_pid=${MI:-none}" >> "$O"
-  if [ -n "${MI:-}" ]; then echo "napi_aff: $(awk '/Cpus_allowed_list/{print $2}' /proc/$MI/status)" >> "$O"; fi
+  echo "napi_pid=${MI:-none}" >> "$SO"
+  if [ -n "${MI:-}" ]; then echo "napi_aff: $(awk '/Cpus_allowed_list/{print $2}' /proc/$MI/status)" >> "$SO"; fi
 }
 
 snap_ctr() {
-  O="$1"
-  ethtool -S "$IFACE" | grep -E 'ch7_(aff_change|arm|poll|eq_rearm)|rx_packets_phy:|rx_packets:' > "$O"
+  SO="$1"
+  ethtool -S "$IFACE" | grep -E 'ch7_(aff_change|arm|poll|eq_rearm)|rx_packets_phy:|rx_packets:' > "$SO"
 }
 
 case "${1:-}" in
