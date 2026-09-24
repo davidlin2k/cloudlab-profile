@@ -11,6 +11,6 @@
 | C-007 | Each placement's knee follows from two measured per-packet costs + SMT slowdown (form F, within 25%). | analysis/p1_fig4.py preview: 64 B misses 42-91% | A/H | Contested | 2026-09-24 |
 | C-008 | Threaded NAPI wedges under sustained flood on this host: all placements, 24/24 cells at 790k, onset t=2..68, C-state independent. | wedge-m0/m1 (24 cells), AN-003, wedge-ab-verdict checkpoint | H | Pending | 2026-09-24 |
 | C-009 | The ladder stays within [Y]% of inline latency at low load and sustains [Z]x the default's goodput under overload. | pending Figs 5-8 | - | Pending | 2026-09-24 |
-| C-010 | The affinity bailout causes the wedge | AN-003 + wdiag v2 A/B (pre-registered DR-002) | H | Pending | 2026-09-24 |
-| C-011 | Unpinned threaded NAPI wedges | AN-003 (kthread affinity 0-63 observed); wdiag v2 unpin arm | H | Pending | 2026-09-24 |
+| C-010 | The affinity bailout causes the wedge | AN-006: REFUTED by the pre-registered A/B (aligned arms wedge 6/8 with aff_change near zero) | H | Refuted | 2026-09-24 |
+| C-011 | Unpinned threaded NAPI wedges | AN-006: unpin arm 8/8 wedge, onsets 9-19 s (fastest of all arms); plus AN-003 | H | Pending | 2026-09-24 |
 
