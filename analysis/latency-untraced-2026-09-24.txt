@@ -1,0 +1,10 @@
+# Untraced latency record -- perfsched first pass, 2026-09-24 18:28-18:36Z
+# (P0/P0X at 130k = 0.25x knee, W1; adaptive-rx on and off; NO tracing.
+# The re-run at 18:39Z adds perf sched traces and overwrites the cell
+# dirs; these are the clean latency numbers.)
+# decision 8 branch test: the co-location gap does NOT close with
+# adaptive-rx off -> NOT interrupt moderation.
+k2rx port=7777 core=8 incpu=-1 pkts=9221266 sum=590161024 cyc/pkt=256.6 miss/pkt=0.10 | lat mean_us=90.2 p50_us=88.5 p90_us=129.5 p99_us=168.5 p99.9_us=187.5 max_us=1072.4 sockdrops=1 echoed=0 wins=72 mpkts=8152273 app_ns/pkt=1666.7 refcyc/pkt=219.9   # P0, adaptive-rx on
+k2rx port=7777 core=9 incpu=-1 pkts=9221970 sum=590206080 cyc/pkt=302.5 miss/pkt=0.05 | lat mean_us=15.6 p50_us=12.5 p90_us=22.5 p99_us=26.5 p99.9_us=41.5 max_us=861.9 sockdrops=1 echoed=0 wins=72 mpkts=8151762 app_ns/pkt=1154.3 refcyc/pkt=259.1   # P0X, adaptive-rx on
+k2rx port=7777 core=8 incpu=-1 pkts=9221458 sum=590173312 cyc/pkt=259.5 miss/pkt=0.12 | lat mean_us=93.0 p50_us=89.5 p90_us=163.5 p99_us=198.5 p99.9_us=207.5 max_us=2522.0 sockdrops=1 echoed=0 wins=72 mpkts=8151566 app_ns/pkt=1743.2 refcyc/pkt=222.3   # P0, adaptive-rx off
+k2rx port=7777 core=9 incpu=-1 pkts=9221559 sum=590179776 cyc/pkt=322.8 miss/pkt=0.06 | lat mean_us=15.6 p50_us=13.5 p90_us=22.5 p99_us=27.5 p99.9_us=41.5 max_us=2764.7 sockdrops=4 echoed=0 wins=72 mpkts=8151479 app_ns/pkt=1277.1 refcyc/pkt=276.5   # P0X, adaptive-rx off
