@@ -148,7 +148,7 @@ def main():
                     low_since = None
             else:
                 low_since = None
-        log(f"rate={rate:.0f} rung={rung} knee={knees[rung]:.0f}")
+        log(f"rate={rate:.0f} rung={rung} knee={knees[rung]:.0f}     f"t_rel={time.time()-t_start:.2f}")
     log(f"done switches={switches}")
     lf.close()
 
