@@ -9,7 +9,7 @@ echo "counters: $(ethtool -S $IFACE | grep -oE 'ch[0-9]+_[a-z0-9_]+' | grep -iE 
 IRQ=$(grep -E 'mlx5_comp7@pci:0000:c3' /proc/interrupts | awk '{print $1}' | tr -d ':')
 while :; do
   T=$(date +%s.%N)
-  NAP=$(pgrep -f 'napi/enp195s0np0' | head -1)
+  NAP=$(ps -eo pid,comm | awk '/napi\/enp195s0np0/{print $1; exit}')
   AFF="-"
   [ -n "$NAP" ] && AFF=$(grep Cpus_allowed_list /proc/$NAP/status | awk '{print $2}')
   IRTOT=$(grep -E "^ *${IRQ}:" /proc/interrupts | awk '{s=0; for(i=2;i<=65;i++) s+=$i; print s}')
