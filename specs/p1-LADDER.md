@@ -156,7 +156,7 @@ sizes and placements (P0/64B predicts 658k x (1-h) with h~0.28 -> ~470k
 vs measured 477k). Falsified if ANY (size, placement) cell misses by
 >25% after both corrections. If (h) alone fits but (i) does not (or
 vice versa), the claim becomes "predictable from per-packet costs plus
-one calibration constant" and Fig 4's row changes per rule 4 (DR-002).
+one calibration constant" and Fig 4's row changes per rule 4 (DR-003).
 
 ## W3/W4 arms (spec v3, 2026-09-24 — added before any W3 cell ran;
 reason: pin the baseline definitions the skeleton names but does not
