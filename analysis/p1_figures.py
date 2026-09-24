@@ -4,7 +4,8 @@
 usage: .venv/bin/python analysis/p1_figures.py rows1.csv [rows2.csv ...] outdir
 
 Rows come from p1_analyze.py (whitespace CSV, one file per results tag).
-Multiple row files merge (fig1-3 matrix + fig1-3b/fig1-3c re-runs + smoke).
+Multiple row files merge (fig1-3 matrix + fig1-3b/fig1-3c re-runs + smoke
++ cal-1 calibration points).
 Duplicated (policy,workload,rate,rep) keys: the LAST file wins (re-runs
 supersede). Runs with consumed=0 (the concurrent-driver kill windows) are
 dropped here, not in the analyzer.
@@ -134,13 +135,19 @@ def fig1(rows, out, knee):
             ax.scatter(wedged, [(0.015 + 0.012 * j) * knee] * len(wedged),
                        marker="x", color=COLORS[pol], s=28, zorder=4)
     # offered reference spans the full x range and exits the frame top
-    ax.plot([0, 3.05], [0, 3.05 * knee], ":", color="0.55", lw=1.0,
+    # (QA round 3: the clip of a reference line is acceptable -- kept)
+    ax.plot([0, 2.6], [0, 2.6 * knee], ":", color="0.55", lw=1.0,
             label="offered")
     ax.set_xlabel("offered rate / knee")
     ax.set_ylabel("goodput (pps)")
-    ax.set_xlim(0, 3.05)
-    ax.set_ylim(0, dmax * 1.12)
-    ax.legend(loc="upper center", bbox_to_anchor=(0.5, -0.22), ncol=3,
+    # box covers the 0.25-2.5x knee sweep (skeleton Fig 1) plus pad, so
+    # no data point can clip at the right edge (skill gotcha)
+    ax.set_xlim(0, 2.6)
+    # y floor 800k per QA round 3 (headroom for the offered reference)
+    ax.set_ylim(0, max(dmax * 1.12, 800000.0))
+    # QA round 3: legend under the x-label, not on it (-0.22 collided);
+    # ncol=2 keeps a 6-entry legend inside the 3.5in width (3 cols overran)
+    ax.legend(loc="upper center", bbox_to_anchor=(0.5, -0.32), ncol=2,
               fontsize=7)
     return finalize_figure(fig, os.path.join(out, "fig1"),
                            formats=["png", "pdf"])
@@ -172,8 +179,12 @@ def fig2(rows, out):
                     yerr=list(zip(*es)), fmt="none", ecolor="black", capsize=2,
                     lw=0.8, zorder=4)
     ax.set_xticks(range(len(pols)))
-    ax.set_xticklabels([POL_SHORT[p] for p in pols], rotation=15, ha="right",
-                       fontsize=8)
+    # QA round 3: two-token labels at rotation 15 / fs 8 projected ~54pt
+    # against a ~39pt tick pitch (first labels touched). 45 deg / fs 7
+    # projects ~35pt. (The >=9in-wide alternative does not fit a
+    # single-column 3.5in figure set.)
+    ax.set_xticklabels([POL_SHORT[p] for p in pols], rotation=45, ha="right",
+                       fontsize=7)
     ax.set_ylabel("round trip (us)")
     ax.set_ylim(bottom=0, top=ax.get_ylim()[1] * 1.35)
     ax.legend(loc="upper center", bbox_to_anchor=(0.5, 1.06), ncol=2,
@@ -223,12 +234,15 @@ def fig3(rows, out, rate=390000.0):
                 ax.annotate(f"{v:.0f}", xy=(xi, y), ha="center", va="center",
                             fontsize=6, color="white")
         if h <= 120:
-            ax.annotate(f"+{h:.0f} hidden", xy=(xi, a), xytext=(0, -9),
-                        textcoords="offset points", ha="center", fontsize=6,
-                        color=PALETTE["red_strong"])
+            # QA round 3: the note used to sit under the bar top and
+            # collided with the white in-bar value when h==0; now above
+            # the bar, stacked over the total label
+            ax.annotate(f"+{h:.0f} hidden", xy=(xi, a + h), xytext=(0, 11),
+                        textcoords="offset points", ha="center", va="bottom",
+                        fontsize=6, color=PALETTE["red_strong"])
     ax.set_xticks(list(x))
-    ax.set_xticklabels([POL_SHORT[p] for p in pols], rotation=15, ha="right",
-                       fontsize=8)
+    ax.set_xticklabels([POL_SHORT[p] for p in pols], rotation=45, ha="right",
+                       fontsize=7)
     ax.set_ylabel("CPU time per packet (ns)")
     ax.set_ylim(bottom=0, top=max(a + h for a, h in zip(app, hidden)) * 1.3)
     ax.legend(loc="upper right", fontsize=8)
@@ -272,15 +286,21 @@ def main():
     os.makedirs(out, exist_ok=True)
     apply_publication_style()
     verify_anchors(rows)
-    knee = 525000.0
+    # diagnostic only: the >=95%-delivery knee (checkpoint bracket
+    # "450-525k"). It must NOT feed fig1's x axis: the paper's knee is
+    # 525k (skeleton Fig 1 spans 0.25-2.5x knee = the 130k-1300k sweep;
+    # abstract "2x the knee" = 1050k offered).
     by_rate = {}
     for r in rows:
         if r["workload"] == "W1" and r["policy"] == "P0":
             by_rate.setdefault(fnum(r["rate"]), []).append(fnum(r["deliv"]))
+    knee95 = 525000.0
     for rate in sorted(by_rate):
         if sum(by_rate[rate]) / len(by_rate[rate]) >= 0.95:
-            knee = rate
-    print(f"knee (P0, W1): {knee:.0f} pps at mean deliv>=0.95")
+            knee95 = rate
+    print(f"knee (P0, W1): {knee95:.0f} pps at mean deliv>=0.95")
+    knee = 525000.0  # x-axis normalization: the paper's knee
+    print(f"fig1 x-axis knee: {knee:.0f} pps (0.25-2.5x = 130k-1300k sweep)")
     for fn in (fig1, fig2, fig3):
         if fn is fig1:
             saved = fn(rows, out, knee)
