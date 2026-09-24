@@ -59,6 +59,13 @@ ethtool -S $IFACE | grep -E "rx[0-9]+_packets:|rx_discards:|rx_out_of_buffer:" >
 cat /proc/net/softnet_stat > "$OUT/softnet-pre.txt"
 cp /proc/stat "$OUT/stat-pre.txt"
 
+# DR-004 task 1 / AN-007: PMU busy basis. CONFIG_IRQ_TIME_ACCOUNTING=n
+# on this kernel: sub-tick IRQ work on an idle CPU is charged to idle in
+# /proc/stat, so busy must come from ref-cycles (TSC 3.250 GHz,
+# calibrated 2026-09-24: 3,256,316,473 ref-cycles in 1.0019 s busy).
+/usr/lib/linux-tools/6.8.0-142-generic/perf stat -A -a -C 8,9,40 -e cycles,ref-cycles \
+  -- sleep $((TOT + 2)) > "$OUT/perfstat.txt" 2>&1 &
+PERF_PID=$!
 CONSUMER=/root/k2/k2_rx
 # +2s over the senders: the consumer must outlive their tail so
 # conservation closes (analysis uses the 1s window lines for goodput)
@@ -113,6 +120,7 @@ done
 ethtool -S $IFACE | grep -E "rx[0-9]+_packets:|rx_discards:|rx_out_of_buffer:" > "$OUT/nic-post.txt"
 cat /proc/net/softnet_stat > "$OUT/softnet-post.txt"
 cp /proc/stat "$OUT/stat-post.txt"
+wait $PERF_PID 2>/dev/null || true
 
 # ---- gate evaluation (harness-owned; never edited by hand) ----
 # sender metrics: SUMMARY lines only ("dip=" for k5blast, "sip=" for
@@ -182,7 +190,7 @@ cat > "$OUT/manifest.json" <<EOF
               "resp": ${RESP:-0}, "censored": ${CENS:-0}, "echoed": ${ECHOED:-0}, "enobufs": ${ENOB:-0},
               "lat_p50_us": ${P50:--1}},
   "gates": {"conservation": "$GATE_CONS", "landing": "$GATE_LAND", "floor": "$GATE_FLOOR", "generator": "$GATE_GEN"},
-  "outputs": ["consumer.txt", "consumer.err", "cpu.log", "gates.txt", "nic-pre.txt", "nic-post.txt", "stat-pre.txt", "stat-post.txt"]
+  "outputs": ["consumer.txt", "consumer.err", "cpu.log", "gates.txt", "nic-pre.txt", "nic-post.txt", "stat-pre.txt", "stat-post.txt", "perfstat.txt"]
 }
 EOF
 echo "gates: conservation=$GATE_CONS landing=$GATE_LAND floor=$GATE_FLOOR generator=$GATE_GEN"

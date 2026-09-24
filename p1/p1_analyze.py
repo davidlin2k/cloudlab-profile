@@ -111,7 +111,8 @@ def cpu_log_stats(run, w_lo, w_hi):
     """per-second sampler rows -> CPU seconds over the measure window."""
     p = os.path.join(run, "cpu.log")
     st = {"softirq_s": 0.0, "cpu8_busy_s": 0.0, "napi_s": 0.0,
-          "ksi_s": 0.0, "app_s": 0.0}
+          "ksi_s": 0.0, "app_s": 0.0, "user_s": 0.0, "nice_s": 0.0,
+          "system_s": 0.0, "irq_s": 0.0, "steal_s": 0.0}
     if not os.path.exists(p):
         return st
     prev = {}
@@ -127,11 +128,17 @@ def cpu_log_stats(run, w_lo, w_hi):
         if not a:
             continue
         if a[0] == "cpu8":
-            # user nice system idle iowait irq softirq ...
+            # user nice system idle iowait irq softirq steal
             v = [int(x) for x in a[1:9]]
             if "c8" in prev:
                 d = [x - y for x, y in zip(v, prev["c8"])]
-                st["softirq_s"] += d[7] / 100.0
+                # per-field seconds (DR-004 task 1: store each field)
+                st["softirq_s"] += d[6] / 100.0
+                st["user_s"] += d[0] / 100.0
+                st["nice_s"] += d[1] / 100.0
+                st["system_s"] += d[2] / 100.0
+                st["irq_s"] += d[5] / 100.0
+                st["steal_s"] += d[7] / 100.0
                 st["cpu8_busy_s"] += (sum(d) - d[3] - d[4]) / 100.0
             prev["c8"] = v
         elif a[0] == "task" and a[1] in ("napi", "ksi8", "ksi9", "app"):
@@ -143,6 +150,23 @@ def cpu_log_stats(run, w_lo, w_hi):
             prev[k] = rt
     return st
 
+def perf_busy(run):
+    """PMU busy basis (AN-007 fix): busy_s = ref-cycles / TSC 3.250e9
+    (calibrated 2026-09-24: 3,256,316,473 ref-cycles in 1.0019 s busy
+    loop). /proc/stat is unusable on this kernel (CONFIG_IRQ_TIME_
+    ACCOUNTING is not set): sub-tick IRQ work on an idle CPU is charged
+    to idle. Returns per-CPU {cpu: busy_s} from perfstat.txt."""
+    p = os.path.join(run, "perfstat.txt")
+    out = {}
+    if not os.path.exists(p):
+        return out
+    for ln in open(p):
+        m = re.search(r"CPU\s+(\d+)\s+([\d,]+)\s+ref-cycles", ln)
+        if m:
+            out["cpu%s_busy_s" % m.group(1)] = int(m.group(2).replace(",", "")) / 3.250e9
+    return out
+
+
 def main():
     tag = sys.argv[1]
     slo = float(sys.argv[2]) if len(sys.argv) > 2 else 500.0
@@ -150,6 +174,8 @@ def main():
     print("tag cell policy workload rate plen rep gates_ok offered goodput deliv "
           "lat_p50 lat_p90 lat_p99 lat_p999 under_slo resp censored sockdrops "
           "app_ns c_net_ns cyc refcyc cpu8_busy_s softirq_s napi_s "
+          "user_s nice_s system_s irq_s steal_s "
+          "cpu8_busy_stat_s cpu9_busy_s cpu40_busy_s "
           "wire_ok layers_ok snd_full")
     for mpath in sorted(glob.glob(base + "/*/rep*/manifest.json")):
         run = os.path.dirname(mpath)
@@ -182,6 +208,13 @@ def main():
         wins = [w for w in win_lines(run) if warm < w[0] <= warm + meas]
         wgood = sum(w[1] for w in wins) / meas if wins else 0
         cs = cpu_log_stats(run, warm + 1, warm + meas)
+        pm = perf_busy(run)
+        # corrected metric (DR-004 task 1): PMU basis supersedes the
+        # /proc/stat sum when a perfstat.txt exists; the sum is kept as
+        # cpu8_busy_stat_s (the AN-007 gap measure).
+        stat_s = cs["cpu8_busy_s"]
+        if "cpu8_busy_s" in pm:
+            cs["cpu8_busy_s"] = pm["cpu8_busy_s"]
         if cell["workload"] == "W1":
             # goodput from the consumer's measure-window counter over
             # its measure span (skip..secs = meas+3 s); the 1s-win file is
@@ -250,6 +283,9 @@ def main():
                   kv.get("app_ns/pkt", -1), c_net,
                   kv.get("cyc/pkt", -1), kv.get("refcyc/pkt", -1),
                   cs["cpu8_busy_s"], cs["softirq_s"], cs["napi_s"],
+                  cs["user_s"], cs["nice_s"], cs["system_s"],
+                  cs["irq_s"], cs["steal_s"],
+                  stat_s, pm.get("cpu9_busy_s", ""), pm.get("cpu40_busy_s", ""),
                   int(close_wire), int(close_layers), snd_full))
 
 def cell_path_cell(run):
