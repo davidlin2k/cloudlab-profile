@@ -111,6 +111,29 @@ ports / fewer proxy queues to test the retransmission explosion.
 Friday figure: aligned plateau + per-hop accounting + bypass result
 (no phase-effect claim until D passes with the unified emitter).
 
+## Findings 2026-09-23 late (A/B with unified emitter v3, full 12-fleet)
+A(50k, aligned, through HAProxy): emit 1.877M tok/s -> receive 1.879M
+  (conservation 1.001); emitter drops=0, slow_writes=0, ~3% of a core;
+  HAProxy pidstat = 1,324% CPU (13.2 cores!) at 1.88M tok/s with
+  worker threads ~85% each; kernel counters quiet.
+B(50k, bypass, sink->emitters direct): 1.847M tok/s - the ~1.85M
+  ceiling STAYS without the proxy. Per the decision table: the limit
+  is in the endpoints, not HAProxy. (HAProxy's 13-core per-token tax
+  would be the NEXT ceiling above this.)
+THE ENDPOINT CEILING IS THE TIMER: direct probe at 150k (12.5k
+  streams/emitter) over 10s: steps +290 = 29.0 steps/s vs the
+  intended 40.0, and tok/s per stream = 29.0 = exactly the step rate.
+  The Go 1ms ticker's cap-1 channel silently DROPS ticks when the
+  scheduler delivers late at 12.5k+ goroutines/process. Same drop
+  class as v2's shared ticker, one level down. FIX BUILT: absolute-
+  deadline loop (time.Sleep to t0+k*1ms; late passes execute late,
+  never skipped; slot_overruns now measures lateness >500us as a
+  SIGNAL per spec C). Also: aligned mode skips the map walk on the 24
+  empty slots (96% less scheduler work).
+Bypass ITL signature: p50=26ms (the raw step clock) vs proxy p50=0
+  coalesced / p99 232ms (HAProxy batching) - the proxy's automatic
+  coalescing is directly visible (PI point 5 confirmed).
+
 ## Data locations
 - clock/results/{aligned,random}.csv + *-master*.out (workstation repo)
 - /tmp/clock-inst-{aligned,random}.jsonl on n1 (1 Hz layer counters)

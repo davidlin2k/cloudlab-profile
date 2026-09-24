@@ -21,7 +21,7 @@ sample_hop() {  # $1 = label, $2 = N, $3 = seconds
         'for h in 10.10.1.11 10.10.1.12 10.10.1.13; do for q in 8000 8001 8002 8003; do curl -s -m 2 http://$h:$q/stats; done; done' 2>/dev/null
       # HAProxy stats socket: bin/bout/scur per section + run queue
       ssh -o ConnectTimeout=5 davidlin@$N1.clemson.cloudlab.us \
-        'python3 - << "PYEOF"
+        'sudo python3 - << "PYEOF"
 import socket
 def hap(cmd, keys):
     s = socket.socket(socket.AF_UNIX); s.settimeout(3)

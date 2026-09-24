@@ -14,7 +14,9 @@ cur = None
 for line in open(path):
     line = line.rstrip()
     if line.startswith("== sample"):
-        cur = {"raw": []}
+        m = re.search(r"t=(\d\d):(\d\d):(\d\d)", line)
+        ts = int(m.group(1)) * 3600 + int(m.group(2)) * 60 + int(m.group(3)) if m else None
+        cur = {"raw": [], "ts": ts}
         samples.append(cur)
         continue
     if cur is None:
@@ -45,15 +47,15 @@ def parse(s):
             hap_scur = int(mm.get("scur", 0))
         elif line.startswith("hap CurrConns"):
             pass
-        elif "clocksink" in line or (line.startswith("rate=") and "tok/s" in line):
+        elif line.startswith("live=") or (line.startswith("rate=") and "tok/s" in line):
             mm = dict(kv.split("=") for kv in line.split() if "=" in kv)
             sink_tok = int(mm.get("tokens", 0))
             sink_rate = float(mm.get("rate", 0).split()[0] if mm.get("rate") else 0)
-        elif line.startswith("Average") and "clocksink" not in line:
+        elif line.startswith("Average") and line.rstrip().endswith("haproxy") and " |__" not in line:
             f = line.split()
-            if len(f) > 7:
+            if len(f) > 8:
                 try:
-                    hap_cpu = float(f[7])
+                    hap_cpu = float(f[8])  # %CPU of the process (TGID) row
                 except ValueError:
                     pass
     return em, hap_in, hap_out, hap_scur, sink_tok, sink_rate
@@ -69,14 +71,15 @@ for i, s in enumerate(samples):
     if prev is not None:
         em, hin, hout, scur, stk, srate = p
         pem, phin, phout, _, pstk, _ = prev
-        dem = em["tok"] - pem["tok"]
-        dbyt = em["byt"] - pem["byt"]
-        dhin = hin - phin
-        dhout = hout - phout
-        dstk = stk - pstk
-        ddrop = em["drop"] - pem["drop"]
-        dslow = em["slow"] - pem["slow"]
-        dcpu = em["cpu"] - pem["cpu"]
+        dt = max((s["ts"] or 0) - (samples[i-1]["ts"] or 0), 1)
+        dem = (em["tok"] - pem["tok"]) // dt
+        dbyt = (em["byt"] - pem["byt"]) // dt
+        dhin = (hin - phin) // dt
+        dhout = (hout - phout) // dt
+        dstk = (stk - pstk) // dt
+        ddrop = (em["drop"] - pem["drop"]) // dt
+        dslow = (em["slow"] - pem["slow"]) // dt
+        dcpu = (em["cpu"] - pem["cpu"]) / dt
         rows.append((dem, dbyt, dhin, dhout, dstk, ddrop, dslow, dcpu))
         print(f"{i:6d} {dem:11d} {dbyt:11d} {dhin:11d} {dhout:11d} "
               f"{dstk:11d} {ddrop:8d} {dslow:7d} {dcpu:7.1f} {srate:7.0f}")

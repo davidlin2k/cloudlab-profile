@@ -7,7 +7,6 @@ import (
 	"bufio"
 	"flag"
 	"fmt"
-	"net"
 	"net/http"
 	neturl "net/url"
 	"os"

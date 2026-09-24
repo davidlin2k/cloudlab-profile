@@ -13,9 +13,9 @@ N1="clnode366"
 N6="clnode331"
 CSV=/mnt/davidlin-personal/cloudlab-profile/clock/results/$PHASE.csv
 mkdir -p "$(dirname "$CSV")"
-echo "streams,rep,live,errs,stalls,p50_itl_ms,p99_itl_ms,rate_tok_s,overruns,phase" > "$CSV"
+echo "streams,rep,live,errs,stalls,stall_s,p50_itl_ms,p99_itl_ms,rate_tok_s,drops,slow_writes,slot_overruns,em_cpu_s,phase" > "$CSV"
 
-for S in 10000 25000 50000 100000 150000 200000; do
+for S in 25000 50000 75000 100000; do  # PI spec D: knee region
   echo "== $PHASE N=$S $(date -u +%H:%M:%S)" >&2
   # relaunch emitters with the right phase (4 processes per node)
   for n in $ENGINES; do
@@ -35,23 +35,27 @@ for S in 10000 25000 50000 100000 150000 200000; do
     [ -n "$live" ] && [ "$live" -ge $((S * 98 / 100)) ] && ok=1 && break
     sleep 5
   done
-  [ "$ok" = "1" ] || { echo "$S,connect_timeout,0,0,0,0,0,0,0,$PHASE" >> "$CSV"; continue; }
+  [ "$ok" = "1" ] || { echo "$S,connect_timeout,0,0,0,0,0,0,0,0,0,0,0,$PHASE" >> "$CSV"; continue; }
   # 3 reps: 15s discard + 60s measure each
   for rep in 1 2 3; do
-    sleep 75
-    last=$(ssh -o ConnectTimeout=10 davidlin@$N6.clemson.cloudlab.us \
-      "grep -E 'rate=' /tmp/clock/sw-${PHASE}-${S}.log | tail -1")
+    sleep 15  # discard
+    sleep 60  # measure
+    last=$(grep -E "rate=" "/tmp/clock/sw-${PHASE}-${S}.log" | tail -1)
     live=$(echo "$last" | grep -oE "live=[0-9]+" | cut -d= -f2)
     errs=$(echo "$last" | grep -oE "errs=[0-9]+" | cut -d= -f2)
     stalls=$(echo "$last" | grep -oE "stalls=[0-9]+" | cut -d= -f2)
+    stall_s=$(echo "$last" | grep -oE "stall_s=[0-9]+" | cut -d= -f2)
     p50=$(echo "$last" | grep -oE "p50_itl_ms=[0-9]+" | cut -d= -f2)
     p99=$(echo "$last" | grep -oE "p99_itl_ms=[0-9]+" | cut -d= -f2)
     rate=$(echo "$last" | grep -oE "rate=[0-9]+" | cut -d= -f2)
-    over=$(ssh -o ConnectTimeout=10 davidlin@clnode323.clemson.cloudlab.us \
-      "for h in 10.10.1.11 10.10.1.12 10.10.1.13; do for q in 8000 8001 8002 8003; do curl -s -m 3 http://\$h:\$q/stats; done; done" 2>/dev/null | \
-      grep -oE "overruns=[0-9]+" | cut -d= -f2 | paste -sd+ - | bc)
-    echo "$S,$rep,${live:-0},${errs:-0},${stalls:-0},${p50:-0},${p99:-0},${rate:-0},${over:-0},$PHASE" >> "$CSV"
-    echo "  rep $rep: live=$live rate=$rate p99=$p99 stalls=$stalls overruns=$over" >&2
+    estats=$(ssh -o ConnectTimeout=10 davidlin@clnode323.clemson.cloudlab.us \
+      "for h in 10.10.1.11 10.10.1.12 10.10.1.13; do for q in 8000 8001 8002 8003; do curl -s -m 3 http://\$h:\$q/stats; done; done" 2>/dev/null)
+    over=$(echo "$estats" | grep -oE "slot_overruns=[0-9]+" | cut -d= -f2 | paste -sd+ - | bc)
+    drops=$(echo "$estats" | grep -oE "dropped=[0-9]+" | cut -d= -f2 | paste -sd+ - | bc)
+    slow=$(echo "$estats" | grep -oE "slow_writes=[0-9]+" | cut -d= -f2 | paste -sd+ - | bc)
+    ecpu=$(echo "$estats" | grep -oE "cpu_s=[0-9.]+" | cut -d= -f2 | paste -sd+ - | bc)
+    echo "$S,$rep,${live:-0},${errs:-0},${stalls:-0},${stall_s:-0},${p50:-0},${p99:-0},${rate:-0},${drops:-0},${slow:-0},${over:-0},${ecpu:-0},$PHASE" >> "$CSV"
+    echo "  rep $rep: live=$live rate=$rate stall_s=$stall_s drops=$drops slow=$slow slip=$over em_cpu=$ecpu" >&2
   done
 done
 ssh -o ConnectTimeout=10 davidlin@$N6.clemson.cloudlab.us "sudo pkill -xc clocksink" 2>/dev/null

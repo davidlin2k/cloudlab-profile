@@ -184,24 +184,35 @@ func slotOf(id int, phase string) int {
 }
 
 func schedule(phase string) {
-	// 1ms wheel: every tick, enqueue one frame to each stream whose
-	// slot == (tick mod nSlots). Identical machinery for all modes.
-	t := time.NewTicker(slotMs * time.Millisecond)
-	defer t.Stop()
-	last := time.Now()
+	// 1ms wheel on ABSOLUTE deadlines: sleeps run late but a slot is
+	// NEVER silently skipped (the ticker channel's cap-1 drop behavior
+	// was the endpoint ceiling: 29/40 steps at 12.5k streams/process).
+	// The gate (slot_overruns) measures lateness.
+	start := time.Now()
 	tick := 0
-	for range t.C {
-		t0 := time.Now()
-		if d := t0.Sub(last); d > 1500*time.Microsecond && tick > 0 {
-			slotOverrun.Add(1) // scheduler slip, not body work
+	for {
+		next := start.Add(time.Duration(tick) * slotMs * time.Millisecond)
+		if d := time.Until(next); d > 0 {
+			time.Sleep(d)
 		}
-		last = t0
+		t0 := time.Now()
+		if tick > 0 {
+			if lat := t0.Sub(next); lat > 500*time.Microsecond {
+				slotOverrun.Add(1) // scheduler slip, measured not hidden
+			}
+		}
 
 		slot := tick % nSlots
 		if slot == 0 {
 			steps.Add(1)
 		}
 		frame := tokens[tick&255]
+		if phase == "aligned" && slot != 0 {
+			// no stream targets these slots: skip the map walk
+			slotPassNs.Store(uint64(time.Since(t0)))
+			tick++
+			continue
+		}
 		mu.Lock()
 		targets := make([]*stream, 0, len(streams)/nSlots+8)
 		for id, s := range streams {

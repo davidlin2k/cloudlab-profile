@@ -1,1 +1,1 @@
-rate=1457581 tok/s live=50000 tokens=591895563 errs=0 stalls=0 p50_itl_ms=0 p99_itl_ms=232
+rate=1807385 tok/s live=50000 tokens=747654374 errs=0 stalls=0 p50_itl_ms=0 p99_itl_ms=231

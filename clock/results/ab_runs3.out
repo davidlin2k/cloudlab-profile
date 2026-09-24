@@ -6,3 +6,21 @@ emitters_up=4 phase=aligned
 emitters_up=4 phase=aligned
 emitters_up=4 phase=aligned
 0
+rate=1807385 tok/s live=50000 tokens=747654374 errs=0 stalls=0 p50_itl_ms=0 p99_itl_ms=231
+== bypass N=50000 mode=aligned 23:53:14
+4
+4
+4
+emitters_up=4 phase=aligned
+emitters_up=4 phase=aligned
+emitters_up=4 phase=aligned
+0
+rate=1846844 tok/s live=50000 tokens=750019941 errs=0 stalls=0 stall_s=0 p50_itl_ms=26 p99_itl_ms=140
+== proxy N=150000 mode=aligned 00:00:17
+4
+4
+4
+emitters_up=4 phase=aligned
+emitters_up=4 phase=aligned
+emitters_up=4 phase=aligned
+0
