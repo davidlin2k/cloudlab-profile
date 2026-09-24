@@ -27,10 +27,27 @@ echo "== p1cell $CELL rep$REP $START_ISO warm=$WARM meas=$MEAS"
 # exact-name strays only (pkill -f self-matches the invoking shell)
 pkill -xc k2_rx >/dev/null 2>&1; pkill -xc k5blast >/dev/null 2>&1; pkill -xc k4send >/dev/null 2>&1
 for o in $TXOCTS; do
-  ssh -n -o ControlPath=/tmp/p1mux-%r@%h -o ControlPersist=600 -o StrictHostKeyChecking=no -o ConnectTimeout=8 davidlin@10.10.1.$o \
-    "sudo pkill -xc k5blast >/dev/null 2>&1; sudo pkill -xc k4send >/dev/null 2>&1; true" 2>/dev/null
+  # kills take FRESH connections (never the mux) and VERIFY death: a
+  # silently failed kill leaves the old sender holding its sport and the
+  # next launch dies "Address already in use" (fig1-3 lesson)
+  for try in 1 2 3 4 5; do
+    live=$(ssh -n -o StrictHostKeyChecking=no -o ConnectTimeout=8 davidlin@10.10.1.$o \
+      "sudo pkill -xc k5blast >/dev/null 2>&1; sudo pkill -xc k4send >/dev/null 2>&1; pgrep -xc k5blast || true" 2>/dev/null | tail -1)
+    [ -z "${live:-}" ] && break
+    sleep 1
+  done
 done
-exec 9>/dev/cpu_dma_latency; echo 0 >&9
+sleep 0.3
+# verify no stray consumer: SO_REUSEPORT splits flows across live
+# sockets and the split looks like silent per-flow loss (fig1-3 lesson)
+for try in 1 2 3 4 5; do
+  pgrep -xc k2_rx >/dev/null 2>&1 || break
+  pkill -xc k2_rx >/dev/null 2>&1; sleep 0.5
+done
+# PIN_IDLE=0 leaves C-states alone (wedge-condition matrix, AN-003)
+if [ "${PIN_IDLE:-1}" != 0 ]; then
+  exec 9>/dev/cpu_dma_latency; echo 0 >&9
+fi
 
 POL=$(bash /root/k2/p1pol.sh "$POLICY")
 echo "policy: $POL"
@@ -61,11 +78,11 @@ for idx in 0 1 2 3 4; do
   o=${OCTS[$idx]}
   if [ "$WORK" = W1 ]; then
     ssh -n -o ControlPath=/tmp/p1mux-%r@%h -o ControlPersist=600 -o StrictHostKeyChecking=no -o ConnectTimeout=8 davidlin@10.10.1.$o \
-      "sudo bash -c 'nohup /root/k2/k5blast --dip 10.10.1.1 --sip $o --sport ${SPORTS[$idx]} --dport 7777 --n $N --rate $RPS_PER --plen $PLEN --core 4 >/tmp/p1snd-$o.txt 2>&1 </dev/null &'" \
+      "sudo bash -c 'nohup /root/k2/k5blast --dip 10.10.1.1 --sip $o --sport ${SPORTS[$idx]} --dport 7777 --n $N --rate $RPS_PER --plen $PLEN --core 4 >/tmp/p1snd-$o-$$.txt 2>&1 </dev/null &'" \
       || echo "FAIL launch sender $o"
   else
     ssh -n -o ControlPath=/tmp/p1mux-%r@%h -o ControlPersist=600 -o StrictHostKeyChecking=no -o ConnectTimeout=8 davidlin@10.10.1.$o \
-      "sudo bash -c 'nohup /root/k2/k4send --dip 10.10.1.1 --sip $o --qmap 0:7778 --lport ${LPORTS[$idx]} --n $N --plen $PLEN --depth 32 --rate $RPS_PER --follow 0 --core 4 --dump /tmp/p1hist-$o.txt >/tmp/p1snd-$o.txt 2>&1 </dev/null &'" \
+      "sudo bash -c 'nohup /root/k2/k4send --dip 10.10.1.1 --sip $o --qmap 0:7778 --lport ${LPORTS[$idx]} --n $N --plen $PLEN --depth 32 --rate $RPS_PER --follow 0 --core 4 --dump /tmp/p1hist-$o-$$.txt >/tmp/p1snd-$o-$$.txt 2>&1 </dev/null &'" \
       || echo "FAIL launch sender $o"
   fi
 done
@@ -82,14 +99,14 @@ for o in $TXOCTS; do
     [ -s "$OUT/sender-$o.txt" ] && grep -q "sent=" "$OUT/sender-$o.txt" && break
     sleep 1
     ssh -n -o ControlPath=/tmp/p1mux-%r@%h -o ControlPersist=600 -o StrictHostKeyChecking=no -o ConnectTimeout=8 davidlin@10.10.1.$o \
-      "cat /tmp/p1snd-$o.txt" > "$OUT/sender-$o.txt" 2>/dev/null
+      "cat /tmp/p1snd-$o-$$.txt" > "$OUT/sender-$o.txt" 2>/dev/null
   done
   if [ "$WORK" = W2 ]; then
     for try in 1 2 3 4; do
       [ -s "$OUT/hist-$o.txt" ] && break
       sleep 1
       ssh -n -o ControlPath=/tmp/p1mux-%r@%h -o ControlPersist=600 -o StrictHostKeyChecking=no -o ConnectTimeout=8 davidlin@10.10.1.$o \
-        "cat /tmp/p1hist-$o.txt" > "$OUT/hist-$o.txt" 2>/dev/null
+        "cat /tmp/p1hist-$o-$$.txt" > "$OUT/hist-$o.txt" 2>/dev/null
     done
   fi
 done
@@ -161,8 +178,8 @@ cat > "$OUT/manifest.json" <<EOF
   "cpu": {"governor": "none-no-cpufreq-driver", "idle_states": "dma_latency_0", "smt": "on", "nps": 4},
   "placement": {"app_cpu": $APP_CPU, "napi_cpu": "${NAPI_CPU:-none}", "napi_pid": "${NAPI_PID:-0}"},
   "cell": {"workload": "$WORK", "policy": "$POLICY", "rate": $RATE, "plen": $PLEN, "rep": $REP},
-  "metrics": {"sent": $SENT, "consumed": $CONS, "measure_pkts": ${MPKTS:-0}, "sockdrops": ${DROPS:-0},
-              "resp": ${RESP:-0}, "censored": ${CENS:-0}, "echoed": ${ECHOED:-0}, "enobufs": $ENOB,
+  "metrics": {"sent": ${SENT:-0}, "consumed": ${CONS:-0}, "measure_pkts": ${MPKTS:-0}, "sockdrops": ${DROPS:-0},
+              "resp": ${RESP:-0}, "censored": ${CENS:-0}, "echoed": ${ECHOED:-0}, "enobufs": ${ENOB:-0},
               "lat_p50_us": ${P50:--1}},
   "gates": {"conservation": "$GATE_CONS", "landing": "$GATE_LAND", "floor": "$GATE_FLOOR", "generator": "$GATE_GEN"},
   "outputs": ["consumer.txt", "consumer.err", "cpu.log", "gates.txt", "nic-pre.txt", "nic-post.txt", "stat-pre.txt", "stat-post.txt"]

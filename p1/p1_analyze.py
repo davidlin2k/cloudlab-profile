@@ -72,6 +72,41 @@ def hist_frac_le(hist, us):
     c = sum(v for b, v in hist.items() if b + 0.5 <= us)
     return c / n, c
 
+def ethtool_delta(run):
+    """rx7 delta (wire arrivals on the target queue) + ring drops from
+    the bracketing ethtool snapshots."""
+    def snap(name):
+        out = {}
+        try:
+            for ln in open(os.path.join(run, name)):
+                a = ln.split(":")
+                if len(a) == 2:
+                    out[a[0].strip()] = int(a[1].strip())
+        except OSError:
+            pass
+        return out
+    pre, post = snap("nic-pre.txt"), snap("nic-post.txt")
+    tq = sum(v for k, v in post.items() if k.startswith("rx") and k.endswith("_packets") and k[2] == "7" and k[3] == "_") - \
+         sum(v for k, v in pre.items() if k.startswith("rx") and k.endswith("_packets") and k[2] == "7" and k[3] == "_")
+    allp = sum(v for k, v in post.items() if k.startswith("rx") and k.endswith("_packets")) - \
+           sum(v for k, v in pre.items() if k.startswith("rx") and k.endswith("_packets"))
+    ring = sum(v for k, v in post.items() if k in ("rx_discards", "rx_out_of_buffer")) - \
+           sum(v for k, v in pre.items() if k in ("rx_discards", "rx_out_of_buffer"))
+    return max(tq, 0), max(allp, 0), max(ring, 0)
+
+def softnet_delta(run):
+    """cpu8 row: packets processed and dropped at the backlog."""
+    def snap(name):
+        try:
+            ln = open(os.path.join(run, name)).readlines()[8]
+            a = ln.split()
+            return int(a[0], 16), int(a[1], 16)
+        except (OSError, IndexError):
+            return 0, 0
+    p0, d0 = snap("softnet-pre.txt")
+    p1, d1 = snap("softnet-post.txt")
+    return max(p1 - p0, 0), max(d1 - d0, 0)
+
 def cpu_log_stats(run, w_lo, w_hi):
     """per-second sampler rows -> CPU seconds over the measure window."""
     p = os.path.join(run, "cpu.log")
@@ -114,11 +149,16 @@ def main():
     base = "/root/p1/results/%s" % tag
     print("tag cell policy workload rate plen rep gates_ok offered goodput deliv "
           "lat_p50 lat_p90 lat_p99 lat_p999 under_slo resp censored sockdrops "
-          "app_ns c_net_ns cyc refcyc cpu8_busy_s softirq_s napi_s")
+          "app_ns c_net_ns cyc refcyc cpu8_busy_s softirq_s napi_s "
+          "wire_ok layers_ok")
     for mpath in sorted(glob.glob(base + "/*/rep*/manifest.json")):
         run = os.path.dirname(mpath)
-        m = load_manifest(run)
-        cell = m["cell"]
+        try:
+            m = load_manifest(run)
+            cell = m["cell"]
+        except Exception as e:
+            print("WARN bad-manifest %s: %s" % (mpath, e), file=sys.stderr)
+            continue
         warm = m["time"]["warmup_s"]
         meas = m["time"]["measure_s"]
         g = m["gates"]
@@ -139,7 +179,10 @@ def main():
         wgood = sum(w[1] for w in wins) / meas if wins else 0
         cs = cpu_log_stats(run, warm + 1, warm + meas)
         if cell["workload"] == "W1":
-            goodput = wgood
+            # goodput from the consumer's measure-window counter over
+            # its measure span (skip..secs = meas+3 s); the 1s-win file is
+            # NOT trustworthy (a straggler's fd can clobber it - fig1-3)
+            goodput = kv.get("mpkts", 0) / float(meas + 3)
             lp = [kv.get(k, -1) for k in ("p50_us", "p90_us", "p99_us", "p99.9_us")]
             # SLO share of the latency histogram == measure pkts * frac;
             # consumer hist covers the measure window already (--skip)
@@ -157,7 +200,7 @@ def main():
                         if len(a) == 2:
                             hh[int(a[0])] = int(a[1])
                     fr, c = hist_frac_le(hh, slo)
-                    under = "%.0f" % (fr * kv["mpkts"] / meas)
+                    under = "%.0f" % (fr * goodput)
             resp = cens = ""
         else:
             resp = int(skv.get("resp", 0))
@@ -167,7 +210,20 @@ def main():
             lp = [pct(hh, q) for q in (50, 90, 99, 99.9)]
             fr, c = hist_frac_le(hh, slo)
             under = "%.0f" % (c / (warm + meas + 1))
-        pk = kv.get("mpkts", 0) or kv.get("pkts", 1) or 1
+        # per-hop accounting (analysis-time validity): sent == wire
+        # arrivals (the queue's rx counter) within 2%; wire ==
+        # consumed + sockdrops + backlog drops + ring drops within 2%.
+        # The harness's single-layer gate legitimately fails at overload
+        # where drops move below the socket -- that is the result.
+        wire, allp, ring = ethtool_delta(run)
+        bproc, bdrop = softnet_delta(run)
+        close_wire = abs(wire - sent) <= 0.02 * max(sent, 1)
+        acc = pkts_true + int(kv.get("sockdrops", 0)) + bdrop + ring
+        close_layers = abs(wire - acc) <= 0.03 * max(wire, 1)
+        # parse_kv key "pkts" substring-matches "mpkts=" too, so
+        # kv["pkts"] == pkts + mpkts; recover the true total
+        pkts_true = int(kv.get("pkts", 0)) - int(kv.get("mpkts", 0))
+        pk = kv.get("mpkts", 0) or pkts_true or 1
         # c_net basis: napi kthread runtime for threaded arms; inline
         # arm = cpu8 busy minus the app thread's own runtime (P0X: all
         # of cpu8 is network processing, the app sits on cpu 9)
@@ -178,18 +234,19 @@ def main():
         else:
             c_net = "%.0f" % (max(cs["cpu8_busy_s"] - cs["app_s"], 0.0) * 1e9 / pk)
         print("%s %s %s %s %d %d %d %s %.0f %.0f %.3f %s %s %s %s %s %s %s %s "
-              "%.0f %s %.1f %.1f %.2f %.2f %.2f" % (
+              "%.0f %s %.1f %.1f %.2f %.2f %.2f %d %d" % (
                   tag, cell_path_cell(run), cell["policy"], cell["workload"],
                   cell["rate"], cell["plen"], cell["rep"], "1" if gates_ok else "0",
                   offered, goodput,
-                  (goodput / offered) if offered else 0,
+                  (pkts_true / sent) if sent else 0,
                   lp[0], lp[1], lp[2], lp[3], under or "-",
                   resp if resp != "" else "-",
                   cens if cens != "" else "-",
                   int(kv.get("sockdrops", 0)),
                   kv.get("app_ns/pkt", -1), c_net,
                   kv.get("cyc/pkt", -1), kv.get("refcyc/pkt", -1),
-                  cs["cpu8_busy_s"], cs["softirq_s"], cs["napi_s"]))
+                  cs["cpu8_busy_s"], cs["softirq_s"], cs["napi_s"],
+                  int(close_wire), int(close_layers)))
 
 def cell_path_cell(run):
     # .../results/TAG/<CELL>/rep<k> -> <CELL>

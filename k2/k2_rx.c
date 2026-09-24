@@ -262,7 +262,7 @@ int main(int argc, char **argv)
 	win_t0 = now_s();
 	double t_meas = win_t0 + skip;
 	int meas = !skip;
-	unsigned long long mpkts = 0;
+	unsigned long long mpkts = 0, bytes = 0;
 	while (now_s() < t_end) {
 		for (i = 0; i < BATCH; i++) {
 			mm[i].msg_hdr.msg_controllen = sizeof(ctl[i]);
@@ -277,6 +277,7 @@ int main(int argc, char **argv)
 			meas = 1;
 		for (i = 0; i < n; i++) {
 			int len = mm[i].msg_len;
+			bytes += len;
 			struct timespec rxts;
 			uint32_t d = 0;
 			int have_ovfl = 0;
@@ -390,17 +391,20 @@ int main(int argc, char **argv)
 	if (cyc_fd >= 0) {
 		if (read(cyc_fd, &v, 8) == 8)
 			cyc = v;
+		{ int ov = 0; socklen_t ol = sizeof(ov);
+		  getsockopt(fd, SOL_SOCKET, SO_RXQ_OVFL, &ov, &ol);
+		  if ((unsigned)ov > sock_drops) sock_drops = ov; }
 		if (read(miss_fd, &v, 8) == 8)
 			miss = v;
 		printf("k2rx port=%d core=%d incpu=%d pkts=%llu sum=%llu "
 		       "cyc/pkt=%.1f miss/pkt=%.2f",
-		       port, core, inc_cpu, pkts, sum,
+		       port, core, inc_cpu, pkts, bytes,
 		       pkts ? (double)cyc / pkts : -1.0,
 		       pkts ? (double)miss / pkts : -1.0);
 	} else {
 		printf("k2rx port=%d core=%d incpu=%d pkts=%llu sum=%llu "
 		       "cyc/pkt=%.1f",
-		       port, core, inc_cpu, pkts, sum,
+		       port, core, inc_cpu, pkts, bytes,
 		       pkts ? (double)cyc / pkts : -1.0);
 	}
 	{
