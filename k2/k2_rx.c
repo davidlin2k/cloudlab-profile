@@ -128,7 +128,7 @@ int main(int argc, char **argv)
 	int echo = 0, refc_fd = -1, skip = 0;
 	char dump_arg[256] = "";
 	static uint32_t lhist[1 << 20];
-	static uint32_t whist[1024];	/* per-1s-window latency p50 (Fig 5) */
+	static uint32_t whist[8192];	/* per-1s-window latency p50 (Fig 5) */
 	unsigned long long nlat = 0, lat_sum = 0, lat_max = 0;
 	unsigned long long sock_drops = 0, echoed = 0, wins = 0, win_pkts = 0;
 	uint32_t last_d = 0;
@@ -308,7 +308,7 @@ int main(int argc, char **argv)
 				if (l > lat_max) lat_max = l;
 				unsigned b = l / 1000;
 				lhist[b < (1u << 20) ? b : (1u << 20) - 1]++;
-				whist[b < 1024 ? b : 1023]++;
+				whist[b < 8192 ? b : 8191]++;
 			}
 			if (echo && mm[i].msg_hdr.msg_namelen)
 				echoed += sendto(fd, bufs[i], len, 0,
@@ -365,19 +365,21 @@ int main(int argc, char **argv)
 		double nw = now_s();
 		if (nw - win_t0 >= 1.0) {
 			{
-				unsigned long long totw = 0, accw = 0, wp50 = 0;
-				for (unsigned b2 = 0; b2 < 1024; b2++)
+				unsigned long long totw = 0, accw = 0, wp50 = 0, wp99 = 0;
+				for (unsigned b2 = 0; b2 < 8192; b2++)
 					totw += whist[b2];
-				for (unsigned b2 = 0; b2 < 1024; b2++) {
+				for (unsigned b2 = 0; b2 < 8192; b2++) {
 					accw += whist[b2];
 					if (!wp50 && accw * 2 >= totw)
 						wp50 = b2;
+					if (!wp99 && accw * 100 >= totw * 99)
+						wp99 = b2;
 				}
 				fprintf(stderr,
-					"[k2rx-win] t=%.0f pkts=%llu rate=%.0f drops=%llu wp50_us=%llu\n",
-					nw - (t_end - secs), win_pkts,
-					win_pkts / (nw - win_t0), sock_drops,
-					totw ? wp50 : 0);
+					"[k2rx-win] t=%.0f pkts=%llu rate=%.0f drops=%llu wp50_us=%llu wp99_us=%llu\n",
+									nw - (t_end - secs), win_pkts,
+									win_pkts / (nw - win_t0), sock_drops,
+									totw ? wp50 : 0, totw ? wp99 : 0);
 				memset(whist, 0, sizeof(whist));
 			}
 			wins++;
