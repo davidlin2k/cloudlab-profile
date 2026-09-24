@@ -1,0 +1,13 @@
+# p1-ladder port authoring: target queue 7 (RSS key = DPDK_KEY, identity table)
+# W1: sip_oct sport dport(=7777) queue
+10 32704 7777 7
+11 32726 7777 7
+12 32706 7777 7
+13 32724 7777 7
+14 32725 7777 7
+# W2: sip_oct lport dport(=7778) queue
+10 33751 7778 7
+11 33717 7778 7
+12 33749 7778 7
+13 33719 7778 7
+14 33718 7778 7

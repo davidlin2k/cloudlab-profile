@@ -55,6 +55,7 @@ int main(int argc, char **argv)
 	int n = 80000, plen = 300, depth = 64, follow = 1, core = -1;
 	int start_qidx = 0;
 	int burst = 1, lport = 0;
+	char dump_arg[256] = "";
 	long rate = 120000;
 	char dip[64] = "10.10.1.1", qmap_arg[256] = "";
 	int sip_octet = 0;
@@ -67,6 +68,7 @@ int main(int argc, char **argv)
 		else if (!strcmp(argv[i], "--depth")) depth = atoi(argv[++i]);
 		else if (!strcmp(argv[i], "--burst")) burst = atoi(argv[++i]);
 		else if (!strcmp(argv[i], "--lport")) lport = atoi(argv[++i]);
+		else if (!strcmp(argv[i], "--dump")) snprintf(dump_arg, sizeof(dump_arg), "%s", argv[++i]);
 		else if (!strcmp(argv[i], "--rate")) rate = atol(argv[++i]);
 		else if (!strcmp(argv[i], "--follow")) follow = atoi(argv[++i]);
 		else if (!strcmp(argv[i], "--start")) start_qidx = atoi(argv[++i]);
@@ -261,6 +263,16 @@ int main(int argc, char **argv)
 			"total sent %llu\n", (unsigned long long)qsum,
 			(unsigned long long)sent);
 		return 2;
+	}
+	if (dump_arg[0]) {
+		FILE *df = fopen(dump_arg, "w");
+		if (df) {
+			for (int i = 0; i < HIST; i++)
+				if (hist[i]) fprintf(df, "%d %d\n", i, hist[i]);
+			fclose(df);
+		} else {
+			fprintf(stderr, "k4send: cannot write %s\n", dump_arg);
+		}
 	}
 	if (responses > 100 && outp[0] < RTT_FLOOR_US) {
 		fprintf(stderr, "[k4send] GATE FAIL: p50 RTT %.1fus < %.0fus "

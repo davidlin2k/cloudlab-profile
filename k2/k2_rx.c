@@ -104,10 +104,33 @@ static double now_s(void)
 	return t.tv_sec + 1e-9 * t.tv_nsec;
 }
 
+/* this thread's cumulative on-CPU time (ns): frequency-independent
+ * app-side cost per packet when differenced across the run */
+static unsigned long long schedstat_ns(void)
+{
+	FILE *f = fopen("/proc/self/schedstat", "r");
+	unsigned long long rt = 0;
+	if (f) {
+		if (fscanf(f, "%llu", &rt) != 1)
+			rt = 0;
+		fclose(f);
+	}
+	return rt;
+}
+
 int main(int argc, char **argv)
 {
 	int port = 7777, core = 0, secs = 15, i, j, fd, cyc_fd, miss_fd, one;
 	int all = 0, tot_cyc_fd = -1;
+	/* p1-LADDER additions: rx-ts->dequeue latency histogram (1us buckets),
+	 * socket-drop counter (SO_RXQ_OVFL), 1s window rates on stderr, echo
+	 * mode (W2 server), self schedstat (frequency-independent app cost). */
+	int echo = 0, refc_fd = -1, skip = 0;
+	static uint32_t lhist[1 << 20];
+	unsigned long long nlat = 0, lat_sum = 0, lat_max = 0;
+	unsigned long long sock_drops = 0, echoed = 0, wins = 0, win_pkts = 0;
+	uint32_t last_d = 0;
+	double win_t0;
 	/* AMD Zen4 ls_dmnd_fills_from_sys (event 0x43) by fill source:
 	 * exactly the categories the review asks for (L2 hit vs other CCX
 	 * cache vs DRAM/IO). raw config = 0x43 | umask << 8 */
@@ -128,13 +151,17 @@ int main(int argc, char **argv)
 			secs = atoi(argv[++i]);
 		else if (!strcmp(argv[i], "--hist"))
 			setenv("K2RX_HIST", "1", 0);
+		else if (!strcmp(argv[i], "--echo"))
+			echo = 1;
+		else if (!strcmp(argv[i], "--skip") && i + 1 < argc)
+			skip = atoi(argv[++i]);
 		else if (!strcmp(argv[i], "--all"))
 			all = 1;	/* also count syscall-side cycles/misses:
 					 * for UDP the skb->user copy runs in THIS
 					 * thread's recvmmsg, so tot - user exposes
 					 * the DMA'd payload's cache state */
 		else
-			die("usage: k2_rx --port N --core N [--secs 15] [--hist] [--all]");
+			die("usage: k2_rx --port N --core N [--secs 15] [--hist] [--all] [--echo] [--skip W]");
 	}
 	pin(core);
 	cyc_fd = miss_fd = -1;
@@ -144,6 +171,8 @@ int main(int argc, char **argv)
 				     PERF_COUNT_HW_CPU_CYCLES);
 		miss_fd = pe_open_cpu(PERF_TYPE_HARDWARE,
 				      PERF_COUNT_HW_CACHE_MISSES);
+		refc_fd = pe_open_cpu(PERF_TYPE_HARDWARE,
+				      PERF_COUNT_HW_REF_CPU_CYCLES);
 		if (cyc_fd < 0 || miss_fd < 0)
 			die("perf_event_open (paranoid level?)");
 	} else {
@@ -169,6 +198,13 @@ int main(int argc, char **argv)
 	setsockopt(fd, SOL_SOCKET, SO_REUSEPORT, &one, sizeof(one));
 	int buf = 64 << 20;
 	setsockopt(fd, SOL_SOCKET, SO_RCVBUF, &buf, sizeof(buf));
+	setsockopt(fd, SOL_SOCKET, SO_TIMESTAMPNS, &one, sizeof(one));
+	setsockopt(fd, SOL_SOCKET, SO_RXQ_OVFL, &one, sizeof(one));
+	/* don't block forever: the loop must re-check its deadline */
+	{
+		struct timeval tv = { .tv_sec = 0, .tv_usec = 200000 };
+		setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
+	}
 	struct sockaddr_in a;
 	memset(&a, 0, sizeof(a));
 	a.sin_family = AF_INET;
@@ -183,6 +219,8 @@ int main(int argc, char **argv)
 	static char bufs[BATCH][BUFLEN] __attribute__((aligned(64)));
 	struct mmsghdr mm[BATCH];
 	struct iovec iov[BATCH];
+	static char ctl[BATCH][256];
+	static struct sockaddr_storage src[BATCH];
 	memset(mm, 0, sizeof(mm));	/* msg_name/msg_control must be zero:
 					 * garbage makes recvmmsg EFAULT */
 	for (i = 0; i < BATCH; i++) {
@@ -190,6 +228,10 @@ int main(int argc, char **argv)
 		iov[i].iov_len = BUFLEN;
 		mm[i].msg_hdr.msg_iov = &iov[i];
 		mm[i].msg_hdr.msg_iovlen = 1;
+		mm[i].msg_hdr.msg_name = &src[i];
+		mm[i].msg_hdr.msg_namelen = sizeof(src[i]);
+		mm[i].msg_hdr.msg_control = ctl[i];
+		mm[i].msg_hdr.msg_controllen = sizeof(ctl[i]);
 	}
 
 	char (*big)[BUFLEN] = NULL;
@@ -211,13 +253,61 @@ int main(int argc, char **argv)
 	long slot = 0;
 	unsigned long long refpos = 0;
 
+	unsigned long long app_ns0 = schedstat_ns();
 	t_end = now_s() + secs;
+	win_t0 = now_s();
+	double t_meas = win_t0 + skip;
+	int meas = !skip;
+	unsigned long long mpkts = 0;
 	while (now_s() < t_end) {
+		for (i = 0; i < BATCH; i++) {
+			mm[i].msg_hdr.msg_controllen = sizeof(ctl[i]);
+			mm[i].msg_hdr.msg_namelen = sizeof(src[i]);
+		}
 		int n = recvmmsg(fd, mm, BATCH, MSG_WAITFORONE, NULL);
 		if (n < 0)
 			continue;
+		struct timespec dr;
+		clock_gettime(CLOCK_REALTIME, &dr);
+		if (!meas && now_s() >= t_meas)
+			meas = 1;
 		for (i = 0; i < n; i++) {
 			int len = mm[i].msg_len;
+			struct timespec rxts;
+			uint32_t d = 0;
+			int have_ovfl = 0;
+			memset(&rxts, 0, sizeof(rxts));
+			for (struct cmsghdr *cm = CMSG_FIRSTHDR(&mm[i].msg_hdr);
+			     cm; cm = CMSG_NXTHDR(&mm[i].msg_hdr, cm)) {
+				if (cm->cmsg_level == SOL_SOCKET &&
+				    cm->cmsg_type == SCM_TIMESTAMPNS)
+					memcpy(&rxts, CMSG_DATA(cm),
+					       sizeof(rxts));
+				if (cm->cmsg_level == SOL_SOCKET &&
+				    cm->cmsg_type == SO_RXQ_OVFL) {
+					memcpy(&d, CMSG_DATA(cm), sizeof(d));
+					have_ovfl = 1;
+				}
+			}
+			if (have_ovfl) {
+				sock_drops += d - last_d;
+				last_d = d;
+			}
+			if (meas && (rxts.tv_sec || rxts.tv_nsec)) {
+				int64_t ns = (int64_t)(dr.tv_sec -
+						       rxts.tv_sec) *
+					     1000000000LL + dr.tv_nsec -
+					     rxts.tv_nsec;
+				uint64_t l = ns < 0 ? 0 : (uint64_t)ns;
+				lat_sum += l; nlat++;
+				if (l > lat_max) lat_max = l;
+				unsigned b = l / 1000;
+				lhist[b < (1u << 20) ? b : (1u << 20) - 1]++;
+			}
+			if (echo && mm[i].msg_hdr.msg_namelen)
+				echoed += sendto(fd, bufs[i], len, 0,
+						 (struct sockaddr *)&src[i],
+						 mm[i].msg_hdr.msg_namelen) > 0;
 			unsigned long long *w;
 			if (big) {
 				w = (unsigned long long *)
@@ -262,8 +352,22 @@ int main(int argc, char **argv)
 					refpos = 0;
 			}
 			pkts++;
+			win_pkts++;
+			if (meas)
+				mpkts++;
+		}
+		double nw = now_s();
+		if (nw - win_t0 >= 1.0) {
+			fprintf(stderr,
+				"[k2rx-win] t=%.0f pkts=%llu rate=%.0f drops=%llu\n",
+				nw - (t_end - secs), win_pkts,
+				win_pkts / (nw - win_t0), sock_drops);
+			wins++;
+			win_pkts = 0;
+			win_t0 = nw;
 		}
 	}
+	unsigned long long app_ns = schedstat_ns() - app_ns0;
 	uint64_t v;
 	cyc = miss = 0;
 	if (cyc_fd >= 0) {
@@ -281,6 +385,35 @@ int main(int argc, char **argv)
 		       "cyc/pkt=%.1f",
 		       port, core, inc_cpu, pkts, sum,
 		       pkts ? (double)cyc / pkts : -1.0);
+	}
+	{
+		double p50 = -1, p90 = -1, p99 = -1, p999 = -1;
+		unsigned long long acc = 0, b;
+		for (b = 0; b < (1u << 20); b++) {
+			acc += lhist[b];
+			double us = (double)b + 0.5;
+			if (p50 < 0 && acc >= 50 * nlat / 100) p50 = us;
+			if (p90 < 0 && acc >= 90 * nlat / 100) p90 = us;
+			if (p99 < 0 && acc >= 99 * nlat / 100) p99 = us;
+			if (p999 < 0 && acc >= 999 * nlat / 1000) p999 = us;
+		}
+		double refc = -1;
+		if (refc_fd >= 0) {
+			uint64_t rv = 0;
+			if (read(refc_fd, &rv, 8) == 8)
+				refc = pkts ? (double)rv / pkts : -1.0;
+		}
+		printf(" | lat mean_us=%.1f p50_us=%.1f p90_us=%.1f p99_us=%.1f "
+		       "p99.9_us=%.1f max_us=%.1f sockdrops=%llu echoed=%llu "
+		       "wins=%llu mpkts=%llu app_ns/pkt=%.1f refcyc/pkt=%.1f",
+		       nlat ? (double)lat_sum / nlat / 1000.0 : -1.0,
+		       p50, p90, p99, p999, lat_max / 1000.0,
+		       sock_drops, echoed, wins, mpkts,
+		       pkts ? (double)app_ns / pkts : -1.0, refc);
+		if (p50 >= 0 && p50 < 1.0 && nlat > 100)
+			fprintf(stderr,
+				"GATEWARN k2_rx: sw rx->dequeue p50 %.2fus "
+				"< 1us - timestamp phase bug suspected\n", p50);
 	}
 	if (big)
 		printf(" | FT <80:%llu 80-250:%llu 250-600:%llu >=600:%llu "
