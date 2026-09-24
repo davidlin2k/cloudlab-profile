@@ -31,12 +31,16 @@ case "${1:-}" in
     ;;
   watch-start)
     mkdir -p /root/p1/wdiag
-    nohup taskset -c 62 bash /root/k2/wcounters.sh \
+    nohup taskset -c 62 bash /root/k2/wcounters.sh \\
       > /root/p1/wdiag/live-${2:-run}.log 2>&1 < /dev/null &
+    echo $! > /root/p1/wdiag/watch.pid
     echo "watcher pid $! -> /root/p1/wdiag/live-${2:-run}.log"
     ;;
   watch-stop)
-    pkill -xc wcounters.sh || true
+    # kill by pidfile: the script's comm is "bash", so exact-name pkills
+    # never match it (learned the hard way 2026-09-24)
+    [ -f /root/p1/wdiag/watch.pid ] && kill "$(cat /root/p1/wdiag/watch.pid)" 2>/dev/null
+    rm -f /root/p1/wdiag/watch.pid
     echo "watcher stopped"
     ;;
   ab)
