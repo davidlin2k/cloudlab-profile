@@ -7,6 +7,7 @@
 #
 # Run AFTER WDIAG-DONE (one driver at a time). usage: perfsched.sh
 set -u
+PERF=/usr/lib/linux-tools/6.8.0-142-generic/perf
 mkdir -p /root/p1/perf
 echo "PERFSCHED START $(date -u +%FT%TZ)"
 for ADAPT in on off; do
@@ -19,12 +20,12 @@ for ADAPT in on off; do
   for POL in P0 P0X; do
     TAG="perfsched-$POL-$ADAPT"
     echo "== $TAG $(date -u +%FT%TZ)"
-    perf sched record -o /root/p1/perf/sched-$TAG.data -- sleep 80 > /root/p1/perf/sched-$TAG.rec 2>&1 &
+    $PERF sched record -o /root/p1/perf/sched-$TAG.data -- sleep 80 > /root/p1/perf/sched-$TAG.rec 2>&1 &
     PERF=$!
     bash /root/k2/p1cell.sh "$POL" W1 130000 64 1 "$TAG" > /root/p1/perf/$TAG.celllog 2>&1
     wait $PERF
-    perf sched latency -i /root/p1/perf/sched-$TAG.data > /root/p1/perf/sched-$TAG.latency.txt 2>&1
-    perf sched timehist -i /root/p1/perf/sched-$TAG.data 2>/dev/null | grep -E 'k2_rx|k5blast' > /root/p1/perf/sched-$TAG.timehist.txt
+    $PERF sched latency -i /root/p1/perf/sched-$TAG.data > /root/p1/perf/sched-$TAG.latency.txt 2>&1
+    $PERF sched timehist -i /root/p1/perf/sched-$TAG.data 2>/dev/null | grep -E 'k2_rx|k5blast' > /root/p1/perf/sched-$TAG.timehist.txt
     echo "-- wake latency top (k2_rx line):"
     grep -E 'k2_rx|Average' /root/p1/perf/sched-$TAG.latency.txt | head -3
     echo "-- p50_us from the cell:"
