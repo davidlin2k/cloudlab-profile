@@ -6,7 +6,7 @@
 set -u
 POLICY=$1; PATTERN=$2; REP=$3; TAG=$4
 IFACE=enp195s0np0
-DUR=190
+DUR=${DUR:-190}
 CELL="W5-${POLICY}-${PATTERN}"
 OUT=/root/p1/results/$TAG/$CELL/rep$REP
 mkdir -p "$OUT"
@@ -20,11 +20,12 @@ for o in 10 11 12 13 14; do
 done
 exec 9>/dev/cpu_dma_latency; echo 0 >&9
 
-# P7's base state = P0 wiring; the controller owns the rung from here.
+# Static policies wear their own wiring via p1pol; P7's base state is P0
+# wiring and the controller owns the rung from here.
 APP_CPU=8
-echo 0 > /sys/class/net/$IFACE/threaded
-IRQ=$(grep -E "mlx5_comp7@pci:0000:c3" /proc/interrupts | awk '{print $1}' | tr -d ':')
-echo 8 > /proc/irq/$IRQ/smp_affinity_list
+WIRE=$POLICY
+[ "$POLICY" = P7 ] && WIRE=P0
+bash /root/k2/p1pol.sh "$WIRE" > "$OUT/policy.txt" 2>&1
 
 ethtool -S $IFACE | grep -E "rx[0-9]+_packets" > "$OUT/nic-pre.txt"
 nohup /root/k2/k2_rx --port 7777 --core "$APP_CPU" --secs $((DUR + 5)) --skip 5 \
@@ -59,8 +60,8 @@ for o in 10 11 12 13 14; do
 done
 ethtool -S $IFACE | grep -E "rx[0-9]+_packets" > "$OUT/nic-post.txt"
 
-CONS=$(sed -n 's/.* pkts=\([0-9]*\).*/\1/p' "$OUT/consumer.txt" | head -1)
-DROPS=$(sed -n 's/.*sockdrops=\([0-9]*\).*/\1/p' "$OUT/consumer.txt" | head -1)
+CONS=$(grep "sum=" "$OUT/consumer.err" | sed -n 's/.* pkts=\([0-9]*\).*/\1/p' | tail -1)
+DROPS=$(grep "sum=" "$OUT/consumer.err" | sed -n 's/.*sockdrops=\([0-9]*\).*/\1/p' | tail -1)
 SENT=$(grep -hE "^\[k5blast\] dip=" "$OUT"/sender-*.txt | sed -n 's/.* sent=\([0-9]*\).*/\1/p' | awk '{s+=$1} END {print s+0}')
 UNACC=$((SENT - CONS - ${DROPS:-0}))
 GATE_CONS=pass
@@ -74,7 +75,7 @@ cat > "$OUT/manifest.json" <<EOF
   "spec": "specs/p1-LADDER.md", "spec_version": 2,
   "kernel": "$(uname -r)",
   "cell": {"workload": "W5", "policy": "$POLICY", "pattern": "$PATTERN", "rep": $REP, "plen": 64},
-  "tool_versions": {"k2_rx": "wp50-window", "k5blast": "profile", "p1ctl": "v1"},
+  "tool_versions": {"k2_rx": "wp99-window", "k5blast": "profile", "p1ctl": "v1"},
   "placement": {"app_cpu": $APP_CPU, "controller": "$([ -n "$CTLPID" ] && echo p1ctl || echo static)"},
   "gates": {"conservation": "$GATE_CONS"},
   "metrics": {"sent": $SENT, "consumed": $CONS, "sockdrops": ${DROPS:-0}},
