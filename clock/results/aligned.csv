@@ -1,1 +1,4 @@
 streams,rep,live,errs,stalls,stall_s,tokens,p50_itl_ms,p99_itl_ms,rate_tok_s,drops,slow_writes,slot_overruns,em_cpu_s,phase
+25000,1,25000,0,0,0,86315662,0,232,1004059,0,1,652730,1269.0,aligned
+25000,2,25000,0,0,0,163590484,0,232,899931,0,3,1149439,1084.8,aligned
+25000,3,25000,0,0,0,240203151,0,232,1002262,0,6,1645901,1087.6,aligned

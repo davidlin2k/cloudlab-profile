@@ -168,3 +168,32 @@ Consequences:
 - /tmp/clock-inst-{aligned,random}.jsonl on n1 (1 Hz layer counters)
 - /tmp/clock/sw-{phase}-{N}.log on n6 (sink logs, 2s cadence)
 - /tmp/vllm-stream.pcap on n6 (emission-shape proof capture)
+
+## D matrix, first pass (2026-09-24 02:00 UTC) — INTERIM (see AN-002)
+Unified emitter v3 + absolute-deadline wheel, 3 modes x 25k/50k/75k/
+100k x 3 reps, medians over reps (1s-window rate field — inflated by
+backlog catch-up; superseded by the tokens-diff rerun in flight):
+| streams | aligned | random | per-engine | offered |
+|---|---|---|---|---|
+| 25k | 1.000M | 0.999M | 0.998M | 1.00M |
+| 50k | 2.001M | 1.992M | 2.032M | 2.00M |
+| 75k | 2.988M | 3.013M | 3.005M | 3.00M |
+| 100k | 3.471M* | 3.983M | 4.019M | 4.00M |
+All rows pass the emitter gates (drops ~0). *aligned 100k carries one
+frozen rep and one 2.97M outlier. READING: with the timer fixed there
+is NO plateau and NO phase effect at 25k-75k (100% of demand in every
+mode); at 100k the 87%-vs-100% gap rests on one bad rep. Combined
+with the measured wire smear (achieved alignment ~uniform), the honest
+pre-rerun reading is: no detectable phase effect at the wire at these
+scales. AN-001 supersedes the old plateau numbers; AN-002 supersedes
+these rate values.
+
+Record system adopted (lab handbook): cloudlab-profile/ now carries
+specs/ notes/ anomalies/ decisions/ reports/weekly/ CLAIMS.md and the
+append-only FINDINGS.md; AN-001 and AN-002 filed. Raw pcaps stay on
+disk (5.6GB) and out of git.
+
+Next: D2 tokens-diff rerun (in flight) -> spot burst captures per
+cell for the achieved-alignment covariate -> fan-in escalation for
+the retransmission signature -> coalesce+multiplex emitter (the
+enabler of real wire bursts).
