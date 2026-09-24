@@ -132,6 +132,32 @@ irqbalance (stopped+disabled) · GRO (recorded; unchanged across arms) ·
 moderation (recorded; unchanged) · generator capacity (spin pacing,
 5 senders, per-sender < 35% of one core).
 
+## Prediction refinement (spec v4, 2026-09-24 -- recorded before the
+512/1400 B knee cells land; reason: interim adjudication on 64 B shows
+form F's miss is structured, not noise)
+
+Form F (v2) is falsified at 64 B on P0 (38% overprediction) and P4
+(91%), but fits P3 (17%) when its costs are measured near the knee.
+All three placements measure the SAME knee (~461-477 kpps = ~2.1 us/pkt
+of serialized receive work). Two mechanisms predict the miss:
+
+  (h) hidden share: c_app+c_net account for ~1.5 us/pkt of the 2.1 us
+      critical-path total; the missing ~0.6 us/pkt (29%) is the
+      hardirq/ring/DMA-side work that per-thread accounting hides --
+      the same quantity Fig 3 measures at 26-42% (mean 33%). Form F'
+      = (1 - h) x knee_F with h = the run's own hidden-share metric.
+  (i) cost inflation: per-packet costs grow between idle and near-knee
+      states (P3: c_net 462 -> 1508 ns from its own 390 k cell). Form
+      F must use NEAR-KNEE in-situ costs, not idle-state costs.
+
+PREDICTION (numbers): with near-knee costs and h each run's measured
+hidden share, form F' predicts every knee within +/-25% at all three
+sizes and placements (P0/64B predicts 658k x (1-h) with h~0.28 -> ~470k
+vs measured 477k). Falsified if ANY (size, placement) cell misses by
+>25% after both corrections. If (h) alone fits but (i) does not (or
+vice versa), the claim becomes "predictable from per-packet costs plus
+one calibration constant" and Fig 4's row changes per rule 4 (DR-002).
+
 ## W3/W4 arms (spec v3, 2026-09-24 — added before any W3 cell ran;
 reason: pin the baseline definitions the skeleton names but does not
 define, grounded in their source papers)
