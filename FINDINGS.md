@@ -19,3 +19,24 @@ captured over 12s), peakedness 1.5-1.6 — the write path serializes
 sender-side coalesce+multiplex.
 Supersedes: none · Note: notes/C1-CLOCK-1.md · Figure: pending
 
+### p1-LADDER.1 — 2026-09-24 — level H
+Moving the application off the interrupt core keeps inline receive
+processing alive under flood: at 1.5x/2.0x the receive knee the default
+co-located echo delivers 9.0%/0.2% of offered load while the same inline
+path with the app on its own core delivers 97.5%/74.2% (n=2-3, 10k
+bootstrap 95% CIs in the checkpoint; 111 verified rows after flow-split
+and generator-budget filters). The threaded placements wedge at these
+loads (p1-LADDER.2), so the separation that drains is app-separation
+with inline processing.
+Supersedes: none · Note: notes/p1-LADDER-3.md · Figure: F-p1-LADDER-1
+
+### p1-LADDER.2 — 2026-09-24 — level H
+Threaded-NAPI receive placement stalls under sustained flood on this
+host regardless of rung: 24/24 cells (P2/P3/P4 x PIN_IDLE 0/1 x 2 reps
+at 790 kpps) wedged -- queue silent for the rest of the 71 s budget,
+onset t=2..68 s, rx ring loss ~750 k/s at onset, IRQ masked and the
+napi kthread asleep (AN-003). C-state pinning is ruled out as the
+trigger (12/12 collapsed in both halves). The wedge is a property of the
+threaded mode, not of the placement choice.
+Supersedes: none · Note: notes/p1-LADDER-3.md · Figure: F-p1-LADDER-1 (wedge markers)
+

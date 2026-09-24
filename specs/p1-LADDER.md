@@ -132,6 +132,49 @@ irqbalance (stopped+disabled) · GRO (recorded; unchanged across arms) ·
 moderation (recorded; unchanged) · generator capacity (spin pacing,
 5 senders, per-sender < 35% of one core).
 
+## W3/W4 arms (spec v3, 2026-09-24 — added before any W3 cell ran;
+reason: pin the baseline definitions the skeleton names but does not
+define, grounded in their source papers)
+
+W3 = memcached under mutilate, TCP, open-loop, 90% GETs, 32-byte
+values (skeleton). Grounding and knobs:
+- mutilate (leverich/mutilate): agents -T 16 -A on tx0-3, master on
+  tx4; open-loop latency via --measure_depth + --measure_qps (master
+  samples at a constant slow rate while agents carry load). 90% GETs =
+  -u 0.1111 (set:get = 1:9), -V 32 values, -K 32 keys, -r 100000
+  records. Build: scons + libevent-dev + gengetopt + libzmq-dev.
+- Receive steering invariant: one ntuple rule sends ALL tcp/11211 to
+  queue 7 (ethtool -N flow-type tcp4 dst-port 11211 action 7), so W3
+  exercises the SAME instrumented queue as W1/W2 under every policy.
+  This also answers mutilate's ephemeral-port limitation (connections
+  would otherwise hash across queues).
+- App = memcached -t 1 pinned to the policy's app_cpu: one server
+  thread keeps c_app (W3's per-op cost, measured at low load) a
+  property of the policy, exactly as in the W1/W2 model. The Fig 7
+  prediction then reuses form F with W3-measured costs.
+
+P5 (IRQ suspension) = Damato/Karsten "Suspend IRQs during application
+busy periods" (net-next 2024, patchew 20241103052421 v5..v9): set
+napi_defer_hard_irqs=100, gro_flush_timeout=200us, irq_suspend_timeout
+large (their recipe: 20s) via netdev-genl, and the app sets
+prefer_busy_poll on its epoll context (EPIOCSPARAMS) with
+busy_poll_usecs=0, budget=64. It REQUIRES an app-side epoll ioctl, as
+the related-work sentence says. Verification needed at first quiet
+window: irq_suspend_timeout availability on 6.17.8 (netdev-genl family
+present?) and the memcached/libevent epoll path (shim or 10-line patch
+to issue EPIOCSPARAMS; the series' own evaluation modified memcached's
+epoll_wait path).
+P6 (busy polling) = the series' "fullbusy" baseline: prefer_busy_poll +
+busy_poll_usecs=1000, budget=64, defer_hard_irqs=100,
+gro_flush_timeout=5s, and a 1ms epoll timeout in the app.
+
+Both P5 and P6 are applied to the SAME consumer app as the other arms
+(k2_rx --echo for W2; memcached path for W3) so arms differ only in the
+placement/mode variable (evidence-standards: one implementation).
+p1pol.sh gains P5/P6 cases AFTER chain6 exits (never edit a script a
+running driver execs, even fresh per cell -- the exec window races the
+write).
+
 ## Budget
 Runs: ~230 for Figs 1-3 + Fig 4 knee cells (of the skeleton's ~870
 total incl. Figs 5-10 and final reps) · Machine hours: ~6 h phase 1
