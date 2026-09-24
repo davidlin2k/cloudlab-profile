@@ -13,4 +13,11 @@
 | C-009 | The ladder stays within [Y]% of inline latency at low load and sustains [Z]x the default's goodput under overload. | pending Figs 5-8 | - | Pending | 2026-09-24 |
 | C-010 | The affinity bailout causes the wedge | AN-006: REFUTED by the pre-registered A/B (aligned arms wedge 6/8 with aff_change near zero) | H | Refuted | 2026-09-24 |
 | C-011 | Unpinned threaded NAPI wedges | AN-006: unpin arm 8/8 wedge, onsets 9-19 s (fastest of all arms); plus AN-003 | H | Pending | 2026-09-24 |
-
+| C-007 | At 64 B, the co-located knee is predicted within 25% by per-packet costs once the hidden softirq share (h = 0.33, measured independently) is corrected: 2% miss co-located, 9% separated | DR-004 (PI promotion); knee re-grade checkpoints/2026-09-24-recovery-and-knee-regrade.md (supersedes earlier wording) | H | Supported, 64 B only | 2026-09-25 |
+| C-008 | Threaded NAPI stalls under sustained overload on this host, in every placement: 25 of 48 cells plus 24 of 24 | DR-004 (PI promotion); AN-006 wdiag matrix + AN-003 (supersedes earlier wording) | H | Supported | 2026-09-25 |
+| C-011 | Unpinned threaded NAPI stalls fastest: 8 of 8, onsets 9-19 s | DR-004 (PI promotion); AN-006 unpin arm (supersedes the Pending row) | H | Supported | 2026-09-25 |
+| C-012 | Co-location's latency penalty is scheduler wait behind receive processing: 34-60 us wake delay against 4 us separated, unaffected by adaptive-rx | DR-004 (PI promotion); checkpoints/2026-09-24-decision8-latency-mechanism.md; collisions.md row 2 evidence | H | Supported at 130k packets/s, UDP; memcached pending | 2026-09-25 |
+| C-013 | Separation's ceiling is the interrupt core: core 8 is 100% busy at about 1.2 us per packet while the application core runs about 85% | DR-004 (PI promotion); fig1-3 rows (analysis/rows-fig1-3.csv) | H | Supported, 64 B | 2026-09-25 |
+| C-014 | Our cpuN_busy_s metric excludes softirq executed in interrupt context | DR-004 task 1 open (P0X 390k: cpu8_busy_s 0.16-0.31 s over 60 s although core 8 processes every packet) | - | Pending the task 1 fix | 2026-09-25 |
+| C-005 | Co-location is slower even at low load | mechanism now measured (C-012); DR-004: stays Pending until memcached (W3) (supersedes the Pending-a-mechanism row) | H | Pending | 2026-09-25 |
+| C-009 | The ladder stays within [Y]% of inline latency at low load and sustains [Z]x the default's goodput under overload | DR-004: the runtime switch is suspended | - | Suspended | 2026-09-25 |
