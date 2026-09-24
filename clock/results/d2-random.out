@@ -8,3 +8,35 @@ emitters_up=4 phase=random
 0
   rep 1: live=25000 rate=1004565 tok=86285591 stall_s=0 drops=0 slow=5 slip=590690
   rep 2: live=25000 rate=1000829 tok=163610854 stall_s=0 drops=0 slow=6 slip=1030374
+  rep 3: live=25000 rate=1000332 tok=240031229 stall_s=0 drops=0 slow=6 slip=1470622
+== random N=50000 01:45:47
+4
+4
+4
+emitters_up=4 phase=random
+emitters_up=4 phase=random
+emitters_up=4 phase=random
+0
+  rep 1: live=50000 rate=1984460 tok=183419777 stall_s=0 drops=0 slow=11 slip=654928
+  rep 2: live=50000 rate=1993681 tok=337993245 stall_s=0 drops=0 slow=12 slip=1098857
+  rep 3: live=50000 rate=1994744 tok=491188286 stall_s=0 drops=0 slow=14 slip=1541831
+== random N=75000 01:50:18
+4
+4
+4
+emitters_up=4 phase=random
+emitters_up=4 phase=random
+emitters_up=4 phase=random
+0
+  rep 1: live=75000 rate=2999678 tok=293914247 stall_s=347 drops=0 slow=34 slip=673446
+  rep 2: live=75000 rate=2994306 tok=526527967 stall_s=347 drops=0 slow=45 slip=1068963
+  rep 3: live=75000 rate=3228271 tok=757162308 stall_s=2402 drops=0 slow=55 slip=1457498
+== random N=100000 01:55:01
+4
+4
+4
+emitters_up=4 phase=random
+emitters_up=4 phase=random
+emitters_up=4 phase=random
+0
+0

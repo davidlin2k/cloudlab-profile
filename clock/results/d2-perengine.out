@@ -1,0 +1,45 @@
+== per-engine N=25000 02:03:50
+4
+4
+4
+emitters_up=4 phase=per-engine
+emitters_up=4 phase=per-engine
+emitters_up=4 phase=per-engine
+0
+  rep 1: live=25000 rate=933756 tok=85175404 stall_s=0 drops=0 slow=4 slip=616588
+  rep 2: live=25000 rate=967997 tok=162501590 stall_s=0 drops=0 slow=4 slip=1082007
+  rep 3: live=25000 rate=1008267 tok=240152795 stall_s=0 drops=0 slow=4 slip=1549685
+== per-engine N=50000 02:08:08
+4
+4
+4
+emitters_up=4 phase=per-engine
+emitters_up=4 phase=per-engine
+emitters_up=4 phase=per-engine
+0
+  rep 1: live=50000 rate=2003086 tok=182801378 stall_s=0 drops=0 slow=11 slip=644348
+  rep 2: live=50000 rate=1989167 tok=337965278 stall_s=0 drops=0 slow=12 slip=1075314
+  rep 3: live=50000 rate=2018971 tok=492779168 stall_s=0 drops=0 slow=14 slip=1505452
+== per-engine N=75000 02:12:39
+4
+4
+4
+emitters_up=4 phase=per-engine
+emitters_up=4 phase=per-engine
+emitters_up=4 phase=per-engine
+0
+  rep 1: live=75000 rate=2984269 tok=292146888 stall_s=2270 drops=0 slow=27 slip=656257
+  rep 2: live=75000 rate=1522213 tok=522329383 stall_s=4562 drops=0 slow=31 slip=1044998
+  rep 3: live=75000 rate=3016188 tok=587416708 stall_s=5127 drops= slow= slip=
+== per-engine N=100000 02:17:22
+0
+0
+0
+emitters_up=4 phase=per-engine
+emitters_up=4 phase=per-engine
+emitters_up=4 phase=per-engine
+0
+  rep 1: live=100000 rate=4047259 tok=417664277 stall_s=1612093 drops=0 slow=55 slip=762182
+  rep 2: live=100000 rate=5163319 tok=727977612 stall_s=3144815 drops=0 slow=78 slip=1191160
+  rep 3: live=100000 rate=4248581 tok=1036348021 stall_s=4582210 drops=0 slow=102 slip=1619240
+1
