@@ -70,3 +70,22 @@ cells) running on rx as chain2 (started 07:00Z, done ~09:16Z).
 - Anomaly: cloudlab-profile/anomalies/AN-003.md (AN-002 is the clock
   program's sampler anomaly).
 - Note: cloudlab-profile/notes/p1-LADDER-1.md (forensics section added).
+
+## Addendum 08:00Z — wedge-m block tossed, chain status
+
+- The first wedge-m block is TOSSED: PIN_IDLE was not encoded in the cell
+  name, so the pin=1 and pin=0 runs overwrote each other per rep (the
+  surviving data is pin=0 half-collapsed). Clean re-run queued as chain3
+  with tags wedge-m0/wedge-m1 (= the pin label), interleaved policy
+  order, to start when fig1-3b completes. Rule: anything varying mid-run
+  gets its variable in the TAG.
+- Contained mystery: in the tossed block, some consumers died at
+  t=14-20s without a summary (empty consumer.txt, last win line at the
+  death second, no dmesg entry, recvmmsg and histogram paths verified
+  non-fatal and guarded). The earlier chains' logs and the process tree
+  rule out concurrent drivers. Cause unresolved; watch for recurrence in
+  fig1-3b and chain3. Affected runs are in the tossed block only so far.
+- fig1-3b (the W1 re-run, 72 cells) is healthy and sequential (~117 s
+  per cell from 07:38Z; expected CHAIN2-DONE ~10:05Z). Then chain3
+  (24 cells, ~47 min) completes the wedge A/B. chain3 will be launched
+  manually (the setsid waiter did not survive the launching ssh).
