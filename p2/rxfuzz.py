@@ -160,9 +160,10 @@ def oracles(counters, offered_by_time, drop_time):
             if drop_time and t >= drop_time + 60:
                 hits.add("METASTABLE")
         rate = None
-        for tt, rr in offered_by_time:
-            if tt <= t: rate = rr
-        if rate:
+        for seg in offered_by_time:          # (t_start, t_end, rate) intervals
+            if seg[0] <= t < seg[1]:
+                rate = seg[2]
+        if rate is not None:
             want = 0.5 * min(rate, REF)
             d2 = rx7 - counters[i-2][1]
             if d2 / 2.0 < want:
@@ -199,7 +200,8 @@ def run_cell(date, cell_id, cfg, sched_id, rng, smoke=False):
     for frac, secs in segs:
         rate = int(frac * REF)
         start_senders(rate)
-        offered.append((time.time() - t0, rate))
+        seg_start = time.time() - t0
+        offered.append((seg_start, seg_start + secs, rate))
         if frac <= 0.6: drop_time = drop_time or (time.time() - t0 + secs)
         elapsed = 0
         while elapsed < secs:
