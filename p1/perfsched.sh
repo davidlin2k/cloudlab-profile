@@ -21,9 +21,9 @@ for ADAPT in on off; do
     TAG="perfsched-$POL-$ADAPT"
     echo "== $TAG $(date -u +%FT%TZ)"
     $PERF sched record -o /root/p1/perf/sched-$TAG.data -- sleep 80 > /root/p1/perf/sched-$TAG.rec 2>&1 &
-    PERF=$!
+    PERF_PID=$!
     bash /root/k2/p1cell.sh "$POL" W1 130000 64 1 "$TAG" > /root/p1/perf/$TAG.celllog 2>&1
-    wait $PERF
+    wait $PERF_PID
     $PERF sched latency -i /root/p1/perf/sched-$TAG.data > /root/p1/perf/sched-$TAG.latency.txt 2>&1
     $PERF sched timehist -i /root/p1/perf/sched-$TAG.data 2>/dev/null | grep -E 'k2_rx|k5blast' > /root/p1/perf/sched-$TAG.timehist.txt
     echo "-- wake latency top (k2_rx line):"

@@ -110,7 +110,7 @@ if [ "$MODE" = B ]; then
   done
   TFLOOD=$(awk '{print $1}' /proc/uptime)
   echo "B-START (kept only) mono=$TFLOOD keep=$KEEP" | tee -a "$O/cell.env"
-  snap_m316 &    # no-op in mode B, kept for symmetry
+  snap_m316 & SNAP_PID=$!    # no-op in mode B, kept for symmetry
   monitor
 else
   # mode M: full flood 790k until WEDGE, hold 10 s, then the monitor
@@ -134,7 +134,7 @@ else
   done
   if [ "$WEDGE" = 0 ]; then echo "NO-WEDGE in 120s" | tee -a "$O/cell.env"; fi
   sleep 10
-  snap_m316 &
+  snap_m316 & SNAP_PID=$!
   monitor
 fi
 
@@ -149,7 +149,7 @@ sleep 32
 P1=$(ethtool -S $IFACE | awk '/rx7_packets:/{print $2}')
 ADV=$((P1 - P0))
 if [ "$ADV" -ge 270000 ]; then echo "PROBE-OK adv=$ADV" | tee -a "$O/cell.env"; else echo "PROBE-DEAD adv=$ADV" | tee -a "$O/cell.env"; fi
-wait 2>/dev/null
+wait $SNAP_PID 2>/dev/null || true   # NOT a bare wait: CW_PID never exits
 
 # --- teardown (as wdiagtrace.sh) ---
 if [ "$TRACE_PID" != none ]; then

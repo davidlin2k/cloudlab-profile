@@ -43,10 +43,13 @@ recover() { # $1 = cell dir
 }
 
 run_cell() { # $1=MODE $2=KEEP $3=REP
-  echo "== cell $1 '$2' rep $3 $(date -u +%FT%TZ)"
-  bash /root/p1/metastab.sh "$1" "$2" "$3"
   NKEEP=$(echo $2 | wc -w)
   local CELL=/root/p1/metastab/$1$NKEEP-$3
+  if grep -q 'PROBE-' "$CELL/cell.env" 2>/dev/null; then
+    echo "== cell $1 '$2' rep $3 SKIP (already has its probe verdict)"; return
+  fi
+  echo "== cell $1 '$2' rep $3 $(date -u +%FT%TZ)"
+  bash /root/p1/metastab.sh "$1" "$2" "$3"
   if [ "$1" = M ]; then
     if grep -q 'PROBE-DEAD\|NOT-RECOVERED' "$CELL/cell.env" 2>/dev/null; then
       recover "$CELL"
