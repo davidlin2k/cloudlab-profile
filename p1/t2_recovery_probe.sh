@@ -20,8 +20,10 @@ O="$1"; SECS="${2:-60}"
   wait $P 2>/dev/null || true
 } >> "$O" 2>&1
 if grep -q "ERROR" "$O" 2>/dev/null; then
-  echo "== fallback (recorded as used): offset-grounded kprobe, cqn at bits_offset=0 (module BTF)" >> "$O"
-  bpftrace -e 'kprobe:mlx5e_completion_event { @cq[*(uint32_t *)arg0] = count(); } interval:s:1 { time("%H:%M:%S "); print(@cq); clear(@cq); }' >> "$O" 2>&1 &
+  echo "== fallback (recorded as used): pointer-keyed counts, no cast" >> "$O"
+  echo "   cqn unresolvable: bpftrace 0.20.2 cannot resolve even scalar types on this host" >> "$O"
+  echo "   (errors above). Keys are CQ object addresses, stable per cell." >> "$O"
+  bpftrace -e 'kprobe:mlx5e_completion_event { @cq[arg0] = count(); } interval:s:1 { time("%H:%M:%S "); print(@cq); clear(@cq); }' >> "$O" 2>&1 &
 else
   echo "== attempt 1 produced counts (no fallback needed)" >> "$O"
   bpftrace -e 'kprobe:mlx5e_completion_event { @cq[((struct mlx5_core_cq *)arg0)->cqn] = count(); } interval:s:1 { time("%H:%M:%S "); print(@cq); clear(@cq); }' >> "$O" 2>&1 &
