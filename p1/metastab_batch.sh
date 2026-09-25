@@ -57,7 +57,7 @@ run_cell() { # $1=MODE $2=KEEP $3=REP
   fi
 }
 
-for r in 1 2 3 4 5; do
+for r in ${REPS:-"1 2 3 4 5"}; do
   if [ "$r" != 1 ]; then run_cell B "10 11" $r; fi   # rep 1 = the smoke
   if [ "$r" != 1 ]; then run_cell M "10 11" $r; fi
   run_cell B "10" $r
