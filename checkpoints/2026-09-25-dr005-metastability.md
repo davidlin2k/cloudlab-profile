@@ -73,3 +73,30 @@ the pre-registered class per level -> reported BEFORE any
 interpretation (the memo's order). Note for the report: the smoke's
 M316 queue stayed dead until a manual reset, which triggers the
 memo's "stop and tell me before drafting" clause for task 5.
+
+## Milestone addendum (16:20Z): task 1 complete -- class reported
+
+Batch 2 (the pre-registered 5 more reps, reps 6-10 of all four types)
+completed 16:10:16Z. Combined: 40 cells, rows in
+analysis/rows-metastab.csv.
+
+**Class: Intermediate at both reduced levels, in both 5-rep sets and
+pooled** (the frozen rules: Metastable needs >=4/5 unrecovered --
+max seen 3/5; Not metastable needs >=4/5 recovered within 2 s -- max
+seen 2/5). Baselines B 20/20 healthy. Per the rule: the distribution
+is reported (notes/p1-METASTABLE-2.md) and **no claim is made**.
+
+Distribution highlights (facts): of 20 M cells -- 2 recovered <=2 s;
+7 recovered in 2-15 s; 3 recovered in 15-70 s; 4 did not recover
+within 120 s but were alive by the probe; **5 were dead until manual
+reset** (the memo's task-5 clause is formally triggered; the netdev
+draft is stopped pending the PI's disclosure-route call). 9 M cells
+needed step-4 recovery; 5 only revived after a genuine channel
+recreation.
+
+Also closed today: task 3's history study (72 included bugs of 1,429
+triaged; median lifetime 298 d; 92% of known sustaining loops;
+notes/p2-STUDY-1.md), task 4's two pre-registrations, task 6's design
+note and the second-driver node list, and task 2's run kit (ready to
+execute on the freed node: three-timepoint dumps + whole-cell CQ
+probe + the side-by-side analyzer).
