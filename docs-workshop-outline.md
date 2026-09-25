@@ -36,7 +36,7 @@ Related work (the memo's five): Mogul and Ramakrishnan 1997; Iron
 | The memo's figure | script | status |
 |---|---|---|
 | Fig. 1 goodput vs load | analysis/p1_figures.py (fig1) | Draft, QA pass |
-| Fig. 2 hidden share + model with/without correction | TODO: p1_fig_model (fig3's hidden-share data + the re-grade's with/without points) | data ready (rows-fig1-3.csv; checkpoints/2026-09-24-recovery-and-knee-regrade.md) |
+| Fig. 2 hidden share + model with/without correction | analysis/p1_fig_model.py (fig2-hiddenmodel) | Draft, QA pass 2026-09-25 (panel a shows both instruments: schedstat 25.0-40.3%/32.2% over C-006's independent 26-42%/33% band) |
 | Fig. 3 wake-delay distributions co-located vs separated | analysis/p1_fig_wakedelay.py (fig3-wakedelay) | Draft, QA pass 2026-09-25 (anchors reproduce every recorded mean/max) |
 | Fig. 4 wedge survival curves | analysis/p1_fig_wedge.py (fig-wedge-ab) | Draft, QA pass; the W39 figure of the week |
 
