@@ -83,3 +83,17 @@ AN-007; p1-LADDER.3. Level H, 3 reps per cell.
 form); the finding itself supersedes nothing.
 **Status:** recorded per DR-004 ("whatever it is"); C-007 revision
 appended as Pending for the PI.
+
+## p1-LADDER.5 -- the control plane does not stall under 2x-knee receive overload
+
+**Statement.** At 2x the P0 knee (790k pps flood), `ip link add/del`,
+`ip netns add/del` and `drop_caches` complete at idle speed: 45/45
+runs, flood medians 0.02/0.00/0.09 s against idle medians
+0.02/0.00/0.09 s (the one 8.89 s idle outlier is a cold-cache first
+run). The pre-registered stall prediction (>1 s per operation) is
+falsified on its own rule.
+**Evidence.** notes/p1-LADDER-2.md; specs/p1-CTRLSTALL.md v1;
+/root/p1/ctrlstall/*.txt. Level H, 5 runs per cell.
+**Supersedes:** none (first result on the control path).
+**Status:** recorded per DR-004 task 2; no claim (the prediction did
+not hold).
