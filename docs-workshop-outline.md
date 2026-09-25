@@ -103,7 +103,7 @@ Table 1 condensed to the workshop's space. No new numbers.
 |-----|--------|--------|
 | 1, 2, 3 | analysis/p1_figures.py | Draft (QA pass 2026-09-24/25) |
 | 4 | analysis/p1_figures.py (knee model recompute) | Draft (task 1) |
-| 7 (first rows) | analysis/w3_analyze.py produces rows; the plot script must be added before the paper cites the figure | rows ready, plot script TODO |
+| 7 (first rows) | analysis/p1_fig_w3.py (rows: analysis/rows-w3-full.csv via w3_analyze.py) | Draft (QA pass 2026-09-25) |
 | Table 1 | literature table (no script needed) | Final |
 
 ## Open items for the PI (2026-09-29 review)
