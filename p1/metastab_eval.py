@@ -142,11 +142,12 @@ def main():
         m_notrec = [r for r in ms if r["recovered"] == 0]
         m_fast = [r for r in ms if r["recovered"] == 1 and r["t_recover_s"] != ""
                   and float(r["t_recover_s"]) <= 2.0]
+        need = max(1, round(0.8 * len(ms)))   # the frozen rule: 4 of 5 = 80% of the set
         if b_wedged:
             cls = "Invalid (a B cell wedged; use the other level)"
-        elif len(ms) >= 5 and len(m_notrec) >= 4 and len(bs) >= 5 and not b_wedged:
+        elif len(ms) >= 5 and len(m_notrec) >= need and len(bs) >= 5 and not b_wedged:
             cls = "Metastable"
-        elif len(m_fast) >= 4:
+        elif len(m_fast) >= need:
             cls = "Not metastable"
         else:
             cls = "Intermediate (report the distribution; 5 more reps; no claim)"
