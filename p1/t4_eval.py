@@ -14,10 +14,11 @@ import os, re, sys, math
 
 def binom_ci(k, n, alpha=0.05):
     """Clopper-Pearson exact interval, bisection on the binomial CDF"""
+    def cdf_to(j, p):
+        if j < 0: return 0.0
+        return sum(math.comb(n, i) * p**i * (1-p)**(n-i) for i in range(j + 1))
     def cdf(p):
-        return sum(math.comb(n, i) * p**i * (1-p)**(n-i) for i in range(k + 1))
-    def sf(p):
-        return sum(math.comb(n, i) * p**i * (1-p)**(n-i) for i in range(k, n + 1))
+        return cdf_to(k, p)
     def solve(f, target):
         lo, hi = 0.0, 1.0
         for _ in range(80):
@@ -25,8 +26,8 @@ def binom_ci(k, n, alpha=0.05):
             if f(mid) > target: lo = mid
             else: hi = mid
         return (lo + hi) / 2
-    lo = 0.0 if k == 0 else solve(cdf, 1 - alpha / 2)
-    hi = 1.0 if k == n else solve(cdf, alpha / 2)   # CP: both bounds from the CDF
+    lo = 0.0 if k == 0 else solve(lambda p: cdf_to(k - 1, p), 1 - alpha / 2)
+    hi = 1.0 if k == n else solve(cdf, alpha / 2)   # CP: lower from cdf(k-1), upper from cdf(k)
     return lo, hi
 
 def main():
