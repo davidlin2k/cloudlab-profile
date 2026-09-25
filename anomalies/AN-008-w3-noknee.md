@@ -46,3 +46,31 @@ so a spec v2 separates the gate sets and extends the scan (160k-300k). v1's
 
 Held: any explanation of the cost falloff, the p99 falloff, or the projected
 knee location. The scan extension measures rather than infers.
+
+## Extension (v2 scan, 09:55-10:12Z): 160k-300k, 10 cells
+
+Delivered tracked offered within 0.1% at every point -- no delivered-ratio
+knee to 300k (4.8x the predicted P0 knee). Bottleneck CPU (ref-cycles/64 s):
+
+| load  | P0 CPU8 | P0X CPU8 | P0X CPU9 | P0 p99 us | P0X p99 us | op_q (P0) |
+|-------|---------|----------|----------|-----------|------------|-----------|
+| 160k  | 84.8%   | 37.1%    | 73.4%    | 792.7     | 644.0      | 18.7      |
+| 190k  | 95.3%   | 42.9%    | 84.5%    | 893.7     | 605.9      | 22.6      |
+| 220k  | 97.8%   | 48.5%    | 91.0%    | 1290.4    | 615.3      | 32.3      |
+| 260k  | 98.2%   | 54.2%    | 96.6%    | 1592.0    | 647.8      | 33.9      |
+| 300k  | 97.4%   | 57.5%    | 97.8%    | 1549.4    | 782.5      | 34.0      |
+
+Per-request cost keeps falling (P0: 5.31 -> 3.25 us from 160k -> 300k; sender
+CPU max 2.8% of 64-core aggregate: senders never bottlenecked; Misses 0.0%,
+Skipped 0.0%, purity 99.995%+ everywhere).
+
+v2's scan stop rule ("both arms crossed or 300k") fired at 300k with neither
+arm crossed: TCP flow control holds delivered = offered past saturation, so
+the v1/v2 delivered-ratio knee cannot fire before client-side throttling.
+Spec v3 amends the knee definition to the saturation point (first scan load
+with bottleneck CPU >= 95%): P0 = 190k, P0X = 260k. This is also the UDP
+knee's nature (a saturation point), keeping the paper's quantities comparable.
+
+Early reads recorded, not concluded: P1 predicted 62.0k vs measured 190k
+(3.1x, outside the +/-25% bar). P3 ratio at 1.0x knee = 893.7/605.9 = 1.48x
+vs the pre-registered >= 5x. The main matrix (3 reps) decides both formally.

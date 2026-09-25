@@ -1,6 +1,14 @@
 # W3: memcached TCP knee, co-location cost, and the kill test (DR-004 task 4)
 
-Status: v2 FROZEN 2026-09-25T09:50Z. v1 froze 09:15Z before any cell; the
+Status: v3 FROZEN 2026-09-25T10:15Z (definition amendment only; P1-P4
+numbers unchanged). v2's scan stop rule fired at 300k with no delivered-ratio
+crossing on either arm (AN-008 extension): TCP flow control holds delivered =
+offered past saturation, so the v1/v2 knee definition cannot fire before
+client throttling. v3 knee definition: the smallest offered load with
+bottleneck CPU >= 95% (P0: CPU 8; P0X: CPU 9) -- the saturation knee, which
+is also the UDP knee's nature. From the scan: P0 knee = 190k, P0X = 260k.
+The delivered-ratio rule is retained as P2's collapse check. Everything else
+is v2 (09:50Z), which is v1 (09:15Z) plus the gate split and scan extension. v1 froze 09:15Z before any cell; the
 first 14 knee-pass cells (09:16-09:36Z) revealed two v1 defects (see AN-008):
 (1) no knee to 130k so the scan range extends (160k-300k added; the 30-130k
 cells stand as valid data); (2) the Skipped=0%/op_q<=16 gates assume pre-knee
@@ -81,8 +89,8 @@ Idle p99 (200 QPS trickle): P0 104.1 us, P0X 105.5 us; SLO = 10x = 1.05 ms.
    (24 cells). The measured knee = the largest offered load with delivered
    >= 95% of offered, per arm; the load table scales to P0's knee. The scan
    stops when both arms have crossed (delivered < 95% of offered) or 300k.
-2. Main matrix: 0.25, 0.5, 1.0, 1.5, 2.0x P0's measured knee x 3 reps x
-   {P0, P0X, BP} (45 cells).
+2. Main matrix: 0.25, 0.5, 1.0, 1.5, 2.0x P0's measured knee (190k) =
+   47.5k, 95k, 190k, 285k, 380k QPS x 3 reps x {P0, P0X, BP} (45 cells).
 3. Mechanism: perf sched on the 0.25x pair {P0, P0X} (2 captures).
 
 ## Validity gates (per cell; v2 split)
