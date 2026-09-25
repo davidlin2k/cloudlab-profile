@@ -17,6 +17,16 @@ knee (below: open-loop as v1; above: backpressure is the knee signal, client
 CPU < 80% on all five senders is the validity check). P1-P4 numbers UNCHANGED.
 A spec change after runs start is a new version (DR-004 standing rule).
 
+## Figure binding (skeleton rule 1)
+
+**Figure 7** (memcached: goodput under SLO against load, every policy plus IRQ
+suspension and busy polling -- "It holds for TCP and a real application").
+This spec's runs fill the W3 workload rows of Fig. 7 (DR-004's three arms:
+co-located, separated, busy-poll); the remaining Fig. 7 policies (P1 kernel
+session, P5, P7) come from their own tasks. W4 feeds Fig. 8. (Binding added
+2026-09-25T10:25Z as a documentation completion after v3; no pre-registered
+number changed. W3 runs began 09:16Z under v1's binding gap -- recorded.)
+
 ## Question
 
 Does the receive/worker co-location cost (C-005, C-012) survive TCP, and does
