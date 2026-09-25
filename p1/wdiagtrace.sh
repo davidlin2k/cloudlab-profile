@@ -8,6 +8,7 @@ ARM="${1:?arm}"; REP="${2:-1}"
 IFACE=enp195s0np0
 IRQ=$(grep -E 'mlx5_comp7@pci:0000:c3' /proc/interrupts | awk '{print $1}' | tr -d ':')
 O=/root/p1/wedgetrace/wedge-$ARM-$REP
+rm -rf "$O"
 mkdir -p "$O"
 T0=$(awk '{print $1}' /proc/uptime)
 echo "CELL START arm=$ARM rep=$REP mono=$T0 $(date -u +%FT%TZ)"
@@ -53,17 +54,20 @@ done
 TFLOOD=$(awk '{print $1}' /proc/uptime)
 echo "FLOOD START mono=$TFLOOD" | tee -a "$O/cell.env"
 
+# wedge signal: rx7_packets FREEZES at the wedge while rx_out_of_buffer
+# climbs (arrivals proven by drops at the ring) -- v2's "wire advancing"
+# rule never fired because rx7_packets freezes, it does not advance.
 WEDGE=0
-PREV_W=0; PREV_P=0; FLAT=0
+PREV_W=0; PREV_D=0; FLAT=0
 for i in $(seq 1 60); do
   sleep 2
-  CUR=$(ethtool -S $IFACE | grep -E 'rx7_packets:|ch7_poll:')
+  CUR=$(ethtool -S $IFACE | grep -E 'rx7_packets:|rx_out_of_buffer:|rx_packets_phy:')
   W=$(echo "$CUR" | awk '/rx7_packets:/{print $2}')
-  P=$(echo "$CUR" | awk '/ch7_poll:/{print $2}')
-  DW=$((W - PREV_W)); DP=$((P - PREV_P))
-  if [ "$PREV_W" != 0 ] && [ "$DW" -gt 50000 ] && [ "$DP" -eq 0 ]; then FLAT=$((FLAT + 1)); else FLAT=0; fi
-  PREV_W=$W; PREV_P=$P
-  if [ "$FLAT" -ge 3 ]; then WEDGE=1; TW=$(awk '{print $1}' /proc/uptime); echo "WEDGE mono=$TW wire=$W poll=$P" | tee -a "$O/cell.env"; break; fi
+  D=$(echo "$CUR" | awk '/rx_out_of_buffer:/{print $2}')
+  DW=$((W - PREV_W)); DD=$((D - PREV_D))
+  if [ "$PREV_W" != 0 ] && [ "$DW" -eq 0 ] && [ "$DD" -gt 50000 ]; then FLAT=$((FLAT + 1)); else FLAT=0; fi
+  PREV_W=$W; PREV_D=$D
+  if [ "$FLAT" -ge 3 ]; then WEDGE=1; TW=$(awk '{print $1}' /proc/uptime); echo "WEDGE mono=$TW rx7=$W oob=$D" | tee -a "$O/cell.env"; break; fi
 done
 if [ "$WEDGE" = 0 ]; then echo "NO-WEDGE in 120s" | tee -a "$O/cell.env"; fi
 
@@ -80,8 +84,13 @@ if [ "$WEDGE" = 1 ]; then
   echo "PROBE END mono=$(awk '{print $1}' /proc/uptime)" | tee -a "$O/cell.env"
 fi
 
-kill $TRACE_PID 2>/dev/null || true
-sleep 3
+# SIGINT lets trace-cmd flush the .dat; SIGKILL mid-flush loses it
+kill -INT $TRACE_PID 2>/dev/null || true
+for i in $(seq 1 30); do
+  kill -0 $TRACE_PID 2>/dev/null || break
+  sleep 1
+done
+if [ -s "$O/wedge-$ARM-$REP.dat" ]; then echo "TRACE-OK $(ls -la $O/wedge-$ARM-$REP.dat)" >> "$O/cell.env"; else echo "TRACE-MISSING" >> "$O/cell.env"; fi
 for p in $(pgrep -x trace-cmd); do kill -9 $p 2>/dev/null; done
 kill $CW_PID 2>/dev/null || true
 pkill -xc k2_rx 2>/dev/null || true

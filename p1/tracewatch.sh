@@ -8,7 +8,7 @@ IRQ=$(grep -E 'mlx5_comp7@pci:0000:c3' /proc/interrupts | awk '{print $1}' | tr 
 while true; do
   T=$(awk '{print $1}' /proc/uptime)
   echo "@ $T" >> "$O"
-  ethtool -S $IFACE | grep -E 'rx_out_of_buffer:|rx_buff_alloc_err:|rx_congst_umr:|ch7_poll:|ch7_arm:|ch7_events:|ch7_eq_rearm:|ch7_force_irq:|ch7_aff_change:|rx7_packets:|rx7_bytes:|rx7_csum_none:|rx7_csum_unnecessary:|rx7_xdp_drop:|rx7_xdp_redirect:|rx7_gro_' >> "$O"
+  ethtool -S $IFACE | grep -E 'rx_out_of_buffer:|rx_buff_alloc_err:|rx_congst_umr:|ch7_poll:|ch7_arm:|ch7_events:|ch7_eq_rearm:|ch7_force_irq:|ch7_aff_change:|rx_packets_phy:|rx7_packets:|rx7_bytes:|rx7_csum_none:|rx7_csum_unnecessary:|rx7_xdp_drop:|rx7_xdp_redirect:|rx7_gro_' >> "$O"
   grep -E "^ *${IRQ}:" /proc/interrupts >> "$O"
   sleep 1
 done
