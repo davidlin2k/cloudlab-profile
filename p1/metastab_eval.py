@@ -27,9 +27,14 @@ import os, re, sys, csv
 def parse_env(path):
     env = {}
     for ln in open(path, errors="replace"):
-        m = re.match(r"(\S+) mono=(\S+)", ln.strip())
+        s = ln.strip()
+        m = re.match(r"(\S+) mono=(\S+)", s)
         if m:
             env[m.group(1)] = m.group(2)
+        elif s in ("NOT-RECOVERED-120s", "NO-WEDGE in 120s", "PROBE-DEAD", "PROBE-OK"):
+            env[s] = "1"   # bare verdict lines carry no mono=""
+        elif s.startswith("PROBE-"):
+            env[s.split()[0]] = " ".join(s.split()[1:])
         m2 = re.match(r"(WEDGE) mono=(\S+)", ln.strip())
         if m2:
             env["WEDGE"] = m2.group(2)

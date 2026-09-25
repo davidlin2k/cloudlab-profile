@@ -1,22 +1,29 @@
 #!/usr/bin/env python3
-"""p1_fig_model.py -- the workshop paper's Fig. 2 (DR-004 task 5, section 4):
-the hidden share, and the knee model with and without the correction.
+"""p1_fig_model.py -- the workshop paper's Fig. 2 (DR-005 decisions 2+4):
+the standard metric is blind, and corrected costs make the knee predictable.
 
-usage: .venv/bin/python analysis/p1_fig_model.py analysis/rows-fig1-3.csv outdir
+usage: .venv/bin/python analysis/p1_fig_model.py analysis/rows-fig13-merged.csv outdir
 
-Panel (a): hidden share of per-packet CPU at 390k (0.89x knee) on the
-co-located app core -- the receive work that per-thread accounting cannot
-see. Two instruments are shown: the schedstat derivation from rows-fig1-3
-(anchors: P0 range 25.0-40.3%, mean 32.2%, n=3) and C-006's independent
-measurement (/p1/pmudrain + /p1/softirq_poll: 26-42%, mean 33%) plotted
-as the band -- the agreement is the point (the re-grade's h = 0.33
-calibration came from the independent measurement).
-Panel (b): predicted vs measured knee with and without the (1-h) correction.
-Anchors (checkpoints/2026-09-24-recovery-and-knee-regrade.md):
-  P0 no correction: 669.0k predicted vs 438.6k measured (53% miss);
-  P0 F'=(1-0.33)F: 448.2k (2%); P0X split form: 894.3k vs ~818k (9%).
+v2 (2026-09-25, DR-005): the "hidden share" framing is retired ("Replace
+'hidden share' throughout"). The message is now: the standard metric is
+blind; correct metrics make the knee predictable within 3-6%; the model
+fails on TCP, where cost depends on load.
+
+Panel (a): what each metric sees of the real per-packet receive cost at
+390k pps / 64 B. Anchors (FINDINGS p1-LADDER.4, task1b, 3 reps/placement):
+  real (PMU-basis) per-packet system CPU 2026-2935 ns across placements;
+  app thread schedstat 906-1407 ns -> the thread sees 43-55% (the claim's
+  recorded range; per-placement means 44.7-50.2%);
+  /proc/stat sees 0.6% of receive work on an interrupt-only core
+  (AN-007: 0.22 s stat against 36.53 s PMU = 0.60%).
+Panel (b): predicted vs measured knee from the corrected per-packet costs.
+Anchors (FINDINGS p1-LADDER.4; W3 notes/p1-W3.md):
+  P0 (co-located) 451.0k predicted vs 438.6k measured (2.8% miss);
+  P0X (separated) 767k vs 818k (6.2% miss); both UDP 64 B, no fitted
+  constant. TCP (C-017, Refuted): predicted 62.0k/82.4k vs measured
+  190k/260k (3.06x/3.16x) -- TCP per-request cost falls with load.
 """
-import csv, os, sys
+import os, sys
 sys.path.insert(0, "/mnt/davidlin-personal/flowlet-eval/figures")
 from figstyle import (PALETTE, apply_publication_style, create_subplots,
                       finalize_figure)
@@ -41,99 +48,110 @@ SHORT = {"P0": "inline\n(co-loc)", "P0X": "inline\n(sep)", "P2": "thread\n(app c
          "P3": "thread\n(SMT)", "P4": "thread\n(other)"}
 
 def main():
-    # rows-fig1-3.csv is WHITESPACE-separated (p1_analyze.py output)
+    # rows-fig13-merged.csv is WHITESPACE-separated (p1_analyze.py output)
     lines = open(sys.argv[1]).read().splitlines()
     hdr = lines[0].split()
     rows = [dict(zip(hdr, ln.split())) for ln in lines[1:] if ln.strip()]
     out = sys.argv[2]
     RATE = 390000.0
-    # C-006's independent measurement (literals from the claim row; the
-    # same pattern as p1_figures.py fig2-knee-cdf carrying C-012's tier
-    # constants)
-    C006_LO, C006_HI, C006_MEAN = 26.0, 42.0, 33.0
 
-    # ---- panel (a) data: hidden share at 390k, co-located app core ----
-    reps, shares = [], []
+    # ---- panel (a) data: the task1b corrected costs at 390k/64B ----
+    pols, agg = [], {}
     for r in rows:
-        if (r["workload"] != "W1" or fnum(r["rate"]) != RATE
-                or fnum(r["plen"]) != 64 or r["policy"] != "P0"):
+        if (r["tag"] != "task1b" or fnum(r["rate"]) != RATE
+                or fnum(r["plen"]) != 64):
             continue
         app, net = fnum(r.get("app_ns")), fnum(r.get("c_net_ns"))
         if app != app or net != net or (app + net) <= 0:
             continue
-        reps.append(int(r["rep"]))
-        shares.append(100.0 * net / (app + net))
-    order = sorted(range(len(reps)), key=lambda i: reps[i])
-    reps = [reps[i] for i in order]
-    shares = [shares[i] for i in order]
-    lo, hi, mean = min(shares), max(shares), sum(shares) / len(shares)
-    ok = abs(lo - 25.0) <= 1.5 and abs(hi - 40.3) <= 1.5 and abs(mean - 32.2) <= 1.0
-    print(f"anchor hidden share (rows, P0 390k, n={len(shares)}): "
-          f"{lo:.1f}-{hi:.1f}% mean {mean:.1f}% (expect 25.0-40.3, mean 32.2) "
-          f"{'OK' if ok else 'MISMATCH'}")
-    print(f"anchor C-006 independent band: {C006_LO:.0f}-{C006_HI:.0f}% "
-          f"mean {C006_MEAN:.0f}% (claim literals)")
+        agg.setdefault(r["policy"], []).append((app, net))
+    pols = [p for p in ["P0", "P0X", "P2", "P3", "P4"] if p in agg]
+    means = {p: (sum(a for a, _ in v) / len(v), sum(n for _, n in v) / len(v))
+             for p, v in agg.items()}
+    app_lo = min(a for a, _ in means.values())
+    app_hi = max(a for a, _ in means.values())
+    tot_lo = min(a + n for a, n in means.values())
+    tot_hi = max(a + n for a, n in means.values())
+    shares = [100.0 * a / (a + n) for p in pols for a, n in agg[p]]
+    ok = (abs(app_lo - 906) <= 2 and abs(app_hi - 1407) <= 2
+          and abs(tot_lo - 2026) <= 3 and abs(tot_hi - 2935) <= 3)
+    print(f"anchor task1b 390k: app {app_lo:.0f}-{app_hi:.0f} (expect 906-1407), "
+          f"real {tot_lo:.0f}-{tot_hi:.0f} (expect 2026-2935) {'OK' if ok else 'MISMATCH'}")
+    print(f"anchor thread share: per-placement means "
+          f"{min(100*a/(a+n) for a,n in means.values()):.1f}-"
+          f"{max(100*a/(a+n) for a,n in means.values()):.1f}%, per-rep "
+          f"{min(shares):.1f}-{max(shares):.1f}% (claim range 43-55%)")
+    stat_pct = 100.0 * 0.22 / 36.53
+    print(f"anchor /proc/stat share: {stat_pct:.2f}% (expect 0.6, AN-007)")
 
-    # ---- panel (b) data: the re-grade's with/without points ----
-    pts = [("P0, F (no correction)", 438.6, 669.0, 53, PALETTE["red_strong"], "X",
-            (-50, 4)),
-           ("P0, F' = (1-h)F", 438.6, 448.2, 2, PALETTE["blue_main"], "o", (11, -5)),
-           ("P0X, 1e9/max form", 818.0, 894.3, 9, PALETTE["teal"], "^", (-40, 2))]
+    # ---- panel (b) data: the corrected-cost model ----
+    pts = [("P0, UDP 64 B", 438.6, 451.0, "2.8%", PALETTE["blue_main"], "o", (8, -12)),
+           ("P0X, UDP 64 B", 818.0, 767.0, "6.2%", PALETTE["teal"], "^", (-46, 4)),
+           ("P0, TCP", 190.0, 62.0, "3.06x", PALETTE["red_strong"], "X", (8, -4)),
+           ("P0X, TCP", 260.0, 82.4, "3.16x", PALETTE["red_strong"], "X", (8, -4))]
     for nm, meas, pred, miss, c, m, off in pts:
-        print(f"anchor model {nm}: predicted {pred} vs measured {meas} ({miss}% miss)")
+        print(f"anchor model {nm}: predicted {pred} vs measured {meas} ({miss})")
 
     apply_publication_style()
-    res = create_subplots(2, 1, figsize=(3.5, 4.4))
+    res = create_subplots(2, 1, figsize=(3.5, 4.9))
     fig, axs = unwrap(res, 2)
 
-    # (a) hidden share: rows points over the independent band
+    # (a) what each metric sees
     ax = axs[0]
-    ax.axhspan(C006_LO, C006_HI, color=PALETTE["red_strong"], alpha=0.13, zorder=1)
-    ax.axhline(C006_MEAN, linestyle=(0, (5, 2)), color=PALETTE["red_strong"],
-               linewidth=1.2, zorder=2)
-    ax.annotate(f"independent measurement: {C006_LO:.0f}-{C006_HI:.0f}%, "
-                f"mean {C006_MEAN:.0f}% (C-006)",
-                xy=(3.35, C006_HI), xytext=(0, 3), textcoords="offset points",
-                ha="right", fontsize=6, color=PALETTE["red_strong"])
-    ax.plot(reps, shares, "o", color=PALETTE["blue_main"], markersize=5, zorder=4)
-    ax.plot([min(reps) - 0.25, max(reps) + 0.25], [mean, mean], "-",
-            color=PALETTE["blue_main"], linewidth=1.8, zorder=3)
-    ax.annotate(f"schedstat derivation: mean {mean:.1f}%",
-                xy=(min(reps) - 0.28, 18.0), ha="left", fontsize=6,
-                color=PALETTE["blue_main"])
-    ax.set_xticks(reps)
-    ax.set_xticklabels([f"rep {i}" for i in reps], fontsize=7)
-    ax.set_xlim(min(reps) - 0.4, max(reps) + 0.4)
-    ax.set_ylabel("hidden share (%)")
-    ax.set_ylim(15, 55)
-    ax.set_title("(a) hidden receive work on the app core (390k pps)", fontsize=8, pad=5)
-    ax.grid(True, alpha=0.25, linewidth=0.6)
+    metrics = [("/proc/stat (this kernel)", stat_pct, PALETTE["red_strong"]),
+               ("thread accounting (schedstat)", 47.5, PALETTE["blue_main"]),
+               ("PMU busy (corrected metric)", 100.0, PALETTE["teal"])]
+    for i, (lab, val, col) in enumerate(metrics):
+        if lab.startswith("thread"):
+            ax.barh(i, 55 - 43, left=43, color=col, edgecolor="black",
+                    lw=0.6, height=0.5, zorder=3)
+            ax.annotate("43-55%", xy=(55, i), xytext=(3, 0),
+                        textcoords="offset points", va="center", fontsize=6.5)
+        else:
+            ax.barh(i, val, color=col, edgecolor="black", lw=0.6,
+                    height=0.5, zorder=3)
+            ax.annotate(f"{val:.1f}%".replace(".0%", "%"), xy=(val, i),
+                        xytext=(3, 0), textcoords="offset points",
+                        va="center", fontsize=6.5)
+    ax.set_yticks(range(len(metrics)))
+    ax.set_yticklabels([m[0] for m in metrics], fontsize=6.5)
+    ax.set_xlim(0, 118)
+    ax.set_xlabel("share of real per-packet cost seen (%)")
+    ax.set_title("(a) the standard metric is blind (390k pps, 64 B)", fontsize=8, pad=5)
+    ax.grid(True, axis="x", alpha=0.25, linewidth=0.6)
 
-    # (b) model with/without correction
+    # (b) predicted vs measured knee, corrected costs
     ax = axs[1]
-    ax.fill_between([350, 950], [350 / 1.25, 950 / 1.25], [350 * 1.25, 950 * 1.25],
+    ax.fill_between([40, 1000], [32, 800], [50, 1250],
                     color=PALETTE["neutral"], alpha=0.15, zorder=1)
-    ax.plot([350, 950], [350, 950], "--", color=PALETTE["neutral"],
+    ax.plot([40, 1000], [40, 1000], "--", color=PALETTE["neutral"],
             linewidth=1.0, zorder=2)
     for nm, meas, pred, miss, c, m, off in pts:
         ax.plot([meas], [pred], m, color=c, markersize=6, zorder=5, label=nm)
-        ax.annotate(f"{miss}%", xy=(meas, pred), xytext=off,
+        ax.annotate(miss, xy=(meas, pred), xytext=off,
                     textcoords="offset points", fontsize=6.5, color=c)
-    ax.annotate("y = x", xy=(905, 905), xytext=(-14, 4), textcoords="offset points",
-                fontsize=6.5, color=PALETTE["neutral"])
-    ax.annotate("+/-25%", xy=(880, 620), xytext=(0, 0), textcoords="offset points",
-                fontsize=6.5, color=PALETTE["neutral"])
-    ax.set_xlim(350, 950)
-    ax.set_ylim(350, 950)
+    ax.set_xscale("log")
+    ax.set_yscale("log")
+    ax.set_xlim(40, 1000)
+    ax.set_ylim(40, 1000)
+    ax.set_xticks([50, 100, 200, 1000])
+    ax.set_yticks([50, 100, 200, 1000])
+    ax.get_xaxis().set_major_formatter(lambda v, p: f"{int(v)}")
+    ax.get_yaxis().set_major_formatter(lambda v, p: f"{int(v)}")
+    from matplotlib.ticker import NullFormatter
+    ax.xaxis.set_minor_formatter(NullFormatter())
+    ax.yaxis.set_minor_formatter(NullFormatter())
     ax.set_xlabel("measured knee (kQPS)")
     ax.set_ylabel("predicted knee (kQPS)")
-    ax.set_title("(b) the model with and without the correction", fontsize=8, pad=5)
-    ax.grid(True, alpha=0.25, linewidth=0.6)
-    # the lower-right of the scatter (below the tolerance band) is empty
-    axs[1].legend(loc="lower right", frameon=False, fontsize=6.5,
-                  handlelength=1.2, labelspacing=0.3, borderaxespad=0.35)
-    fig.subplots_adjust(hspace=0.45, left=0.20, right=0.97, top=0.93, bottom=0.13)
-    print(finalize_figure(fig, os.path.join(out, "fig2-hiddenmodel"),
+    ax.set_title("(b) corrected costs predict the knee -- UDP only", fontsize=8, pad=5)
+    ax.grid(True, alpha=0.25, linewidth=0.6, which="both")
+    # the tolerance band's lower-right triangle is empty on a log-log plot
+    ax.legend(loc="lower right", frameon=False, fontsize=6.5,
+              handlelength=1.2, labelspacing=0.3, borderaxespad=0.35)
+    ax.annotate("+/-25% of measured", xy=(760, 900), ha="right",
+                fontsize=6, color=PALETTE["neutral"])
+    fig.subplots_adjust(hspace=0.78, left=0.30, right=0.97, top=0.95, bottom=0.10)
+    print(finalize_figure(fig, os.path.join(out, "fig2-metricmodel"),
                           formats=["png", "pdf"], dpi=300))
 
 if __name__ == "__main__":

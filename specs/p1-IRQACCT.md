@@ -17,15 +17,27 @@ Rebuild 6.17.8 with CONFIG_IRQ_TIME_ACCOUNTING=y. Pre-register:
 
 ## Platform and run
 
-- Kernel: the platform kernel (6.17.8-061708-generic, mainline) rebuilt
-  from the 6.17.8 source with the running config as base and exactly one
-  change: CONFIG_IRQ_TIME_ACCOUNTING=y (verify .config diff shows only
-  that line and its dependents).
-- Source check first (DR-005): grep -n HAVE_SCHED_AVG_IRQ init/Kconfig;
-  record whether it depends on IRQ_TIME_ACCOUNTING.
-- Baseline = the existing measurements on the current kernel
-  (AN-007 for the /proc/stat gap; the matrix's thread accounting; the
-  AN-005/AN-006 unpinned-sender runs for the placement behavior).
+v1.1 (2026-09-25, amended BEFORE any run): the experiment is a MATCHED
+PAIR of local rebuilds of 6.17.8 from the same source and the same build
+host toolchain -- one with the platform config (/boot/config-6.17.8-
+061708-generic) as base (LOCALVERSION=-base) and one with exactly one
+substantive change, CONFIG_IRQ_TIME_ACCOUNTING=y (LOCALVERSION=-irqacct).
+The pair isolates the config: the build-host toolchain differs from the
+Ubuntu build of the platform kernel (gcc 15.3.0 against 15.2.0, binutils
+2.42 against 2.45, and the RUST options drop in both trees), but it is
+identical across the pair, so the flip is the only variable. Verified
+diff of the two trees' .configs: only `# CONFIG_IRQ_TIME_ACCOUNTING is
+not set` -> `CONFIG_IRQ_TIME_ACCOUNTING=y` plus the dependent
+`CONFIG_HAVE_SCHED_AVG_IRQ=y`.
+- Source check (DR-005, recorded 2026-09-25 before the build):
+  init/Kconfig:585: config HAVE_SCHED_AVG_IRQ -- depends on
+  IRQ_TIME_ACCOUNTING || PARAVIRT_TIME_ACCOUNTING. The PI's expectation
+  holds: without IRQ_TIME_ACCOUNTING there is no scheduler IRQ pressure
+  view.
+- Reference measurements (the paper's established numbers) stay the
+  platform kernel's: AN-007 (the /proc/stat gap), the matrix's thread
+  accounting, AN-005/AN-006 (the placement behavior). The pair tests the
+  predictions against its own -base arm first.
 
 ## The three runs (one per prediction)
 
