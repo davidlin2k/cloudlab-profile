@@ -26,7 +26,7 @@ def binom_ci(k, n, alpha=0.05):
             else: hi = mid
         return (lo + hi) / 2
     lo = 0.0 if k == 0 else solve(cdf, 1 - alpha / 2)
-    hi = 1.0 if k == n else solve(sf, alpha / 2)
+    hi = 1.0 if k == n else solve(cdf, alpha / 2)   # CP: both bounds from the CDF
     return lo, hi
 
 def main():
