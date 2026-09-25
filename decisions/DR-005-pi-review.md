@@ -1,0 +1,103 @@
+# DR-005: PI review of the DR-004 close-out, the AN-006A reading, and the next four working days
+
+Provenance: relayed verbatim by the user in session bg_013552_b7f304 on
+2026-09-25 (UTC), following the DR-004 close-out and the delivery of the
+wedge timelines. Committed as-is per the standing rule: this header only,
+the memo body below is unedited.
+Superseded-in-part record (2026-09-25): the operative DR-005 ("Instructions
+for September 28 - October 9", decisions/DR-005.md) took the number and
+supersedes this review's "Order for the next four working days" (the
+IRQ-time-accounting rebuild and the workshop writing are paused there).
+This review's PI reading of the AN-006A timelines, its claims decisions
+(C-004 promoted, C-007 re-promoted, C-006 superseded, C-005 scoped), and
+its parked items stand and are executed. Renamed from decisions/DR-005.md
+the same day.
+
+---
+
+Big day: all four DR-004 tasks closed, and the wedge trace is waiting for PI interpretation. Reading the key records.This is the strongest day of the project, and it changed the story in two ways. Here is my review, including the PI reading of the wedge timelines the student is waiting on.
+
+## Verdict
+
+Execution was exemplary:
+- All four DR-004 tasks closed.
+- Every prediction was frozen before its run.
+- Three kill criteria fired, and every one was honored.
+- A bug in our own instrument was found and fixed before it reached a figure.
+
+The two results that change the story:
+1. **The "hidden share" was a measurement artifact.** On this kernel the standard CPU metric barely sees receive work. With correct per-CPU metrics, a two-cost model predicts the UDP knee within 2.8% and 6.2%, with no fitted constant.
+2. **TCP turns collapse into latency loss.** Flow control prevents the collapse, but separation still wins on tail latency and SLO.
+
+## What is established
+
+| Claim | Evidence | Scope |
+| --- | --- | --- |
+| Standard CPU metrics are blind to receive work on the interrupt core | `/proc/stat` shows core 8 at 0.22 s busy against 36.53 s by performance counters: a 166× undercount (C-014) | This kernel: IRQ time accounting off, tickless (NO_HZ_FULL), HZ=1000 |
+| Thread accounting sees about half the real per-packet cost | 43–55% in every placement (Fig. 3) | UDP, 64 B |
+| With correct metrics, two per-packet costs predict the knee | 451k predicted against 438.6k measured co-located (2.8%); 767k against 818k separated (6.2%) | UDP only; TCP fails 3× (C-017) because per-request cost falls with load |
+| The latency penalty is scheduler wait behind receive work | Wake delay 34–60 µs co-located against 4 µs separated (UDP); 50 against 4 µs (TCP) | Both transports |
+| Separation wins under TCP overload | At 1.5× the knee: SLO fraction 0.999 against 0.829, p99 645 against 1475 µs; at 2×, 15% more goodput | memcached |
+| Collapse is UDP-specific | Kill criterion fired: TCP holds a capacity plateau (C-016) | — |
+| Control-plane stall | Falsified: 45 of 45 operations ran at idle speed | Dropped |
+
+## PI reading of the wedge timelines (AN-006A)
+
+The student held interpretation for me, correctly. Four conclusions follow from the facts:
+
+1. **It is not a lost wakeup.** The last interrupt woke the NAPI thread, which polled, completed and slept normally. The thread path works.
+2. **The missing event is a device interrupt after the final completion.** From that point the wire keeps delivering (+631k packets/s) and packets are dropped for lack of receive buffers (`rx_out_of_buffer` +97k/s), while the queue produces no completions and no interrupts. The loop of interrupt, poll, refill buffers, completion, next interrupt breaks between the last re-arm and the next event.
+3. **In the unpinned arm, every poll ends with the driver stopping early.** Each poll returns 63 against a budget of 64. In mlx5 that pattern marks a full-budget poll the driver chose to cut short and re-arm with work still pending. Resolve the discrepancy with the per-second `aff_change` counter by checking in the source which branch returns budget − 1. The trace is the more direct evidence.
+4. **Recovery comes from an interrupt,** arriving 19 ms, 262 ms or 8.9 s after the flood stops, with no timer or wakeup before it.
+
+Given those facts, two alternatives remain:
+- **(A) Pending work, no event.** Completions were already pending when the queue was re-armed, and re-arming produced no event for them.
+- **(B) Nothing to complete.** The receive ring held no posted buffers after the last poll, so no new completion could occur, and only NAPI reposts buffers.
+
+Both are "no event source while the ring is starved". Four tests separate them. Pre-register each:
+- **State dump during a wedge.** Use `devlink health diagnose <pci-dev> reporter rx`; list reporters first with `devlink health`, since the earlier failure was syntax. It reports the receive queue's posted-buffer counts, completion-queue consumer and producer indices, and the buffer-refill (ICOSQ) state. Under A, completions are pending; under B, zero buffers are posted.
+- **Ring size, 1024 against 8192,** in the unpinned arm, 8 cells each. **Prediction:** if starvation is necessary, the hazard falls at least 4× with the larger ring.
+- **Striding receive queue off** (`ethtool --set-priv-flags <dev> rx_striding_rq off`). This removes the multi-packet refill path.
+- **The recovery interrupt's source.** A kprobe on `mlx5e_completion_event` that records the completion-queue number shows whether the receive queue or the refill queue restarts it.
+
+Then send the netdev report as planned, cc the mlx5 maintainers, and include these results. It's a performance bug, so there's no embargo.
+
+## The new lead insight: one config option decides visibility
+
+The accounting blindness isn't specific to our kernel. In February 2025, an LKML report by Shrikanth Hegde showed that with default configs, where IRQ time accounting is off and the kernel is tickless, IRQ time is badly misreported. Of RHEL's and SUSE's source packages, only RHEL on x86 enables IRQ time accounting.
+
+There's a deeper consequence to verify in the source: the scheduler's own view of IRQ pressure likely depends on the same option. Run `grep -n HAVE_SCHED_AVG_IRQ init/Kconfig`; it should depend on `IRQ_TIME_ACCOUNTING`. Without it, the scheduler's capacity scaling sees zero IRQ load, so the scheduler is structurally blind to receive work.
+
+**Decisive experiment (1–2 days).** Rebuild 6.17.8 with `CONFIG_IRQ_TIME_ACCOUNTING=y`. Pre-register:
+
+| Question | Prediction |
+| --- | --- |
+| Does `/proc/stat` see the work? | The 166× gap closes to within 2× of the performance counters |
+| Does thread accounting change? | Thread-level time stops absorbing receive work |
+| Does the scheduler avoid the interrupt core? | With an unpinned consumer under flood, it moves the consumer off core 8 and avoids the collapse |
+
+Either answer is valuable:
+- **If the scheduler then avoids co-location,** "visibility-aware placement" already exists behind a config option most kernels don't set. The paper's practical message becomes one line that operators can act on.
+- **If it doesn't,** this becomes the baseline the November 13 prototype must beat.
+
+## Decisions on the workshop outline's four review items
+
+1. **Claims:**
+   - Promote C-004 as written.
+   - Re-promote C-007 with the new numbers (2.8% and 6.2%, UDP 64 B, no fitted constant).
+   - Supersede C-006 with a new claim: thread accounting sees 43–55% of receive cost, and `/proc/stat` sees about 0.6% on an interrupt-only core without IRQ time accounting.
+2. **Section 4 changes.** Its message becomes: the standard metric is blind; correct metrics make the knee predictable within 3–6%; the model fails on TCP, where cost depends on load. Replace "hidden share" throughout.
+3. **Include the TCP results as a subsection.** No collapse, separation still wins, the wake delay reproduces, the model fails. Negative results pre-registered and reported make the paper credible.
+4. **Title confirmed.** Write the Figure 2 script from the corrected costs.
+
+## Parked items and my action
+
+- **The low-load TCP latency anomaly** (p99 about 1.2 ms at 47.5k, higher than at 190k and 10× idle): log it as an anomaly. Make TCP latency claims only at 0.5× the knee and above until a C-state and moderation check explains it.
+- **r650:** still my action.
+
+## Order for the next four working days
+
+1. **Monday:** the IRQ-time-accounting rebuild and its three predictions.
+2. **Tuesday:** the wedge state dump, the recovery interrupt's source, and the ring-size A/B.
+3. **Wednesday:** striding receive queue off; then draft the netdev report for my review.
+4. **Workshop outline v3** with the section 4 rewrite and the TCP subsection, due Tuesday, September 29, as scheduled.
