@@ -97,3 +97,28 @@ falsified on its own rule.
 **Supersedes:** none (first result on the control path).
 **Status:** recorded per DR-004 task 2; no claim (the prediction did
 not hold).
+
+## p1-LADDER.6 -- separation helps TCP service, the collapse does not cross it
+
+**Statement.** On memcached -t 1 (32 B values, 90% GETs, open-loop
+Poisson from five senders), co-located receive/worker placement loses
+to separated at every load above the lightest: at 1.5x the knee, 99.9%
+of separated requests meet the 1.05 ms SLO (10x idle p99) against 82.9%
+co-located, with p99 645 us against 1475 us; at 2x the knee, delivered
+goodput is 369k against 320k QPS (+15%) with p99 1248 us against 1381
+us. But the UDP collapse does NOT cross to TCP: at 2x the knee,
+delivered goodput holds at 169% (co-located) and 194% (separated) of
+the knee goodput -- flow control converts the collapse into a capacity
+plateau. The pre-registered low-load cost model misses the TCP knee by
+3.1x (predicted 62.0k/82.4k, measured 190k/260k) because per-request
+cost falls with load (16.1 us at 20k to 3.3 us at 300k); the >= 5x
+wake-delay prediction fails at 1.45x.
+**Evidence.** notes/p1-W3.md; specs/p1-W3MEMC.md v1-v3 (pre-registered);
+analysis/rows-w3-full.csv (69 rows; 67-130M samples per matrix cell);
+AN-008. Level H, 3 reps.
+**Supersedes:** none.
+**Status:** C-005, C-015 Supported; C-016, C-017, C-018 Refuted on their
+own pre-registered rules. Fig. 7 carrier claim stands; the collapse
+claim is Dropped from the TCP story per skeleton rule 4 (decision
+recorded in the result note).
+**Supersedes:** none (first TCP result).
