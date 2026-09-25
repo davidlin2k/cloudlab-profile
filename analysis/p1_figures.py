@@ -213,18 +213,25 @@ def fig3(rows, out, rate=390000.0):
                 continue
             tot = fnum(r.get("cpu8_busy_s"))
             ap = fnum(r.get("app_ns"))
-            pk = fnum(r.get("goodput")) * 60.0
+            # consumer window = meas+3 = 63 s (matches the PMU
+            # bracket; 60.0 undercounted pkts by 4.8%)
+            pk = fnum(r.get("goodput")) * 63.0
             if tot != tot or ap != ap or not pk:
                 continue
             a.append(ap)
-            h.append(max(tot * 1e9 / pk - ap, 0))
+            # hidden = receive-path CPU per packet (the rows' c_net_ns:
+            # per-placement basis -- busy-app for inline, busy for the
+            # separated receive core, kthread runtime for threaded).
+            # The old formula subtracted the app from the receive core's
+            # busy, which mixes cores for the separated policies.
+            h.append(fnum(r.get("c_net_ns")))
         app.append(sum(a) / len(a) if a else 0.0)
         hidden.append(sum(h) / len(h) if h else 0.0)
     x = range(len(pols))
     ax.bar(x, app, color=PALETTE["blue_secondary"], edgecolor="black", lw=0.6,
            label="thread-accounted (schedstat)", zorder=3)
     ax.bar(x, hidden, bottom=app, color=PALETTE["red_strong"],
-           edgecolor="black", lw=0.6, label="unaccounted on the core",
+           edgecolor="black", lw=0.6, label="receive work (no task accounting)",
            zorder=3)
     for xi, (a, h) in enumerate(zip(app, hidden)):
         ax.annotate(f"{a + h:.0f}", xy=(xi, a + h), xytext=(0, 2),

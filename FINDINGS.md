@@ -61,3 +61,25 @@ which produced the cal-1 anchor note's phantom "hidden share"; the real
 hidden share (C-006) is task-accounting invisibility and stands.
 **Supersedes:** none (first finding on the metric).
 **Status:** costs and Figure 3 recomputation pending the task1b data.
+
+## p1-LADDER.4 -- corrected costs: the thread sees half the real cost, and the knee model needs no fitted constant
+
+**Statement.** With the corrected busy metric (task1b, 30 cells, all
+gates pass), at 390k pps / 64 B: per-packet system CPU is 2026-2935 ns
+across placements while the app thread's schedstat accounts for
+906-1407 ns -- the thread sees 43-55% of the real cost (Figure 3,
+vision QA PASS 2 rounds). Receive cost per packet (c_net_ns): P0 1052,
+P0X 1303, P2 1120, P3 1528, P4 1275 ns. The knee model at 64 B with
+low-load costs (P0: c_app 1209 + c_net 1008 ns at 130k): F = 451.0k
+vs measured knee 438.6k = 2.8% miss (the raw form passes once the
+receive cost is measured honestly). P0X (costs at 390k = 0.48x knee):
+1e9/max(c_app,c_net) = 767k vs measured 818k = 6.2% miss. The earlier
+(1-h) correction and the metric fix are the same correction: applying
+both double-counts (F' = 302k = 31% miss).
+**Evidence.** /root/p1/rows-task1b.csv (30 cells); rows:
+analysis/rows-fig13-merged.csv; figure: analysis/out/fig3.{png,pdf};
+AN-007; p1-LADDER.3. Level H, 3 reps per cell.
+**Supersedes:** the numerical basis of C-007's DR-004 wording (h = 0.33
+form); the finding itself supersedes nothing.
+**Status:** recorded per DR-004 ("whatever it is"); C-007 revision
+appended as Pending for the PI.
