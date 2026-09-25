@@ -45,7 +45,7 @@ def parse_cq(path):
         m = re.match(r"(\d\d:\d\d:\d\d)", ln)
         if not m:
             continue
-        counts = {int(a): int(b) for a, b in re.findall(r"@cq\[(\d+)\]:\s*(\d+)", ln)}
+        counts = {int(a): int(b) for a, b in re.findall(r"@cq\[(-?\d+)\]:\s*(\d+)", ln)}   # pointer keys can be negative
         out.append((m.group(1), counts))
     return out
 
