@@ -65,6 +65,8 @@ def recovery_time(samples, t_reduce, need):
         t, w = ts[i]
         if t < t_reduce:
             continue
+        if t > t_reduce + 120:
+            break   # the verdict window is 120 s (the monitor's), not later
         d = w - ts[i - 2][1]
         if d >= need:
             ok_run += 1
