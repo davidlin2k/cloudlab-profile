@@ -40,3 +40,24 @@ trigger (12/12 collapsed in both halves). The wedge is a property of the
 threaded mode, not of the placement choice.
 Supersedes: none · Note: notes/p1-LADDER-3.md · Figure: F-p1-LADDER-1 (wedge markers)
 
+## p1-LADDER.3 -- the utilization metric was blind to IRQ-context receive work
+
+**Statement.** On this kernel (6.17.8, CONFIG_IRQ_TIME_ACCOUNTING not
+set, NO_HZ_FULL) the receive core's busy time is charged to the idle
+bucket when it arrives as sub-tick IRQ-context bursts on an otherwise
+idle CPU. At P0X 390k pps the PMU basis (ref-cycles / TSC 3.250 GHz)
+reads 36.53 s of busy over the 73 s first-pass bracket while
+/proc/stat's fields sum to 0.22 s (166x undercount). Where a thread
+keeps the CPU busy (P0) the stat basis captures most of it (57.43 vs
+42.07 s).
+**Evidence.** AN-007 (facts, arbiter, verdict); rows: /root/p1/
+rows-task1.csv (30 cells, gates pass); calibration: 3,256,316,473
+ref-cycles in 1.0019 s busy loop. Level H.
+**Fix.** cpuN_busy_s now comes from per-CPU ref-cycles bracketed to the
+consumer's mpkts window (task1b re-run); the /proc/stat sum is kept as
+cpu8_busy_stat_s. Per-field stat seconds are stored per row. The
+softirq_s column also carried an index bug (steal read as softirq),
+which produced the cal-1 anchor note's phantom "hidden share"; the real
+hidden share (C-006) is task-accounting invisibility and stands.
+**Supersedes:** none (first finding on the metric).
+**Status:** costs and Figure 3 recomputation pending the task1b data.

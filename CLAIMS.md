@@ -21,3 +21,4 @@
 | C-014 | Our cpuN_busy_s metric excludes softirq executed in interrupt context | DR-004 task 1 open (P0X 390k: cpu8_busy_s 0.16-0.31 s over 60 s although core 8 processes every packet) | - | Pending the task 1 fix | 2026-09-25 |
 | C-005 | Co-location is slower even at low load | mechanism now measured (C-012); DR-004: stays Pending until memcached (W3) (supersedes the Pending-a-mechanism row) | H | Pending | 2026-09-25 |
 | C-009 | The ladder stays within [Y]% of inline latency at low load and sustains [Z]x the default's goodput under overload | DR-004: the runtime switch is suspended | - | Suspended | 2026-09-25 |
+| C-014 | Our cpuN_busy_s metric excludes softirq executed in interrupt context | AN-007: P0X 390k PMU 36.53s vs stat 0.22s (166x); kernel CONFIG_IRQ_TIME_ACCOUNTING=n + NO_HZ_FULL charges sub-tick IRQ bursts to idle (supersedes the Pending row) | H | Supported | 2026-09-25 |
