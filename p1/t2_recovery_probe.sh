@@ -21,7 +21,7 @@ O="$1"; SECS="${2:-60}"
 } >> "$O" 2>&1
 if grep -q "ERROR" "$O" 2>/dev/null; then
   echo "== fallback (recorded as used): offset-grounded kprobe, cqn at bits_offset=0 (module BTF)" >> "$O"
-  bpftrace -e 'kprobe:mlx5e_completion_event { @cq[*(u32 *)arg0] = count(); } interval:s:1 { time("%H:%M:%S "); print(@cq); clear(@cq); }' >> "$O" 2>&1 &
+  bpftrace -e 'kprobe:mlx5e_completion_event { @cq[*(uint32_t *)arg0] = count(); } interval:s:1 { time("%H:%M:%S "); print(@cq); clear(@cq); }' >> "$O" 2>&1 &
 else
   echo "== attempt 1 produced counts (no fallback needed)" >> "$O"
   bpftrace -e 'kprobe:mlx5e_completion_event { @cq[((struct mlx5_core_cq *)arg0)->cqn] = count(); } interval:s:1 { time("%H:%M:%S "); print(@cq); clear(@cq); }' >> "$O" 2>&1 &
