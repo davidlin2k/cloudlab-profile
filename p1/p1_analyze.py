@@ -161,7 +161,7 @@ def perf_busy(run):
     if not os.path.exists(p):
         return out
     for ln in open(p):
-        m = re.search(r"CPU\s+(\d+)\s+([\d,]+)\s+ref-cycles", ln)
+        m = re.search(r"CPU\s*(\d+)\s+([\d,]+)\s+ref-cycles", ln)
         if m:
             out["cpu%s_busy_s" % m.group(1)] = int(m.group(2).replace(",", "")) / 3.250e9
     return out
@@ -271,7 +271,7 @@ def main():
         else:
             c_net = "%.0f" % (max(cs["cpu8_busy_s"] - cs["app_s"], 0.0) * 1e9 / pk)
         print("%s %s %s %s %d %d %d %s %.0f %.0f %.3f %s %s %s %s %s %s %s %s "
-              "%.0f %s %.1f %.1f %.2f %.2f %.2f %d %d %d" % (
+              "%.0f %s %.1f %.1f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %s %s %d %d %d" % (
                   tag, cell_path_cell(run), cell["policy"], cell["workload"],
                   cell["rate"], cell["plen"], cell["rep"], "1" if gates_ok else "0",
                   offered, goodput,
@@ -285,7 +285,7 @@ def main():
                   cs["cpu8_busy_s"], cs["softirq_s"], cs["napi_s"],
                   cs["user_s"], cs["nice_s"], cs["system_s"],
                   cs["irq_s"], cs["steal_s"],
-                  stat_s, pm.get("cpu9_busy_s", ""), pm.get("cpu40_busy_s", ""),
+                  stat_s, pm.get("cpu9_busy_s", "-"), pm.get("cpu40_busy_s", "-"),
                   int(close_wire), int(close_layers), snd_full))
 
 def cell_path_cell(run):

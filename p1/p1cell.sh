@@ -63,8 +63,11 @@ cp /proc/stat "$OUT/stat-pre.txt"
 # on this kernel: sub-tick IRQ work on an idle CPU is charged to idle in
 # /proc/stat, so busy must come from ref-cycles (TSC 3.250 GHz,
 # calibrated 2026-09-24: 3,256,316,473 ref-cycles in 1.0019 s busy).
-/usr/lib/linux-tools/6.8.0-142-generic/perf stat -A -a -C 8,9,40 -e cycles,ref-cycles \
-  -- sleep $((TOT + 2)) > "$OUT/perfstat.txt" 2>&1 &
+# bracket starts at the measure window: its span must equal the
+# consumer's mpkts span [WARM, TOT+2] so busy/pkt is window-consistent
+( sleep $WARM
+  /usr/lib/linux-tools/6.8.0-142-generic/perf stat -A -a -C 8,9,40 -e cycles,ref-cycles \
+    -- sleep $((TOT + 2 - WARM)) > "$OUT/perfstat.txt" 2>&1 ) &
 PERF_PID=$!
 CONSUMER=/root/k2/k2_rx
 # +2s over the senders: the consumer must outlive their tail so
