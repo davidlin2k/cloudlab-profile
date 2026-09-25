@@ -1,6 +1,12 @@
 # W3: memcached TCP knee, co-location cost, and the kill test (DR-004 task 4)
 
-Status: FROZEN 2026-09-25T09:15Z (pre-registration; no W3 cell has run).
+Status: v2 FROZEN 2026-09-25T09:50Z. v1 froze 09:15Z before any cell; the
+first 14 knee-pass cells (09:16-09:36Z) revealed two v1 defects (see AN-008):
+(1) no knee to 130k so the scan range extends (160k-300k added; the 30-130k
+cells stand as valid data); (2) the Skipped=0%/op_q<=16 gates assume pre-knee
+cells while P2 requires overload cells -- gates are now split below/above the
+knee (below: open-loop as v1; above: backpressure is the knee signal, client
+CPU < 80% on all five senders is the validity check). P1-P4 numbers UNCHANGED.
 A spec change after runs start is a new version (DR-004 standing rule).
 
 ## Question
@@ -70,19 +76,26 @@ Idle p99 (200 QPS trickle): P0 104.1 us, P0X 105.5 us; SLO = 10x = 1.05 ms.
 
 ## Run order (literal)
 
-1. Knee-pass: loads 30k, 45k, 60k, 75k, 90k, 110k, 130k QPS x 1 rep x
-   {P0, P0X} (14 cells). The measured knee = the largest offered load with
-   delivered >= 95% of offered, per arm; the load table scales to P0's knee.
+1. Knee-pass: loads 30k, 45k, 60k, 75k, 90k, 110k, 130k QPS (v1, done) plus
+   160k, 190k, 220k, 260k, 300k QPS (v2 extension) x 1 rep x {P0, P0X}
+   (24 cells). The measured knee = the largest offered load with delivered
+   >= 95% of offered, per arm; the load table scales to P0's knee. The scan
+   stops when both arms have crossed (delivered < 95% of offered) or 300k.
 2. Main matrix: 0.25, 0.5, 1.0, 1.5, 2.0x P0's measured knee x 3 reps x
    {P0, P0X, BP} (45 cells).
 3. Mechanism: perf sched on the 0.25x pair {P0, P0X} (2 captures).
 
-## Validity gates (per cell)
+## Validity gates (per cell; v2 split)
 
-Misses = 0.0%; Skipped TXs = 0.0%; op_q p99 <= 16; landing purity >= 99%;
-achieved within 5% of target (offered axis = achieved, recorded per cell);
-bracket inside the measure window. A failed gate voids the cell (rerun or
-record void with the reason).
+All cells: Misses = 0.0%; landing purity >= 99%; bracket inside the measure
+window; achieved recorded per cell (offered axis = achieved). A failed gate
+voids the cell.
+
+At or below the knee (v1): Skipped TXs = 0.0%; op_q p99 <= 16.
+
+Above the knee (v2): Skipped TXs and op_q are the backpressure/knee SIGNALS
+(recorded, not gates); validity = all five sender nodes' CPU < 80% during the
+window (senders not bottlenecked) and every master's samples file non-empty.
 
 ## Known gaps
 
