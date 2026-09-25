@@ -1,0 +1,2860 @@
+@@@COMMIT 92dd5452c1be873a1193561f4f691763103d22ac
+2017-09-20	Edward Cree	net: change skb->mac_header when Generic XDP calls adjust_head
+b5cdae3291f7 ("net: Generic XDP")
+Since XDP's view of the packet includes the MAC header, moving the start-
+ of-packet with bpf_xdp_adjust_head needs to also update the offset of the
+ MAC header (which is relative to skb->head, not to the skb->data that was
+ changed).
+Without this, tcpdump sees packets starting from the old MAC header rather
+ than the new one, at least in my tests on the loopback device.
+
+Fixes: b5cdae3291f7 ("net: Generic XDP")
+Signed-off-by: Edward Cree <ecree@solarflare.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT 186b3c998c50fc241b51b905081c748455d16b4a
+2017-09-20	Jason Wang	virtio-net: support XDP_REDIRECT
+
+This patch tries to add XDP_REDIRECT for virtio-net. The changes are
+not complex as we could use exist XDP_TX helpers for most of the
+work. The rest is passing the XDP_TX to NAPI handler for implementing
+batching.
+
+Cc: John Fastabend <john.fastabend@gmail.com>
+Signed-off-by: Jason Wang <jasowang@redhat.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT a8c2eb15797a0f0bf17734d365da7bdc3e263155
+2017-09-03	Tariq Toukan	net/mlx5e: Stop NAPI when irq balancer changes affinity
+
+NAPI context keeps rescheduling on same CPU as long as it's busy.
+This doesn't give the oppurtunity for changes in irq affinities
+to take effect.
+Fix that by calling napi_complete_done() upon a change in affinity.
+This would stop the NAPI and reschedule it on the new CPU.
+
+Signed-off-by: Tariq Toukan <tariqt@mellanox.com>
+Signed-off-by: Saeed Mahameed <saeedm@mellanox.com>
+
+@@@COMMIT 7b33aaeaae1acfec01cbb0cf41fa8c07aea55609
+2017-09-03	Tariq Toukan	net/mlx5e: Use kernel's mechanism to avoid missing NAPIs
+
+We used a channel state bit MLX5E_CHANNEL_NAPI_SCHED to make
+sure no NAPI is missed when a channel's napi_schedule() is called
+for completion events of the different channel's resources/rings
+while NAPI is currently running.
+Now, as similar mechanism is implemented in kernel,
+("39e6c8208d7b net: solve a NAPI race"),
+we obsolete our own implementation and rely on the return value
+of napi_complete_done().
+
+This patch removes a redundant overhead of atomic bit operations.
+
+Signed-off-by: Tariq Toukan <tariqt@mellanox.com>
+Cc: Eric Dumazet <edumazet@google.com>
+Signed-off-by: Saeed Mahameed <saeedm@mellanox.com>
+
+@@@COMMIT a071cb9f25bef32ec309ca9d123022c52175341b
+2017-09-03	Tariq Toukan	net/mlx5e: Non-atomic RQ state indicator for UMR WQE in progress
+
+The indication for a UMR WQE in progress is needed only within
+the NAPI context, and hence no races possible and no need for
+the use of atomic operations.
+The only place the flag is read outside of NAPI context is
+in closure flow, after RQ is disabled flag is no more accessed
+in NAPI.
+Use a boolean instead of a bit in ring state, so that its
+non-atomic set operations do not race with the atomic sets of
+the other bits.
+
+Signed-off-by: Tariq Toukan <tariqt@mellanox.com>
+Signed-off-by: Saeed Mahameed <saeedm@mellanox.com>
+
+@@@COMMIT a1eaba4c5c29b6b5196b2237ce3a8d7d97622b2f
+2017-09-03	Tariq Toukan	net/mlx5e: Non-atomic indicator for ring enabled state
+
+Rings enabled state change occurs in control path only, and is always
+followed by a napi_sychronize(), so that following NAPIs read the
+new value. This read does not need to be atomic.
+
+The RQ auto-moderation bit is not set/cleared in data-path.
+No need for atomic read, a regular read operation is sufficient.
+In RQ creation time as well, there's no multiple threads trying
+to access it yet, hence a regular read can be used.
+
+Signed-off-by: Tariq Toukan <tariqt@mellanox.com>
+Signed-off-by: Saeed Mahameed <saeedm@mellanox.com>
+
+@@@COMMIT 4cbb7558013a4f600eb1ca9ad34959d8912240e6
+2017-09-03	Tariq Toukan	net/mlx5e: NAPI busy-poll when UMR post is in progress
+
+If a UMR post is in progress, it means that there's a missing
+WQE in RQ, and that a completion will be shortly available in
+ICO SQ completion queue. Prefer busy-poll to handle it as soon
+as possible.
+
+Signed-off-by: Tariq Toukan <tariqt@mellanox.com>
+Signed-off-by: Saeed Mahameed <saeedm@mellanox.com>
+
+@@@COMMIT 25cc72a33835ed8a6f53180a822cadab855852ac
+2017-09-01	Ido Schimmel	mlxsw: spectrum: Forbid linking to devices that have uppers
+0d65fc13042f ("mlxsw: spectrum: Implement LAG port join/leave")
+The mlxsw driver relies on NETDEV_CHANGEUPPER events to configure the
+device in case a port is enslaved to a master netdev such as bridge or
+bond.
+
+Since the driver ignores events unrelated to its ports and their
+uppers, it's possible to engineer situations in which the device's data
+path differs from the kernel's.
+
+One example to such a situation is when a port is enslaved to a bond
+that is already enslaved to a bridge. When the bond was enslaved the
+driver ignored the event - as the bond wasn't one of its uppers - and
+therefore a bridge port instance isn't created in the device.
+
+Until such configurations are supported forbid them by checking that the
+upper device doesn't have uppers of its own.
+
+Fixes: 0d65fc13042f ("mlxsw: spectrum: Implement LAG port join/leave")
+Signed-off-by: Ido Schimmel <idosch@mellanox.com>
+Reported-by: Nogah Frankel <nogahf@mellanox.com>
+Tested-by: Nogah Frankel <nogahf@mellanox.com>
+Signed-off-by: Jiri Pirko <jiri@mellanox.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT 98fdbe73bfb809b1f8eec9f27a36e737caed3a44
+2017-08-28	Michael Chan	bnxt_en: Improve tx ring reservation logic.
+
+When the number of TX rings is changed (e.g. ethtool -L, enabling XDP TX
+rings, etc), the current code tries to reserve the new number of TX rings
+before closing and re-opening the NIC.  If we are unable to reserve the
+new TX rings, we abort the operation and keep the current TX rings.
+
+The problem is that the firmware will disable the current TX rings even
+when it cannot reserve the new set of TX rings.  We fix it as follows:
+
+1. Instead of reserving the new set of TX rings, just ask the firmware
+to check if the new set of TX rings is available.  There is a flag in
+the firmware message to do that.  If not available, abort and the
+current TX rings will not be disabled.
+
+2. Do the actual TX ring reservation in the path that opens the NIC.
+We keep the number of TX rings currently successfully reserved.  If the
+number of TX rings is different than the reserved TX rings, we call
+firmware and reserve again.
+
+Signed-off-by: Michael Chan <michael.chan@broadcom.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT 1e22391e8fbec9c3709bad82b997b108d1c6228b
+2017-08-28	Jesper Dangaard Brouer	net: missing call of trace_napi_poll in busy_poll_stop
+
+Noticed that busy_poll_stop() also invoke the drivers napi->poll()
+function pointer, but didn't have an associated call to trace_napi_poll()
+like all other call sites.
+
+Signed-off-by: Jesper Dangaard Brouer <brouer@redhat.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT 742c9875759c1858c3312442a78a80f3e93d82c4
+2017-08-27	Jacob Keller	i40e/i40evf: avoid dynamic ITR updates when polling or low packet rate
+
+The dynamic ITR algorithm depends on a calculation of usecs which
+assumes that the interrupts have been firing constantly at the interrupt
+throttle rate. This is not guaranteed because we could have a low packet
+rate, or have been polling in software.
+
+We'll estimate whether this is the case by using jiffies to determine if
+we've been too long. If the time difference of jiffies is larger we are
+guaranteed to have an incorrect calculation. If the time difference of
+jiffies is smaller we might have been polling some but the difference
+shouldn't affect the calculation too much.
+
+This ensures that we don't get stuck in BULK latency during certain rare
+situations where we receive bursts of packets that force us into NAPI
+polling.
+
+Signed-off-by: Jacob Keller <jacob.e.keller@intel.com>
+Tested-by: Andrew Bowers <andrewx.bowers@intel.com>
+Signed-off-by: Jeff Kirsher <jeffrey.t.kirsher@intel.com>
+
+@@@COMMIT 0a2c7722be1705edca34458bd9de2f97188f9636
+2017-08-27	Jacob Keller	i40e/i40evf: remove ULTRA latency mode
+
+Since commit c56625d59726 ("i40e/i40evf: change dynamic interrupt
+thresholds") a new higher latency ITR setting called I40E_ULTRA_LATENCY
+was added with a cryptic comment about how it was meant for adjusting Rx
+more aggressively when streaming small packets.
+
+This mode was attempting to calculate packets per second and then kick
+in when we have a huge number of small packets.
+
+Unfortunately, the ULTRA setting was kicking in for workloads it wasn't
+intended for including single-thread UDP_STREAM workloads.
+
+This wasn't caught for a variety of reasons. First, the ip_defrag
+routines were improved somewhat which makes the UDP_STREAM test still
+reasonable at 10GbE, even when dropped down to 8k interrupts a second.
+Additionally, some other obvious workloads appear to work fine, such
+as TCP_STREAM.
+
+The number 40k doesn't make sense for a number of reasons. First, we
+absolutely can do more than 40k packets per second. Second, we calculate
+the value inline in an integer, which sometimes can overflow resulting
+in using incorrect values.
+
+If we fix this overflow it makes it even more likely that we'll enter
+ULTRA mode which is the opposite of what we want.
+
+The ULTRA mode was added originally as a way to reduce CPU utilization
+during a small packet workload where we weren't keeping up anyways. It
+should never have been kicking in during these other workloads.
+
+Given the issues outlined above, let's remove the ULTRA latency mode. If
+necessary, a better solution to the CPU utilization issue for small
+packet workloads will be added in a future patch.
+
+Signed-off-by: Jacob Keller <jacob.e.keller@intel.com>
+Tested-by: Andrew Bowers <andrewx.bowers@intel.com>
+Signed-off-by: Jeff Kirsher <jeffrey.t.kirsher@intel.com>
+
+@@@COMMIT 6d9777298b54bf1212fcaa6ee6679a430ceca452
+2017-08-27	Jacob Keller	i40e: invert logic for checking incorrect cpu vs irq affinity
+
+In commit 96db776a3682 ("i40e/vf: fix interrupt affinity bug")
+we added some code to force exit of polling in case we did
+not have the correct CPU. This is important since it was possible for
+the IRQ affinity to be changed while the CPU is pegged at 100%. This can
+result in the polling routine being stuck on the wrong CPU until
+traffic finally stops.
+
+Unfortunately, the implementation, "if the CPU is correct, exit as
+normal, otherwise, fall-through to the end-polling exit" is incredibly
+confusing to reason about. In this case, the normal flow looks like the
+exception, while the exception actually occurs far away from the if
+statement and comment.
+
+We recently discovered and fixed a bug in this code because we were
+incorrectly initializing the affinity mask.
+
+Re-write the code so that the exceptional case is handled at the check,
+rather than having the logic be spread through the regular exit flow.
+This does end up with minor code duplication, but the resulting code is
+much easier to reason about.
+
+The new logic is identical, but inverted. If we are running on a CPU not
+in our affinity mask, we'll exit polling. However, the code flow is much
+easier to understand.
+
+Note that we don't actually have to check for MSI-X, because in the MSI
+case we'll only have one q_vector, but its default affinity mask should
+be correct as it includes all CPUs when it's initialized. Further, we
+could at some point add code to setup the notifier for the non-MSI-X
+case and enable this workaround for that case too, if desired, though
+there isn't much gain since its unlikely to be the common case.
+
+Signed-off-by: Jacob Keller <jacob.e.keller@intel.com>
+Tested-by: Andrew Bowers <andrewx.bowers@intel.com>
+Signed-off-by: Jeff Kirsher <jeffrey.t.kirsher@intel.com>
+
+@@@COMMIT dadc0736f7be553a25ad34dc437ae379c5ab4a68
+2017-08-24	Eric Dumazet	virtio_net: be drop monitor friendly
+
+This change is needed to not fool drop monitor.
+(perf record ... -e skb:kfree_skb )
+
+Packets were properly sent and are consumed after TX completion.
+
+Signed-off-by: Eric Dumazet <edumazet@google.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT 87e9b3778c94694c9e098c91a0cc05725f0e017f
+2017-08-23	Michael Chan	bnxt_en: Fix .ndo_setup_tc() to include XDP rings.
+38413406277f ("bnxt_en: Add support for XDP_TX action.")
+When the number of TX rings is changed in bnxt_setup_tc(), we need to
+include the XDP rings in the total TX ring count.
+
+Fixes: 38413406277f ("bnxt_en: Add support for XDP_TX action.")
+Signed-off-by: Michael Chan <michael.chan@broadcom.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT 63bfd399de55e09369e5ab344d1fb7f86ed73bab
+2017-08-20	Eran Ben Elisha	net/mlx5e: Send PAOS command on interface up/down
+
+Upon interface up/down, driver will send PAOS (Ports Administrative and
+Operational Status Register) in order to inform the Firmware on the
+desired status of the port by the driver.
+
+Since now we might change physical link status on mlx5e_open/close,
+logical VF representor should not use mlx5e_open/close ndos as is, and
+should call the logical version mlx5e_open/closed_locked.
+
+Signed-off-by: Eran Ben Elisha <eranbe@mellanox.com>
+Signed-off-by: Saeed Mahameed <saeedm@mellanox.com>
+
+@@@COMMIT d2cee2e5d0106abb5da25f393b3c50e0bb01f7f9
+2017-08-18	Jesper Dangaard Brouer	ixgbe: change ndo_xdp_xmit return code on xmit errors
+
+Use errno -ENOSPC ("No space left on device") when the XDP xmit
+have no space left on the TX ring buffer, instead of -ENOMEM.
+
+Signed-off-by: Jesper Dangaard Brouer <brouer@redhat.com>
+Acked-by: John Fastabend <john.fastabend@gmail.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT 939912216fa8f62331de7d04edff492d5dc8e6e9
+2017-08-11	Tonghao Zhang	net: skb_needs_check() removes CHECKSUM_UNNECESSARY check for tx.
+
+Because we remove the UFO support, we will also remove the
+CHECKSUM_UNNECESSARY check in skb_needs_check().
+
+Cc: Willem de Bruijn <willemb@google.com>
+Signed-off-by: Tonghao Zhang <xiangxia.m.yue@gmail.com>
+Acked-by: Willem de Bruijn <willemb@google.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT 38cf0426e5178b1c3810bb88e65dd23882e40283
+2017-08-07	Jiri Pirko	net: sched: change return value of ndo_setup_tc for driver supporting mqprio only
+
+Change the return value from -EINVAL to -EOPNOTSUPP. The rest of the
+drivers have it like that, so be aligned.
+
+Signed-off-by: Jiri Pirko <jiri@mellanox.com>
+Acked-by: Jamal Hadi Salim <jhs@mojatatu.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT 0cf0f6d3d39672c044393aef71ee782430ca8b13
+2017-08-07	Jiri Pirko	mlx5e: push cls_flower and mqprio setup_tc processing into separate functions
+
+Let mlx5e_setup_tc (former mlx5e_ndo_setup_tc) be a splitter for specific
+setup_tc types and push out cls_flower and mqprio specific codes into
+separate functions. Also change the return values so they are the same
+as in the rest of the drivers.
+
+Signed-off-by: Jiri Pirko <jiri@mellanox.com>
+Acked-by: Jamal Hadi Salim <jhs@mojatatu.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT bc32afdb2b01ae7652cbb829475d270f7d813618
+2017-08-07	Jiri Pirko	ixgbe: push cls_u32 and mqprio setup_tc processing into separate functions
+
+Let __ixgbe_setup_tc be a splitter for specific setup_tc types and push out
+cls_u32 and mqprio specific codes into separate functions. Also change
+the return values so they are the same as in the rest of the drivers.
+
+Signed-off-by: Jiri Pirko <jiri@mellanox.com>
+Acked-by: Jamal Hadi Salim <jhs@mojatatu.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT 3bcc0cec818fa969fe555b44443347211ed787a3
+2017-08-04	Jiri Pirko	net: sched: change names of action number helpers to be aligned with the rest
+
+The rest of the helpers are named tcf_exts_*, so change the name of
+the action number helpers to be aligned. While at it, change to inline
+functions.
+
+Signed-off-by: Jiri Pirko <jiri@mellanox.com>
+Acked-by: Jamal Hadi Salim <jhs@mojatatu.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT 1f8b977ab32dc5d148f103326e80d9097f1cefb5
+2017-08-03	Willem de Bruijn	sock: enable MSG_ZEROCOPY
+
+Prepare the datapath for refcounted ubuf_info. Clone ubuf_info with
+skb_zerocopy_clone() wherever needed due to skb split, merge, resize
+or clone.
+
+Split skb_orphan_frags into two variants. The split, merge, .. paths
+support reference counted zerocopy buffers, so do not do a deep copy.
+Add skb_orphan_frags_rx for paths that may loop packets to receive
+sockets. That is not allowed, as it may cause unbounded latency.
+Deep copy all zerocopy copy buffers, ref-counted or not, in this path.
+
+The exact locations to modify were chosen by exhaustively searching
+through all code that might modify skb_frag references and/or the
+the SKBTX_DEV_ZEROCOPY tx_flags bit.
+
+The changes err on the safe side, in two ways.
+
+(1) legacy ubuf_info paths virtio and tap are not modified. They keep
+    a 1:1 ubuf_info to sk_buff relationship. Calls to skb_orphan_frags
+    still call skb_copy_ubufs and thus copy frags in this case.
+
+(2) not all copies deep in the stack are addressed yet. skb_shift,
+    skb_split and skb_try_coalesce can be refined to avoid copying.
+    These are not in the hot path and this patch is hairy enough as
+    is, so that is left for future refinement.
+
+Signed-off-by: Willem de Bruijn <willemb@google.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT 1daa8790d0280d2c719658e39bd59fce65efa909
+2017-07-31	Michael S. Tsirkin	virtio_net: fix truesize for mergeable buffers
+680557cf79f8 ("virtio_net: rework mergeable buffer handling")
+Seth Forshee noticed a performance degradation with some workloads.
+This turns out to be due to packet drops.  Euan Kemp noticed that this
+is because we drop all packets where length exceeds the truesize, but
+for some packets we add in extra memory without updating the truesize.
+This in turn was kept around unchanged from ab7db91705e95 ("virtio-net:
+auto-tune mergeable rx buffer size for improved performance").  That
+commit had an internal reason not to account for the extra space: not
+enough bits to do it.  No longer true so let's account for the allocated
+length exactly.
+
+Many thanks to Seth Forshee for the report and bisecting and Euan Kemp
+for debugging the issue.
+
+Fixes: 680557cf79f8 ("virtio_net: rework mergeable buffer handling")
+Reported-by: Euan Kemp <euan.kemp@coreos.com>
+Tested-by: Euan Kemp <euan.kemp@coreos.com>
+Reported-by: Seth Forshee <seth.forshee@canonical.com>
+Tested-by: Seth Forshee <seth.forshee@canonical.com>
+Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT b85c94b617c0004d1f2bd6ca32baa9132a6c2fe5
+2017-07-26	Jesse Brandeburg	i40e/i40evf: remove mismatched type warnings
+
+Compiler reported several places where driver compared
+signed and unsigned types.  Cast or change the types to remove
+the warnings.
+
+Signed-off-by: Jesse Brandeburg <jesse.brandeburg@intel.com>
+Tested-by: Andrew Bowers <andrewx.bowers@intel.com>
+Signed-off-by: Jeff Kirsher <jeffrey.t.kirsher@intel.com>
+
+@@@COMMIT 48301cf22fa7d70db3ae777e374edfd4119fc826
+2017-07-25	Tony Nguyen	ixgbe: Update NW_MNG_IF_SEL support for X553
+
+The MAC register NW_MNG_IF_SEL fields have been redefined for
+X553. These changes impact the iXFI driver code flow. Since iXFI is
+only supported in X552, add MAC checks for iXFI flows.
+
+Signed-off-by: Tony Nguyen <anthony.l.nguyen@intel.com>
+Signed-off-by: Paul Greenwalt <paul.greenwalt@intel.com>
+Tested-by: Andrew Bowers <andrewx.bowers@intel.com>
+Signed-off-by: Jeff Kirsher <jeffrey.t.kirsher@intel.com>
+
+@@@COMMIT 39d8ba2e71fbdde686d7e31ad141a01994dc0793
+2017-07-24	Michael Chan	bnxt_en: Implement ndo_bridge_{get|set}link methods.
+
+To allow users to set the hardware bridging mode to VEB or VEPA.  Only
+single function PF can change the bridging mode.
+
+Signed-off-by: Michael Chan <michael.chan@broadcom.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT 7051b88a35c7dde5705923833117e14f9cc17d92
+2017-07-19	stephen hemminger	net: make dev_close and related functions void
+
+There is no useful return value from dev_close. All paths return 0.
+Change dev_close and helper functions to void.
+
+Signed-off-by: Stephen Hemminger <sthemmin@microsoft.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT dcda9b04713c3f6ff0875652924844fae28286ea
+2017-07-12	Michal Hocko	mm, tree wide: replace __GFP_REPEAT by __GFP_RETRY_MAYFAIL with more useful semantic
+
+__GFP_REPEAT was designed to allow retry-but-eventually-fail semantic to
+the page allocator.  This has been true but only for allocations
+requests larger than PAGE_ALLOC_COSTLY_ORDER.  It has been always
+ignored for smaller sizes.  This is a bit unfortunate because there is
+no way to express the same semantic for those requests and they are
+considered too important to fail so they might end up looping in the
+page allocator for ever, similarly to GFP_NOFAIL requests.
+
+Now that the whole tree has been cleaned up and accidental or misled
+usage of __GFP_REPEAT flag has been removed for !costly requests we can
+give the original flag a better name and more importantly a more useful
+semantic.  Let's rename it to __GFP_RETRY_MAYFAIL which tells the user
+that the allocator would try really hard but there is no promise of a
+success.  This will work independent of the order and overrides the
+default allocator behavior.  Page allocator users have several levels of
+guarantee vs.  cost options (take GFP_KERNEL as an example)
+
+ - GFP_KERNEL & ~__GFP_RECLAIM - optimistic allocation without _any_
+   attempt to free memory at all. The most light weight mode which even
+   doesn't kick the background reclaim. Should be used carefully because
+   it might deplete the memory and the next user might hit the more
+   aggressive reclaim
+
+ - GFP_KERNEL & ~__GFP_DIRECT_RECLAIM (or GFP_NOWAIT)- optimistic
+   allocation without any attempt to free memory from the current
+   context but can wake kswapd to reclaim memory if the zone is below
+   the low watermark. Can be used from either atomic contexts or when
+   the request is a performance optimization and there is another
+   fallback for a slow path.
+
+ - (GFP_KERNEL|__GFP_HIGH) & ~__GFP_DIRECT_RECLAIM (aka GFP_ATOMIC) -
+   non sleeping allocation with an expensive fallback so it can access
+   some portion of memory reserves. Usually used from interrupt/bh
+   context with an expensive slow path fallback.
+
+ - GFP_KERNEL - both background and direct reclaim are allowed and the
+   _default_ page allocator behavior is used. That means that !costly
+   allocation requests are basically nofail but there is no guarantee of
+   that behavior so failures have to be checked properly by callers
+   (e.g. OOM killer victim is allowed to fail currently).
+
+ - GFP_KERNEL | __GFP_NORETRY - overrides the default allocator behavior
+   and all allocation requests fail early rather than cause disruptive
+   reclaim (one round of reclaim in this implementation). The OOM killer
+   is not invoked.
+
+ - GFP_KERNEL | __GFP_RETRY_MAYFAIL - overrides the default allocator
+   behavior and all allocation requests try really hard. The request
+   will fail if the reclaim cannot make any progress. The OOM killer
+   won't be triggered.
+
+ - GFP_KERNEL | __GFP_NOFAIL - overrides the default allocator behavior
+   and all allocation requests will loop endlessly until they succeed.
+   This might be really dangerous especially for larger orders.
+
+Existing users of __GFP_REPEAT are changed to __GFP_RETRY_MAYFAIL
+because they already had their semantic.  No new users are added.
+__alloc_pages_slowpath is changed to bail out for __GFP_RETRY_MAYFAIL if
+there is no progress and we have already passed the OOM point.
+
+This means that all the reclaim opportunities have been exhausted except
+the most disruptive one (the OOM killer) and a user defined fallback
+behavior is more sensible than keep retrying in the page allocator.
+
+[akpm@linux-foundation.org: fix arch/sparc/kernel/mdesc.c]
+[mhocko@suse.com: semantic fix]
+  Link: http://lkml.kernel.org/r/20170626123847.GM11534@dhcp22.suse.cz
+[mhocko@kernel.org: address other thing spotted by Vlastimil]
+  Link: http://lkml.kernel.org/r/20170626124233.GN11534@dhcp22.suse.cz
+Link: http://lkml.kernel.org/r/20170623085345.11304-3-mhocko@kernel.org
+Signed-off-by: Michal Hocko <mhocko@suse.com>
+Acked-by: Vlastimil Babka <vbabka@suse.cz>
+Cc: Alex Belits <alex.belits@cavium.com>
+Cc: Chris Wilson <chris@chris-wilson.co.uk>
+Cc: Christoph Hellwig <hch@infradead.org>
+Cc: Darrick J. Wong <darrick.wong@oracle.com>
+Cc: David Daney <david.daney@cavium.com>
+Cc: Johannes Weiner <hannes@cmpxchg.org>
+Cc: Mel Gorman <mgorman@suse.de>
+Cc: NeilBrown <neilb@suse.com>
+Cc: Ralf Baechle <ralf@linux-mips.org>
+Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+Signed-off-by: Linus Torvalds <torvalds@linux-foundation.org>
+
+@@@COMMIT 3b6b34df342553a7522561e34288f5bb803aa9aa
+2017-07-11	Michael Chan	bnxt_en: Fix bug in ethtool -L.
+391be5c27364 ("bnxt_en: Implement new scheme to reserve tx rings.")
+When changing channels from combined to rx/tx or vice versa, the code
+uses the wrong "sh" parameter to determine if we are reserving rings
+for shared or non-shared mode.  It should be using the ethtool requested
+"sh" parameter instead of the current "sh" parameter.
+
+Fix it by passing the "sh" parameter to bnxt_reserve_rings().  For
+ethtool, we will pass in the requested "sh" parameter.
+
+Fixes: 391be5c27364 ("bnxt_en: Implement new scheme to reserve tx rings.")
+Signed-off-by: Michael Chan <michael.chan@broadcom.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT f51048c3e07b68c90b21a77541fc4b208f9244d7
+2017-07-08	WANG Cong	bonding: avoid NETDEV_CHANGEMTU event when unregistering slave
+
+As Hongjun/Nicolas summarized in their original patch:
+
+"
+When a device changes from one netns to another, it's first unregistered,
+then the netns reference is updated and the dev is registered in the new
+netns. Thus, when a slave moves to another netns, it is first
+unregistered. This triggers a NETDEV_UNREGISTER event which is caught by
+the bonding driver. The driver calls bond_release(), which calls
+dev_set_mtu() and thus triggers NETDEV_CHANGEMTU (the device is still in
+the old netns).
+"
+
+This is a very special case, because the device is being unregistered
+no one should still care about the NETDEV_CHANGEMTU event triggered
+at this point, we can avoid broadcasting this event on this path,
+and avoid touching inetdev_event()/addrconf_notify() path.
+
+It requires to export __dev_set_mtu() to bonding driver.
+
+Reported-by: Hongjun Li <hongjun.li@6wind.com>
+Reported-by: Nicolas Dichtel <nicolas.dichtel@6wind.com>
+Cc: Jay Vosburgh <j.vosburgh@gmail.com>
+Cc: Veaceslav Falico <vfalico@gmail.com>
+Cc: Andy Gospodarek <andy@greyhouse.net>
+Signed-off-by: Cong Wang <xiyou.wangcong@gmail.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT 9af9959e142c274f4a30fefb71d97d2b028b337f
+2017-07-03	Alban Browaeys	net: core: Fix slab-out-of-bounds in netdev_stats_to_stats64
+
+commit 9256645af098 ("net/core: relax BUILD_BUG_ON in
+netdev_stats_to_stats64") made an attempt to read beyond
+the size of the source a possibility.
+
+Fix to only copy src size to dest. As dest might be bigger than src.
+
+ ==================================================================
+ BUG: KASAN: slab-out-of-bounds in netdev_stats_to_stats64+0xe/0x30 at addr ffff8801be248b20
+ Read of size 192 by task VBoxNetAdpCtl/6734
+ CPU: 1 PID: 6734 Comm: VBoxNetAdpCtl Tainted: G           O    4.11.4prahal+intel+ #118
+ Hardware name: LENOVO 20CDCTO1WW/20CDCTO1WW, BIOS GQET52WW (1.32 ) 05/04/2017
+ Call Trace:
+  dump_stack+0x63/0x86
+  kasan_object_err+0x1c/0x70
+  kasan_report+0x270/0x520
+  ? netdev_stats_to_stats64+0xe/0x30
+  ? sched_clock_cpu+0x1b/0x190
+  ? __module_address+0x3e/0x3b0
+  ? unwind_next_frame+0x1ea/0xb00
+  check_memory_region+0x13c/0x1a0
+  memcpy+0x23/0x50
+  netdev_stats_to_stats64+0xe/0x30
+  dev_get_stats+0x1b9/0x230
+  rtnl_fill_stats+0x44/0xc00
+  ? nla_put+0xc6/0x130
+  rtnl_fill_ifinfo+0xe9e/0x3700
+  ? rtnl_fill_vfinfo+0xde0/0xde0
+  ? sched_clock+0x9/0x10
+  ? sched_clock+0x9/0x10
+  ? sched_clock_local+0x120/0x130
+  ? __module_address+0x3e/0x3b0
+  ? unwind_next_frame+0x1ea/0xb00
+  ? sched_clock+0x9/0x10
+  ? sched_clock+0x9/0x10
+  ? sched_clock_cpu+0x1b/0x190
+  ? VBoxNetAdpLinuxIOCtlUnlocked+0x14b/0x280 [vboxnetadp]
+  ? depot_save_stack+0x1d8/0x4a0
+  ? depot_save_stack+0x34f/0x4a0
+  ? depot_save_stack+0x34f/0x4a0
+  ? save_stack+0xb1/0xd0
+  ? save_stack_trace+0x16/0x20
+  ? save_stack+0x46/0xd0
+  ? kasan_slab_alloc+0x12/0x20
+  ? __kmalloc_node_track_caller+0x10d/0x350
+  ? __kmalloc_reserve.isra.36+0x2c/0xc0
+  ? __alloc_skb+0xd0/0x560
+  ? rtmsg_ifinfo_build_skb+0x61/0x120
+  ? rtmsg_ifinfo.part.25+0x16/0xb0
+  ? rtmsg_ifinfo+0x47/0x70
+  ? register_netdev+0x15/0x30
+  ? vboxNetAdpOsCreate+0xc0/0x1c0 [vboxnetadp]
+  ? vboxNetAdpCreate+0x210/0x400 [vboxnetadp]
+  ? VBoxNetAdpLinuxIOCtlUnlocked+0x14b/0x280 [vboxnetadp]
+  ? do_vfs_ioctl+0x17f/0xff0
+  ? SyS_ioctl+0x74/0x80
+  ? do_syscall_64+0x182/0x390
+  ? __alloc_skb+0xd0/0x560
+  ? __alloc_skb+0xd0/0x560
+  ? save_stack_trace+0x16/0x20
+  ? init_object+0x64/0xa0
+  ? ___slab_alloc+0x1ae/0x5c0
+  ? ___slab_alloc+0x1ae/0x5c0
+  ? __alloc_skb+0xd0/0x560
+  ? sched_clock+0x9/0x10
+  ? kasan_unpoison_shadow+0x35/0x50
+  ? kasan_kmalloc+0xad/0xe0
+  ? __kmalloc_node_track_caller+0x246/0x350
+  ? __alloc_skb+0xd0/0x560
+  ? kasan_unpoison_shadow+0x35/0x50
+  ? memset+0x31/0x40
+  ? __alloc_skb+0x31f/0x560
+  ? napi_consume_skb+0x320/0x320
+  ? br_get_link_af_size_filtered+0xb7/0x120 [bridge]
+  ? if_nlmsg_size+0x440/0x630
+  rtmsg_ifinfo_build_skb+0x83/0x120
+  rtmsg_ifinfo.part.25+0x16/0xb0
+  rtmsg_ifinfo+0x47/0x70
+  register_netdevice+0xa2b/0xe50
+  ? __kmalloc+0x171/0x2d0
+  ? netdev_change_features+0x80/0x80
+  register_netdev+0x15/0x30
+  vboxNetAdpOsCreate+0xc0/0x1c0 [vboxnetadp]
+  vboxNetAdpCreate+0x210/0x400 [vboxnetadp]
+  ? vboxNetAdpComposeMACAddress+0x1d0/0x1d0 [vboxnetadp]
+  ? kasan_check_write+0x14/0x20
+  VBoxNetAdpLinuxIOCtlUnlocked+0x14b/0x280 [vboxnetadp]
+  ? VBoxNetAdpLinuxOpen+0x20/0x20 [vboxnetadp]
+  ? lock_acquire+0x11c/0x270
+  ? __audit_syscall_entry+0x2fb/0x660
+  do_vfs_ioctl+0x17f/0xff0
+  ? __audit_syscall_entry+0x2fb/0x660
+  ? ioctl_preallocate+0x1d0/0x1d0
+  ? __audit_syscall_entry+0x2fb/0x660
+  ? kmem_cache_free+0xb2/0x250
+  ? syscall_trace_enter+0x537/0xd00
+  ? exit_to_usermode_loop+0x100/0x100
+  SyS_ioctl+0x74/0x80
+  ? do_sys_open+0x350/0x350
+  ? do_vfs_ioctl+0xff0/0xff0
+  do_syscall_64+0x182/0x390
+  entry_SYSCALL64_slow_path+0x25/0x25
+ RIP: 0033:0x7f7e39a1ae07
+ RSP: 002b:00007ffc6f04c6d8 EFLAGS: 00000206 ORIG_RAX: 0000000000000010
+ RAX: ffffffffffffffda RBX: 00007ffc6f04c730 RCX: 00007f7e39a1ae07
+ RDX: 00007ffc6f04c730 RSI: 00000000c0207601 RDI: 0000000000000007
+ RBP: 00007ffc6f04c700 R08: 00007ffc6f04c780 R09: 0000000000000008
+ R10: 0000000000000541 R11: 0000000000000206 R12: 0000000000000007
+ R13: 00000000c0207601 R14: 00007ffc6f04c730 R15: 0000000000000012
+ Object at ffff8801be248008, in cache kmalloc-4096 size: 4096
+ Allocated:
+ PID = 6734
+  save_stack_trace+0x16/0x20
+  save_stack+0x46/0xd0
+  kasan_kmalloc+0xad/0xe0
+  __kmalloc+0x171/0x2d0
+  alloc_netdev_mqs+0x8a7/0xbe0
+  vboxNetAdpOsCreate+0x65/0x1c0 [vboxnetadp]
+  vboxNetAdpCreate+0x210/0x400 [vboxnetadp]
+  VBoxNetAdpLinuxIOCtlUnlocked+0x14b/0x280 [vboxnetadp]
+  do_vfs_ioctl+0x17f/0xff0
+  SyS_ioctl+0x74/0x80
+  do_syscall_64+0x182/0x390
+  return_from_SYSCALL_64+0x0/0x6a
+ Freed:
+ PID = 5600
+  save_stack_trace+0x16/0x20
+  save_stack+0x46/0xd0
+  kasan_slab_free+0x73/0xc0
+  kfree+0xe4/0x220
+  kvfree+0x25/0x30
+  single_release+0x74/0xb0
+  __fput+0x265/0x6b0
+  ____fput+0x9/0x10
+  task_work_run+0xd5/0x150
+  exit_to_usermode_loop+0xe2/0x100
+  do_syscall_64+0x26c/0x390
+  return_from_SYSCALL_64+0x0/0x6a
+ Memory state around the buggy address:
+  ffff8801be248a80: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  ffff8801be248b00: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+ >ffff8801be248b80: 00 00 00 00 00 00 00 00 00 00 00 07 fc fc fc fc
+                                                     ^
+  ffff8801be248c00: fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc
+  ffff8801be248c80: fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc
+ ==================================================================
+
+Signed-off-by: Alban Browaeys <alban.browaeys@gmail.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT ce158e580a5bdc93286a3b630638bdd47d4ec663
+2017-06-23	Jakub Kicinski	xdp: add reporting of offload mode
+
+Extend the XDP_ATTACHED_* values to include offloaded mode.
+Let drivers report whether program is installed in the driver
+or the HW by changing the prog_attached field from bool to
+u8 (type of the netlink attribute).
+
+Exploit the fact that the value of XDP_ATTACHED_DRV is 1,
+therefore since all drivers currently assign the mode with
+double negation:
+       mode = !!xdp_prog;
+no drivers have to be modified.
+
+Signed-off-by: Jakub Kicinski <jakub.kicinski@netronome.com>
+Acked-by: Daniel Borkmann <daniel@iogearbox.net>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT ee5d032f7d032e2cea354522a46b211de84c4e8c
+2017-06-23	Jakub Kicinski	xdp: add HW offload mode flag for installing programs
+
+Add an installation-time flag for requesting that the program
+be installed only if it can be offloaded to HW.
+
+Internally new command for ndo_xdp is added, this way we avoid
+putting checks into drivers since they all return -EINVAL on
+an unknown command.
+
+Signed-off-by: Jakub Kicinski <jakub.kicinski@netronome.com>
+Acked-by: Daniel Borkmann <daniel@iogearbox.net>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT 32d602771b624e3a2fc86d5e220e9fa7dced767a
+2017-06-23	Jakub Kicinski	xdp: pass XDP flags into install handlers
+
+Pass XDP flags to the xdp ndo.  This will allow drivers to look
+at the mode flags and make decisions about offload.
+
+Signed-off-by: Jakub Kicinski <jakub.kicinski@netronome.com>
+Acked-by: Daniel Borkmann <daniel@iogearbox.net>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT fe420d87bbc234015b4195dd239b7d3052b140ea
+2017-06-20	Sebastian Siewior	net/core: remove explicit do_softirq() from busy_poll_stop()
+
+Since commit 217f69743681 ("net: busy-poll: allow preemption in
+sk_busy_loop()") there is an explicit do_softirq() invocation after
+local_bh_enable() has been invoked.
+I don't understand why we need this because local_bh_enable() will
+invoke do_softirq() once the softirq counter reached zero and we have
+softirq-related work pending.
+
+Signed-off-by: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT 31ac93386d135a6c96de9c8bab406f5ccabf5a4d
+2017-06-15	Or Gerlitz	net/mlx5e: Avoid doing a cleanup call if the profile doesn't have it
+26e59d8077a3 '(net/mlx5e: Implement mlx5e interface attach/detach callbacks')
+The error flow of mlx5e_create_netdev calls the cleanup call
+of the given profile without checking if it exists, fix that.
+
+Currently the VF reps don't register that callback and we crash
+if getting into error -- can be reproduced by the user doing ctrl^C
+while attempting to change the sriov mode from legacy to switchdev.
+
+Fixes: 26e59d8077a3 '(net/mlx5e: Implement mlx5e interface attach/detach callbacks')
+Signed-off-by: Or Gerlitz <ogerlitz@mellanox.com>
+Reported-by: Sabrina Dubroca <sdubroca@redhat.com>
+Signed-off-by: Saeed Mahameed <saeedm@mellanox.com>
+
+@@@COMMIT db46a0e1be7eac45d0bb1bdcd438b8d47c920451
+2017-06-14	Magnus Damm	net: update undefined ->ndo_change_mtu() comment
+
+Update ->ndo_change_mtu() callback comment to remove text
+about returning error in case of undefined callback. This
+change makes the comment match the existing code behavior.
+
+Signed-off-by: Magnus Damm <damm+renesas@opensource.se>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT 622a2ef538fb3ca8eccf49716aba8267d6e95a47
+2017-06-13	Jacob Keller	ixgbe: check for Tx timestamp timeouts during watchdog
+
+The ixgbe driver has logic to handle only one Tx timestamp at a time,
+using a state bit lock to avoid multiple requests at once.
+
+It may be possible, if incredibly unlikely, that a Tx timestamp event is
+requested but never completes. Since we use an interrupt scheme to
+determine when the Tx timestamp occurred we would never clear the state
+bit in this case.
+
+Add an ixgbe_ptp_tx_hang() function similar to the already existing
+ixgbe_ptp_rx_hang() function. This function runs in the watchdog routine
+and makes sure we eventually recover from this case instead of
+permanently disabling Tx timestamps.
+
+Note: there is no currently known way to cause this without hacking the
+driver code to force it.
+
+Signed-off-by: Jacob Keller <jacob.e.keller@intel.com>
+Tested-by: Andrew Bowers <andrewx.bowers@intel.com>
+Signed-off-by: Jeff Kirsher <jeffrey.t.kirsher@intel.com>
+
+@@@COMMIT 8397ed36b7c585f8d3e06c431f4137309124f78f
+2017-06-08	David Ahern	net: ipv6: Release route when device is unregistering
+a1a22c12060e4 ("net: ipv6: Keep nexthop of multipath route on admin down")
+Roopa reported attempts to delete a bond device that is referenced in a
+multipath route is hanging:
+
+$ ifdown bond2    # ifupdown2 command that deletes virtual devices
+unregister_netdevice: waiting for bond2 to become free. Usage count = 2
+
+Steps to reproduce:
+    echo 1 > /proc/sys/net/ipv6/conf/all/ignore_routes_with_linkdown
+    ip link add dev bond12 type bond
+    ip link add dev bond13 type bond
+    ip addr add 2001:db8:2::0/64 dev bond12
+    ip addr add 2001:db8:3::0/64 dev bond13
+    ip route add 2001:db8:33::0/64 nexthop via 2001:db8:2::2 nexthop via 2001:db8:3::2
+    ip link del dev bond12
+    ip link del dev bond13
+
+The root cause is the recent change to keep routes on a linkdown. Update
+the check to detect when the device is unregistering and release the
+route for that case.
+
+Fixes: a1a22c12060e4 ("net: ipv6: Keep nexthop of multipath route on admin down")
+Reported-by: Roopa Prabhu <roopa@cumulusnetworks.com>
+Signed-off-by: David Ahern <dsahern@gmail.com>
+Acked-by: Roopa Prabhu <roopa@cumulusnetworks.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT 93df9465c93e634c49f18271218076ab0b9aaf75
+2017-05-31	Tony Nguyen	ixgbe: Resolve warnings for -Wimplicit-fallthrough
+
+This patch adds/changes fall through comments to address new warnings
+produced by gcc 7.
+
+Fixed formatting on a couple of comments in the function.
+
+Signed-off-by: Tony Nguyen <anthony.l.nguyen@intel.com>
+Tested-by: Andrew Bowers <andrewx.bowers@intel.com>
+Signed-off-by: Jeff Kirsher <jeffrey.t.kirsher@intel.com>
+
+@@@COMMIT e61e4c8b905b995a5334acf5fb9c7bcaec7417da
+2017-05-31	Tony Nguyen	ixgbe: Resolve truncation warning for q_vector->name
+
+The following warning is now shown as a result of new checks added for
+gcc 7:
+
+drivers/net/ethernet/intel/ixgbe/ixgbe_main.c: In function ‘ixgbe_open’:
+drivers/net/ethernet/intel/ixgbe/ixgbe_main.c:3118:13: warning: ‘%d’ directive output may be truncated writing between 1 and 10 bytes into a region of size between 3 and 18 [-Wformat-truncation=]
+      "%s-%s-%d", netdev->name, "TxRx", ri++);
+             ^~
+drivers/net/ethernet/intel/ixgbe/ixgbe_main.c:3118:6: note: directive argument in the range [0, 2147483647]
+      "%s-%s-%d", netdev->name, "TxRx", ri++);
+      ^~~~~~~~~~
+drivers/net/ethernet/intel/ixgbe/ixgbe_main.c:3117:4: note: ‘snprintf’ output between 8 and 32 bytes into a destination of size 24
+    snprintf(q_vector->name, sizeof(q_vector->name) - 1,
+    ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+      "%s-%s-%d", netdev->name, "TxRx", ri++);
+      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Resolve this warning by making a couple of changes.
+ - Don't reserve space for the null terminator.  Since snprintf adds the
+   null terminator automatically, there is no need for us to reserve a byte
+   for it.
+
+ - Change a couple variables that can never be negative from int to
+   unsigned int.
+
+While we're making changes to the format string, move the constant strings
+into the format string instead of providing them as specifiers.
+
+Signed-off-by: Tony Nguyen <anthony.l.nguyen@intel.com>
+Tested-by: Andrew Bowers <andrewx.bowers@intel.com>
+Signed-off-by: Jeff Kirsher <jeffrey.t.kirsher@intel.com>
+
+@@@COMMIT 0bc0706b46cd345537f9bd3cdf5d84c33f5484e4
+2017-05-31	Jacob Keller	i40e: check for Tx timestamp timeouts during watchdog
+
+The i40e driver has logic to handle only one Tx timestamp at a time,
+using a state bit lock to avoid multiple requests at once.
+
+It may be possible, if incredibly unlikely, that a Tx timestamp event is
+requested but never completes. Since we use an interrupt scheme to
+determine when the Tx timestamp occurred we would never clear the state
+bit in this case.
+
+Add an i40e_ptp_tx_hang() function similar to the already existing
+i40e_ptp_rx_hang() function. This function runs in the watchdog routine
+and makes sure we eventually recover from this case instead of
+permanently disabling Tx timestamps.
+
+Note: there is no currently known way to cause this without hacking the
+driver code to force it.
+
+Signed-off-by: Jacob Keller <jacob.e.keller@intel.com>
+Signed-off-by: Jeff Kirsher <jeffrey.t.kirsher@intel.com>
+
+@@@COMMIT 90b602f80397657429373ca009f98aec4dd3c553
+2017-05-21	Miroslav Lichvar	net: add function to retrieve original skb device using NAPI ID
+
+Since commit b68581778cd0 ("net: Make skb->skb_iif always track
+skb->dev") skbs don't have the original index of the interface which
+received the packet. This information is now needed for a new control
+message related to hardware timestamping.
+
+Instead of adding a new field to skb, we can find the device by the NAPI
+ID if it is available, i.e. CONFIG_NET_RX_BUSY_POLL is enabled and the
+driver is using NAPI. Add dev_get_by_napi_id() and also skb_napi_id() to
+hide the CONFIG_NET_RX_BUSY_POLL ifdef.
+
+CC: Richard Cochran <richardcochran@gmail.com>
+Suggested-by: Willem de Bruijn <willemb@google.com>
+Acked-by: Willem de Bruijn <willemb@google.com>
+Signed-off-by: Miroslav Lichvar <mlichvar@redhat.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT 0cd2950357e31a96be03b531b4b11fe1df812c9f
+2017-05-18	Alexey Dobriyan	net: make struct net_device::tx_queue_len unsigned int
+
+4 billion packet queue is something unthinkable so use 32-bit value
+for now.
+
+Space savings on x86_64:
+
+	add/remove: 0/0 grow/shrink: 3/70 up/down: 16/-131 (-115)
+	function                                     old     new   delta
+	change_tx_queue_len                           94     108     +14
+	qdisc_create                                1176    1177      +1
+	alloc_netdev_mqs                            1124    1125      +1
+	xenvif_alloc                                 533     532      -1
+	x25_asy_setup                                167     166      -1
+			...
+	tun_queue_resize                             945     940      -5
+	pfifo_fast_enqueue                           167     162      -5
+	qfq_init_qdisc                               168     158     -10
+	tap_queue_resize                             810     799     -11
+	transmit                                     719     698     -21
+
+Signed-off-by: Alexey Dobriyan <adobriyan@gmail.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT d651983dde41a854e25664d98cbfc999d55785a8
+2017-05-16	Mauro Carvalho Chehab	net: fix some identation issues at kernel-doc markups
+
+Sphinx is very pedantic with regards to identation and
+escape sequences:
+
+  ./include/net/sock.h:1967: ERROR: Unexpected indentation.
+  ./include/net/sock.h:1969: ERROR: Unexpected indentation.
+  ./include/net/sock.h:1970: WARNING: Block quote ends without a blank line; unexpected unindent.
+  ./include/net/sock.h:1971: WARNING: Block quote ends without a blank line; unexpected unindent.
+  ./include/net/sock.h:2268: WARNING: Inline emphasis start-string without end-string.
+  ./net/core/sock.c:2686: ERROR: Unexpected indentation.
+  ./net/core/sock.c:2687: WARNING: Block quote ends without a blank line; unexpected unindent.
+  ./net/core/datagram.c:182: WARNING: Inline emphasis start-string without end-string.
+  ./include/linux/netdevice.h:1444: ERROR: Unexpected indentation.
+  ./drivers/net/phy/phy.c:381: ERROR: Unexpected indentation.
+  ./drivers/net/phy/phy.c:382: WARNING: Block quote ends without a blank line; unexpected unindent.
+
+- Fix spacing where needed;
+- Properly escape constants;
+- Use a literal block for a race description.
+
+No functional changes.
+
+Signed-off-by: Mauro Carvalho Chehab <mchehab@s-opensource.com>
+
+@@@COMMIT d67b9cd28c1d7f82c2e5e727731ea7c89b23a0a8
+2017-05-11	Daniel Borkmann	xdp: refine xdp api with regards to generic xdp
+
+While working on the iproute2 generic XDP frontend, I noticed that
+as of right now it's possible to have native *and* generic XDP
+programs loaded both at the same time for the case when a driver
+supports native XDP.
+
+The intended model for generic XDP from b5cdae3291f7 ("net: Generic
+XDP") is, however, that only one out of the two can be present at
+once which is also indicated as such in the XDP netlink dump part.
+The main rationale for generic XDP is to ease accessibility (in
+case a driver does not yet have XDP support) and to generically
+provide a semantical model as an example for driver developers
+wanting to add XDP support. The generic XDP option for an XDP
+aware driver can still be useful for comparing and testing both
+implementations.
+
+However, it is not intended to have a second XDP processing stage
+or layer with exactly the same functionality of the first native
+stage. Only reason could be to have a partial fallback for future
+XDP features that are not supported yet in the native implementation
+and we probably also shouldn't strive for such fallback and instead
+encourage native feature support in the first place. Given there's
+currently no such fallback issue or use case, lets not go there yet
+if we don't need to.
+
+Therefore, change semantics for loading XDP and bail out if the
+user tries to load a generic XDP program when a native one is
+present and vice versa. Another alternative to bailing out would
+be to handle the transition from one flavor to another gracefully,
+but that would require to bring the device down, exchange both
+types of programs, and bring it up again in order to avoid a tiny
+window where a packet could hit both hooks. Given this complicates
+the logic for just a debugging feature in the native case, I went
+with the simpler variant.
+
+For the dump, remove IFLA_XDP_FLAGS that was added with b5cdae3291f7
+and reuse IFLA_XDP_ATTACHED for indicating the mode. Dumping all
+or just a subset of flags that were used for loading the XDP prog
+is suboptimal in the long run since not all flags are useful for
+dumping and if we start to reuse the same flag definitions for
+load and dump, then we'll waste bit space. What we really just
+want is to dump the mode for now.
+
+Current IFLA_XDP_ATTACHED semantics are: nothing was installed (0),
+a program is running at the native driver layer (1). Thus, add a
+mode that says that a program is running at generic XDP layer (2).
+Applications will handle this fine in that older binaries will
+just indicate that something is attached at XDP layer, effectively
+this is similar to IFLA_XDP_FLAGS attr that we would have had
+modulo the redundancy.
+
+Signed-off-by: Daniel Borkmann <daniel@iogearbox.net>
+Acked-by: Alexei Starovoitov <ast@kernel.org>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT 505a9249c23988768983aaa0766ce54e0dbe037d
+2017-05-09	Kamal Heib	net/mlx4_en: Change the error print to debug print
+51151a16a60f ('mlx4: allow order-0 memory allocations in RX path')
+The error print within mlx4_en_calc_rx_buf() should be a debug print.
+
+Fixes: 51151a16a60f ('mlx4: allow order-0 memory allocations in RX path')
+Signed-off-by: Kamal Heib <kamalh@mellanox.com>
+Signed-off-by: Tariq Toukan <tariqt@mellanox.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT f108304872b8d987ceab195174ba41153fb70bf6
+2017-05-08	Vlastimil Babka	treewide: convert PF_MEMALLOC manipulations to new helpers
+
+We now have memalloc_noreclaim_{save,restore} helpers for robust setting
+and clearing of PF_MEMALLOC.  Let's convert the code which was using the
+generic tsk_restore_flags().  No functional change.
+
+[vbabka@suse.cz: in net/core/sock.c the hunk is missing]
+Link: http://lkml.kernel.org/r/20170405074700.29871-4-vbabka@suse.cz
+Signed-off-by: Vlastimil Babka <vbabka@suse.cz>
+Acked-by: Michal Hocko <mhocko@suse.com>
+Cc: Josef Bacik <jbacik@fb.com>
+Cc: Lee Duncan <lduncan@suse.com>
+Cc: Chris Leech <cleech@redhat.com>
+Cc: "David S. Miller" <davem@davemloft.net>
+Cc: Eric Dumazet <edumazet@google.com>
+Cc: Mel Gorman <mgorman@techsingularity.net>
+Cc: Johannes Weiner <hannes@cmpxchg.org>
+Cc: Andrey Ryabinin <aryabinin@virtuozzo.com>
+Cc: Boris Brezillon <boris.brezillon@free-electrons.com>
+Cc: Michal Hocko <mhocko@suse.com>
+Cc: Richard Weinberger <richard@nod.at>
+Cc: Wouter Verhelst <w@uter.be>
+Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+Signed-off-by: Linus Torvalds <torvalds@linux-foundation.org>
+
+@@@COMMIT 1d11e732e7d501c4a231f0b32cf8b81990592689
+2017-04-30	Willem de Bruijn	virtio-net: use netif_tx_napi_add for tx napi
+
+Avoid hashing the tx napi struct into napi_hash[], which is used for
+busy polling receive queues.
+
+Signed-off-by: Willem de Bruijn <willemb@google.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT 47994c119a36e28e1779efabc92d6ab5329a6f75
+2017-04-30	Jacob Keller	i40e: remove hw_disabled_flags in favor of using separate flag bits
+
+The hw_disabled_flags field was added as a way of signifying that
+a feature was automatically or temporarily disabled. However, we
+actually only use this for FDir features. Replace its use with new
+_AUTO_DISABLED flags instead. This is more readable, because you aren't
+setting an *_ENABLED flag to *disable* the feature.
+
+Additionally, clean up a few areas where we used these bits. First, we
+don't really need to set the auto-disable flag for ATR if we're fully
+disabling the feature via ethtool.
+
+Second, we should always clear the auto-disable bits in case they somehow
+got set when the feature was disabled. However, avoid displaying
+a message that we've re-enabled the feature.
+
+Third, we shouldn't be re-enabling ATR in the SB ntuple add flow,
+because it might have been disabled due to space constraints. Instead,
+we should just wait for the fdir_check_and_reenable to be called by the
+watchdog.
+
+Overall, this change allows us to simplify some code by removing an
+extra field we didn't need, and the result should make it more clear as
+to what we're actually doing with these flags.
+
+Signed-off-by: Jacob Keller <jacob.e.keller@intel.com>
+Tested-by: Andrew Bowers <andrewx.bowers@intel.com>
+Signed-off-by: Jeff Kirsher <jeffrey.t.kirsher@intel.com>
+
+@@@COMMIT 0da36b9774cc24bac4bff446edf49f31aa98a282
+2017-04-30	Jacob Keller	i40e: use DECLARE_BITMAP for state fields
+
+Instead of assuming our flags fit within an unsigned long, use
+DECLARE_BITMAP which will ensure that we always allocate enough space.
+Additionally, use __I40E_STATE_SIZE__ markers as the last element of the
+enumeration so that the size of the BITMAP is compile-time assigned
+rather than programmer-time assigned. This ensures that potential future
+flag additions do not actually overrun the array. This is especially
+important as 32bit systems would only have 32bit longs instead of 64bit
+longs as we generally have assumed in the prior code.
+
+This change also removes a dereference of the state fields throughout
+the code, so it does have a bit of code churn. The conversions were
+automated using sed replacements with an alternation
+
+  s/&(vsi->back|vsi|pf)->state/\1->state/
+  s/&adapter->vsi.state/adapter->vsi.state/
+
+For debugfs, we modify the printing so that we can display chunks of the
+state value on new lines. This ensures that we can print the entire set
+of state values. Additionally, we now print them as 08lx to ensure that
+they display nicely.
+
+Signed-off-by: Jacob Keller <jacob.e.keller@intel.com>
+Tested-by: Andrew Bowers <andrewx.bowers@intel.com>
+Signed-off-by: Jeff Kirsher <jeffrey.t.kirsher@intel.com>
+
+@@@COMMIT 3dfbfc7ebb959d68b35d5ca3b7499cc73dc57261
+2017-04-29	Tony Nguyen	ixgbe: Check for RSS key before setting value
+
+The RSS key is being repopulated every time the interface is brought up
+regardless of whether there is an existing value. If the user sets the RSS
+key and the interface is brought up (e.g. reset), the user specified RSS
+key will be overwritten.
+
+This patch changes the rss_key to a pointer so we can check to see if the
+key has been populated and preserve it accordingly.
+
+Signed-off-by: Tony Nguyen <anthony.l.nguyen@intel.com>
+Tested-by: Andrew Bowers <andrewx.bowers@intel.com>
+Signed-off-by: Jeff Kirsher <jeffrey.t.kirsher@intel.com>
+
+@@@COMMIT 7379f97a4fce3c1aa3b80a85cb8440453bf30411
+2017-04-29	John Fastabend	ixgbe: delay tail write to every 'n' packets
+
+Current XDP implementation hits the tail on every XDP_TX return
+code. This patch changes driver behavior to only hit the tail after
+packet processing is complete.
+
+With this patch I can run XDP drop programs @ 14+Mpps and XDP_TX
+programs are at ~13.5Mpps.
+
+Signed-off-by: John Fastabend <john.r.fastabend@intel.com>
+Tested-by: Andrew Bowers <andrewx.bowers@intel.com>
+Signed-off-by: Jeff Kirsher <jeffrey.t.kirsher@intel.com>
+
+@@@COMMIT 0575c86b5dd596253bdfc0365b570d67b1a12523
+2017-04-27	Zhang Shengju	net: remove unnecessary carrier status check
+
+Since netif_carrier_on() will do nothing if device's carrier is already
+on, so it's unnecessary to do carrier status check.
+
+It's the same for netif_carrier_off().
+
+Signed-off-by: Zhang Shengju <zhangshengju@cmss.chinamobile.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT 8ecbc40ada116f2f7d6b61cd646802c87b7c5c7d
+2017-04-27	Zhang Shengju	net: update comment for netif_dormant() function
+
+This patch updates the comment for netif_dormant() function to reflect
+the intended usage.
+
+Signed-off-by: Zhang Shengju <zhangshengju@cmss.chinamobile.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT 78a57b482aa53b040fbc2b2ef0208b54f004161b
+2017-04-26	Willem de Bruijn	virtio-net: on tx, only call napi_disable if tx napi is on
+5a719c2552ca ("virtio-net: transmit napi")
+As of tx napi, device down (`ip link set dev $dev down`) hangs unless
+tx napi is enabled. Else napi_enable is not called, so napi_disable
+will spin on test_and_set_bit NAPI_STATE_SCHED.
+
+Only call napi_disable if tx napi is enabled.
+
+Fixes: 5a719c2552ca ("virtio-net: transmit napi")
+Reported-by: Jason Wang <jasowang@redhat.com>
+Signed-off-by: Willem de Bruijn <willemb@google.com>
+Acked-by: Michael S. Tsirkin <mst@redhat.com>
+Acked-by: Jason Wang <jasowang@redhat.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT b5cdae3291f7be7a34e75affe4c0ec1f7f328b64
+2017-04-25	David S. Miller	net: Generic XDP
+
+This provides a generic SKB based non-optimized XDP path which is used
+if either the driver lacks a specific XDP implementation, or the user
+requests it via a new IFLA_XDP_FLAGS value named XDP_FLAGS_SKB_MODE.
+
+It is arguable that perhaps I should have required something like
+this as part of the initial XDP feature merge.
+
+I believe this is critical for two reasons:
+
+1) Accessibility.  More people can play with XDP with less
+   dependencies.  Yes I know we have XDP support in virtio_net, but
+   that just creates another depedency for learning how to use this
+   facility.
+
+   I wrote this to make life easier for the XDP newbies.
+
+2) As a model for what the expected semantics are.  If there is a pure
+   generic core implementation, it serves as a semantic example for
+   driver folks adding XDP support.
+
+One thing I have not tried to address here is the issue of
+XDP_PACKET_HEADROOM, thanks to Daniel for spotting that.  It seems
+incredibly expensive to do a skb_cow(skb, XDP_PACKET_HEADROOM) or
+whatever even if the XDP program doesn't try to push headers at all.
+I think we really need the verifier to somehow propagate whether
+certain XDP helpers are used or not.
+
+v5:
+ - Handle both negative and positive offset after running prog
+ - Fix mac length in XDP_TX case (Alexei)
+ - Use rcu_dereference_protected() in free_netdev (kbuild test robot)
+
+v4:
+ - Fix MAC header adjustmnet before calling prog (David Ahern)
+ - Disable LRO when generic XDP is installed (Michael Chan)
+ - Bypass qdisc et al. on XDP_TX and record the event (Alexei)
+ - Do not perform generic XDP on reinjected packets (DaveM)
+
+v3:
+ - Make sure XDP program sees packet at MAC header, push back MAC
+   header if we do XDP_TX.  (Alexei)
+ - Elide GRO when generic XDP is in use.  (Alexei)
+ - Add XDP_FLAG_SKB_MODE flag which the user can use to request generic
+   XDP even if the driver has an XDP implementation.  (Alexei)
+ - Report whether SKB mode is in use in rtnl_xdp_fill() via XDP_FLAGS
+   attribute.  (Daniel)
+
+v2:
+ - Add some "fall through" comments in switch statements based
+   upon feedback from Andrew Lunn
+ - Use RCU for generic xdp_prog, thanks to Johannes Berg.
+
+Tested-by: Andy Gospodarek <andy@greyhouse.net>
+Tested-by: Jesper Dangaard Brouer <brouer@redhat.com>
+Tested-by: David Ahern <dsa@cumulusnetworks.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT ea7735d97ba9064c448664429e249991ccd8aa77
+2017-04-24	Willem de Bruijn	virtio-net: move free_old_xmit_skbs
+
+An upcoming patch will call free_old_xmit_skbs indirectly from
+virtnet_poll. Move the function above this to avoid having to
+introduce a forward declaration.
+
+This is a pure move: no code changes.
+
+Signed-off-by: Willem de Bruijn <willemb@google.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT 9e54e322ded40f424dcb5a13508e2556919ce12a
+2017-04-24	Deepak Khungar	bnxt_en: Restrict a PF in Multi-Host mode from changing port PHY configuration
+
+This change restricts the PF in multi-host mode from setting any port
+level PHY configuration.  The settings are controlled by firmware in
+Multi-Host mode.
+
+Signed-off-by: Deepak Khungar <deepak.khungar@broadcom.com>
+Signed-off-by: Michael Chan <michael.chan@broadcom.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT 7acf8a1e8a28b3d7407a8d8061a7d0766cfac2f4
+2017-04-21	Matthew Whitehead	Replace 2 jiffies with sysctl netdev_budget_usecs to enable softirq tuning
+
+Constants used for tuning are generally a bad idea, especially as hardware
+changes over time. Replace the constant 2 jiffies with sysctl variable
+netdev_budget_usecs to enable sysadmins to tune the softirq processing.
+Also document the variable.
+
+For example, a very fast machine might tune this to 1000 microseconds,
+while my regression testing 486DX-25 needs it to be 4000 microseconds on
+a nearly idle network to prevent time_squeeze from being incremented.
+
+Version 2: changed jiffies to microseconds for predictable units.
+
+Signed-off-by: Matthew Whitehead <tedheadster@gmail.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT ed0980c4401a21148d2fb9f4f6dd6132a4cc7599
+2017-04-19	Scott Peterson	i40e/i40evf: Add tracepoints
+
+This patch adds tracepoints to the i40e and i40evf drivers to which
+BPF programs can be attached for feature testing and verification.
+It's expected that an attached BPF program will identify and count or
+log some interesting subset of traffic. The bcc-tools package is
+helpful there for containing all the BPF arcana in a handy Python
+wrapper. Though you can make these tracepoints log trace messages, the
+messages themselves probably won't be very useful (other to verify the
+tracepoint is being called while you're debugging your BPF program).
+
+The idea here is that tracepoints have such low performance cost when
+disabled that we can leave these in the upstream drivers. This may
+eventually enable the instrumentation of unmodified customer systems
+should the need arise to verify a NIC feature is working as expected.
+In general this enables one set of feature verification tools to be
+used on these drivers whether they're built with the kernel or
+separately.
+
+Users are advised against using these tracepoints for anything other
+than a diagnostic tool. They have a performance impact when enabled,
+and their exact placement and form may change as we see how well they
+work in practice for the purposes above.
+
+Change-ID: Id6014a7322c0e6d08068114dd20bd156f2f6435e
+Signed-off-by: Scott Peterson <scott.d.peterson@intel.com>
+Tested-by: Andrew Bowers <andrewx.bowers@intel.com>
+Signed-off-by: Jeff Kirsher <jeffrey.t.kirsher@intel.com>
+
+@@@COMMIT 0e626ff7ccbfc43c6cc4aeea611c40b899682382
+2017-04-19	Alexander Duyck	i40e: Fix support for flow director programming status
+
+This patch fixes an issue I introduced when I converted the code over to
+using the length field to determine if a descriptor was done or not. It
+turns out that we are also processing programming descriptors in the Rx
+path and need to have these processed even though the length field will be
+0 on these packets.  What will happen with a programming descriptor is that
+we will receive a descriptor that has the SPH bit set, and the header
+length and packet length fields cleared.
+
+To account for this we should be checking for the bit for split header
+being set even though we aren't actually using header split. This bit is
+set in the length field to indicate if a programming descriptor response is
+contained in the descriptor. Since we don't support header split we don't
+need to perform the extra checks of using a fixed value for the entire
+length field.
+
+In addition I am moving the function for checking if a filter is a
+programming status filter into the i40e_txrx.c file since there is no
+longer support for FCoE it doesn't make sense to keep this file in i40e.h.
+
+Change-ID: I12c359c3dc70adb9d6b92b27324bb2c7f04c1a06
+Signed-off-by: Alexander Duyck <alexander.h.duyck@intel.com>
+Signed-off-by: Jeff Kirsher <jeffrey.t.kirsher@intel.com>
+
+@@@COMMIT 53240e99dbbfe69a6b3ca808a6d15eea744be169
+2017-04-19	alice michael	i40e/i40evf: Remove VF Rx csum offload for tunneled packets
+
+Rx checksum offload for tunneled packets was never being negotiated or
+requested by VF. This capability was assumed by default and enabled in
+current hardware for VF. Going forward, this feature needs to be disabled
+or advanced ptypes should be negotiated with PF in the future.
+
+Change-ID: I9e54cfa8a90e03ab6956db4412f1e337ccd2c2e0
+Signed-off-by: Preethi Banala <preethi.banala@intel.com>
+Tested-by: Andrew Bowers <andrewx.bowers@intel.com>
+Signed-off-by: Jeff Kirsher <jeffrey.t.kirsher@intel.com>
+
+@@@COMMIT 18a8cc9815746b8f0ae6f78733877d3846058d1c
+2017-04-18	Alexander Duyck	ixgbe: Fix output from ixgbe_dump
+c3630cc40b4f ("ixgbe: Use length to determine if descriptor is done")
+I just found that when we had changed the Rx path to check for length
+instead of the DD bit we introduced an issue in ixgbe_dump since we were no
+longer clearing the status bits.
+
+To correct this I am updating ixgbe_dump to look for the length bits in the
+descriptor since that is what we are using in the Rx path.
+
+Fixes: c3630cc40b4f ("ixgbe: Use length to determine if descriptor is done")
+Signed-off-by: Alexander Duyck <alexander.h.duyck@intel.com>
+Tested-by: Andrew Bowers <andrewx.bowers@intel.com>
+Signed-off-by: Jeff Kirsher <jeffrey.t.kirsher@intel.com>
+
+@@@COMMIT 332f235836082fe7d3d890409ed6a20e0ea0d923
+2017-04-18	Joe Perches	ixgbe: Remove pr_cont uses
+
+As pr_cont output can be interleaved by other processes,
+using pr_cont should be avoided where possible.
+
+Miscellanea:
+
+- Use a temporary pointer to hold the next descriptions and
+  consolidate the pr_cont uses
+- Use the temporary buffer to hold the 8 u32 register values and
+  emit those in a single go
+- Coalesce formats and logging neatening around those changes
+- Fix a defective output for the rx ring entry description when
+  also emitting rx_buffer_info data
+
+This reduces overall object size a tiny bit too.
+
+$ size drivers/net/ethernet/intel/ixgbe/*.o*
+   text	   data	    bss	    dec	    hex	filename
+  62167	    728	     12	  62907	   f5bb	drivers/net/ethernet/intel/ixgbe/ixgbe_main.o.new
+  62273	    728	     12	  63013	   f625	drivers/net/ethernet/intel/ixgbe/ixgbe_main.o.old
+
+Signed-off-by: Joe Perches <joe@perches.com>
+Tested-by: Andrew Bowers <andrewx.bowers@intel.com>
+Signed-off-by: Jeff Kirsher <jeffrey.t.kirsher@intel.com>
+
+@@@COMMIT df7dd8fc965c665e83b71a649378cdf200ff36df
+2017-04-12	Johannes Berg	net: xdp: don't export dev_change_xdp_fd()
+
+Since dev_change_xdp_fd() is only used in rtnetlink, which must
+be built-in, there's no reason to export dev_change_xdp_fd().
+
+Signed-off-by: Johannes Berg <johannes.berg@intel.com>
+Acked-by: Daniel Borkmann <daniel@iogearbox.net>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT f8b45b74cc6229d9f8780fd962dab84d810b6f17
+2017-04-08	Alexander Duyck	i40e/i40evf: Use build_skb to build frames
+
+This patch is meant to improve the performance of the Rx path.
+Specifically by using build_skb we have several distinct advantages.
+
+In the case of small frames we were previously using a copy-break approach.
+This means that we were allocating a page fragment to use for skb->head,
+and were having to copy the packet into that region.  Both of those calls
+are now avoided since we just build the skb around the data.
+
+In the case of large frames the gains are much more significant.
+Specifically we were having to allocate skb->head, and copy the headers as
+before.  However in addition we were having to parse the header using
+eth_get_headlen which could be quite expensive.  All of this is avoided by
+building the frame around the data.  I have seen gains as high as 30% when
+using VXLAN for instance due to just header pulling overhead.
+
+Finally with all this in place it also sets us up to start looking at
+enabling XDP.  Specifically we now have a path in which the data is in the
+page and the frame is built around it.  So if we parse it with XDP before
+we call build_skb we can take care of any necessary processing there.
+
+Change-ID: Id4bdd618e94473d41f892417e5d8019639e421e3
+Signed-off-by: Alexander Duyck <alexander.h.duyck@intel.com>
+Tested-by: Andrew Bowers <andrewx.bowers@intel.com>
+Signed-off-by: Jeff Kirsher <jeffrey.t.kirsher@intel.com>
+
+@@@COMMIT ca9ec0888d631c446040a7fab9985afdeb4f73f3
+2017-04-08	Alexander Duyck	i40e/i40evf: Add support for padding start of frames
+
+This patch adds padding to the start of frames to make room for headroom
+for us to eventually start using build_skb.  Right now we guarantee at
+least NET_SKB_PAD + NET_IP_ALIGN, however we allocate more space if more is
+available.  For example on x86 the headroom should be 192 bytes.
+
+On systems that have too large of a cache line size to support storing 1.5K
+padding and shared info we default to using 3K buffers and reserve
+everything that isn't used for skb_shared_info or the data buffer for
+headroom.
+
+Change-ID: I33c641c9a1ea10cf7cc484c2d20985368d2d709a
+Signed-off-by: Alexander Duyck <alexander.h.duyck@intel.com>
+Tested-by: Andrew Bowers <andrewx.bowers@intel.com>
+Signed-off-by: Jeff Kirsher <jeffrey.t.kirsher@intel.com>
+
+@@@COMMIT 98efd69493b9d4b02353a552af8ffaaf30de8af4
+2017-04-08	Alexander Duyck	i40e/i40evf: Add support for using order 1 pages with a 3K buffer
+
+There are situations where adding padding to the front and back of an Rx
+buffer will require that we add additional padding.  Specifically if
+NET_IP_ALIGN is non-zero, or the MTU size is larger than 7.5K we would need
+to use 2K buffers which leaves us with no room for the padding.
+
+To preemptively address these cases I am adding support for 3K buffers to
+the Rx path so that we can provide the additional padding needed in the
+event of NET_IP_ALIGN being non-zero or a cache line being greater than 64.
+
+Change-ID: I938bc1ba611285428df39a613cd66f98e60b55c7
+Signed-off-by: Alexander Duyck <alexander.h.duyck@intel.com>
+Tested-by: Andrew Bowers <andrewx.bowers@intel.com>
+Signed-off-by: Jeff Kirsher <jeffrey.t.kirsher@intel.com>
+
+@@@COMMIT 17daabb5e8db2b7de742f59dd73aa12550143e0d
+2017-04-08	Alan Brady	i40e: Simplify i40e_detect_recover_hung_queue logic
+
+This patch greatly reduces the unneeded complexity in the
+i40e_detect_recover_hung_queue code path.  The previous implementation
+set a 'hung bit' which would then get cleared while polling.  If the
+detection routine was called a second time with the bit already set, we
+would issue a software interrupt.  This patch makes it such that if
+interrupts are disabled and we have pending TX descriptors, we trigger a
+software interrupt since in, the worst case, queues are already clean
+and we have an extra interrupt.
+
+Additionally this patch removes the workaround for lost interrupts as
+calling napi_reschedule in this context can cause software interrupts to
+fire on the wrong CPU.
+
+Change-ID: Iae108582a3ceb6229ed1d22e4ed6e69cf97aad8d
+Signed-off-by: Alan Brady <alan.brady@intel.com>
+Tested-by: Andrew Bowers <andrewx.bowers@intel.com>
+Signed-off-by: Jeff Kirsher <jeffrey.t.kirsher@intel.com>
+
+@@@COMMIT e8c5f7231cc03153fee1b5fcb173585354c08ee8
+2017-04-08	Alexander Duyck	i40e: Swap use of pf->flags and pf->hw_disabled_flags for ATR Eviction
+
+This is a minor cleanup so that we are always updating pf->flags when we
+make a change to the private flags instead of updating a mix of either
+pf->flags and/or pf->hw_disabled_flags.
+
+In addition I went through and cleaned out all the spots where we were
+using the X722 define in regards to this flag.
+
+Lastly since we changed the logic I went through and flushed out any
+redundancy and cleaned up the handling of the flags in the Tx path.
+
+Change-ID: I79ff95a7272bb2533251ff11ef91e89ccb80b610
+Signed-off-by: Alexander Duyck <alexander.h.duyck@intel.com>
+Tested-by: Andrew Bowers <andrewx.bowers@intel.com>
+Signed-off-by: Jeff Kirsher <jeffrey.t.kirsher@intel.com>
+
+@@@COMMIT a346fb836c712b43fc7bd925534eb8c23b3b61f0
+2017-04-08	Jacob Keller	i40e: update error message when trying to add invalid filters
+
+Re-word the error message displayed when adding a filter with an
+invalid flow type. Additionally, report a distinct error message when
+the IPv4 protocol is at fault.
+
+Change-ID: Iba3d85b87f8d383c97c8bdd180df34a6adf3ee67
+Signed-off-by: Jacob Keller <jacob.e.keller@intel.com>
+Tested-by: Andrew Bowers <andrewx.bowers@intel.com>
+Signed-off-by: Jeff Kirsher <jeffrey.t.kirsher@intel.com>
+
+@@@COMMIT fa2343e9034ce6c8d93ace00e6e7a6974394f0df
+2017-03-29	Alexander Duyck	i40e/i40evf: Break i40e_fetch_rx_buffer up to allow for reuse of frag code
+
+This patch is meant to clean up the code in preparation for us adding
+support for build_skb.  Specifically we deconstruct i40e_fetch_buffer into
+several functions so that those functions can later be reused when we add a
+path for build_skb.
+
+Specifically with this change we split out the code for adding a page to an
+exiting skb.
+
+Change-ID: Iab1efbab6b8b97cb60ab9fdd0be1d37a056a154d
+Signed-off-by: Alexander Duyck <alexander.h.duyck@intel.com>
+Tested-by: Andrew Bowers <andrewx.bowers@intel.com>
+Signed-off-by: Jeff Kirsher <jeffrey.t.kirsher@intel.com>
+
+@@@COMMIT a0cfc3130eef5406867b38d7e6ac25d1b87e2c76
+2017-03-29	Alexander Duyck	i40e/i40evf: Pull out code for cleaning up Rx buffers
+
+This patch pulls out the code responsible for handling buffer recycling and
+page counting and distributes it through several functions.  This allows us
+to commonize the bits that handle either freeing or recycling the buffers.
+
+As far as the page count tracking one change to the logic is that
+pagecnt_bias is decremented as soon as we call i40e_get_rx_buffer.  It is
+then the responsibility of the function that pulls the data to either
+increment the pagecnt_bias if the buffer can be recycled as-is, or to
+update page_offset so that we are pointing at the correct location for
+placement of the next buffer.
+
+Change-ID: Ibac576360cb7f0b1627f2a993d13c1a8a2bf60af
+Signed-off-by: Alexander Duyck <alexander.h.duyck@intel.com>
+Tested-by: Andrew Bowers <andrewx.bowers@intel.com>
+Signed-off-by: Jeff Kirsher <jeffrey.t.kirsher@intel.com>
+
+@@@COMMIT 9a064128fc8489e9066fde872f6fdeb3d1bbb84f
+2017-03-29	Alexander Duyck	i40e/i40evf: Pull code for grabbing and syncing rx_buffer from fetch_buffer
+
+This patch pulls the code responsible for fetching the Rx buffer and
+synchronizing DMA into a function, specifically called i40e_get_rx_buffer.
+
+The general idea is to allow for better code reuse by pulling this out of
+i40e_fetch_rx_buffer.  We dropped a couple of prefetches since the time
+between the prefetch being called and the data being accessed was too small
+to be useful.
+
+Change-ID: I4885fce4b2637dbedc8e16431169d23d3d7e79b9
+Signed-off-by: Alexander Duyck <alexander.h.duyck@intel.com>
+Tested-by: Andrew Bowers <andrewx.bowers@intel.com>
+Signed-off-by: Jeff Kirsher <jeffrey.t.kirsher@intel.com>
+
+@@@COMMIT d57c0e08c70162feab9ccab085fc34095d2dfd11
+2017-03-29	Alexander Duyck	i40e/i40evf: Use length to determine if descriptor is done
+
+This change makes it so that we use the length of the packet instead of the
+DD status bit to determine if a new descriptor is ready to be processed.
+The obvious advantage is that it cuts down on reads as we don't really even
+need the DD bit if going from a 0 to a non-zero value on size is enough to
+inform us that the packet has been completed.
+
+Change-ID: Iebdf9cdb36c454ef092df27199b92ad09c374231
+Signed-off-by: Alexander Duyck <alexander.h.duyck@intel.com>
+Tested-by: Andrew Bowers <andrewx.bowers@intel.com>
+Signed-off-by: Jeff Kirsher <jeffrey.t.kirsher@intel.com>
+
+@@@COMMIT b1cb07db6e2b3c982ec858b06d42d24c7e267fdc
+2017-03-29	Preethi Banala	i40evf: enforce descriptor write-back mechanism for VF
+
+The current driver mode is to use a write-back mechanism for the head
+register which indicates transmit completions. The VF driver needs to be
+able to work on hardware that exclusively uses descriptor write-back, so
+change the default driver mode of operation to descriptor write-back for
+VF. In our analysis, performance wasn't significantly different with
+either write-back method.
+
+Change-ID: Ia92e4ec77c2df8dc4515c71d53746d57d77759af
+Signed-off-by: Preethi Banala <preethi.banala@intel.com>
+Signed-off-by: Jeff Kirsher <jeffrey.t.kirsher@intel.com>
+
+@@@COMMIT 9eed69a9147c27aeb016c55b30d810b39bf38662
+2017-03-27	Alexander Duyck	i40e: Drop FCoE code from core driver files
+
+Looking over the code for FCoE it looks like the Rx path has been broken at
+least since the last major Rx refactor almost a year ago.  It seems like
+FCoE isn't supported for any of the Fortville/Fortpark hardware so there
+isn't much point in carrying the code around, especially if it is broken
+and untested.
+
+Change-ID: I892de8fa551cb129ce2361e738ff82ce55fa229e
+Signed-off-by: Alexander Duyck <alexander.h.duyck@intel.com>
+Tested-by: Andrew Bowers <andrewx.bowers@intel.com>
+Signed-off-by: Jeff Kirsher <jeffrey.t.kirsher@intel.com>
+
+@@@COMMIT a5b268e4b103e5dea4850ad732b6ed584a5562ea
+2017-03-27	Alexander Duyck	i40e/i40evf: Clean-up process_skb_fields
+
+This is a minor clean-up to make the i40e/i40evf process_skb_fields
+function look a little more like what we have in igb.  The Rx checksum
+function called out a need for skb->protocol but I can't see where it
+actually needs it.  I am assuming this is something that was likely
+refactored out some time ago as the Rx checksum code has gone through a few
+rewrites.
+
+Change-ID: I0b4668a34d90b61b66ded7c7c26e19a3e2d06251
+Signed-off-by: Alexander Duyck <alexander.h.duyck@intel.com>
+Tested-by: Andrew Bowers <andrewx.bowers@intel.com>
+Signed-off-by: Jeff Kirsher <jeffrey.t.kirsher@intel.com>
+
+@@@COMMIT 741b8b832a57402380be79d7d11a59eaf57fff3b
+2017-03-27	Alexander Duyck	i40e/i40evf: Fix use after free in Rx cleanup path
+
+We need to reset skb back to NULL when we have freed it in the Rx cleanup
+path.  I found one spot where this wasn't occurring so this patch fixes it.
+
+Change-ID: Iaca68934200732cd4a63eb0bd83b539c95f8c4dd
+Signed-off-by: Alexander Duyck <alexander.h.duyck@intel.com>
+Tested-by: Andrew Bowers <andrewx.bowers@intel.com>
+Signed-off-by: Jeff Kirsher <jeffrey.t.kirsher@intel.com>
+
+@@@COMMIT 1793668c3b8c18ede309dfec30f7c486cca00d28
+2017-03-27	Alexander Duyck	i40e/i40evf: Update code to better handle incrementing page count
+
+Update the driver code so that we do bulk updates of the page reference
+count instead of just incrementing it by one reference at a time.  The
+advantage to doing this is that we cut down on atomic operations and
+this in turn should give us a slight improvement in cycles per packet.
+In addition if we eventually move this over to using build_skb the gains
+will be more noticeable.
+
+I also found and fixed a store forwarding stall from where we were
+assigning "*new_buff = *old_buff".  By breaking it up into individual
+copies we can avoid this and as a result the performance is slightly
+improved.
+
+Change-ID: I1d3880dece4133eca3c32423b04a5467321ccc52
+Signed-off-by: Alexander Duyck <alexander.h.duyck@intel.com>
+Tested-by: Andrew Bowers <andrewx.bowers@intel.com>
+Signed-off-by: Jeff Kirsher <jeffrey.t.kirsher@intel.com>
+
+@@@COMMIT 2e20a151205be8e7efa9644cdb942381e7bec787
+2017-03-27	Saeed Mahameed	net/mlx5e: Fail safe mtu and lro setting
+
+Use the new fail-safe channels switch mechanism to set new
+netdev mtu and lro settings.
+
+MTU and lro settings demand some HW configuration changes after new
+channels are created and ready for action. In order to unify switch
+channels routine for LRO and MTU changes, and maybe future configuration
+features, we now pass to it a modify HW function pointer to be
+invoked directly after old channels are de-activated and before new
+channels are activated.
+
+Signed-off-by: Saeed Mahameed <saeedm@mellanox.com>
+Reviewed-by: Tariq Toukan <tariqt@mellanox.com>
+
+@@@COMMIT acc6c5953af1949fc17c09cacd4842f149b4569d
+2017-03-27	Saeed Mahameed	net/mlx5e: Split open/close channels to stages
+
+As a foundation for safe config flow, a simple clear API such as
+(Open then Activate) where the "Open" handles the heavy unsafe
+creation operation and the "activate" will be fast and fail safe,
+to enable the newly created channels.
+
+For this we split the RQs/TXQ SQs and channels open/close flows to
+open => activate, deactivate => close.
+
+This will simplify the ability to have fail safe configuration changes
+in downstream patches as follows:
+
+make_new_config(new_params)
+{
+     old_channels = current_active_channels;
+     new_channels = create_channels(new_params);
+     if (!new_channels)
+              return "Failed, but current channels still active :)"
+     deactivate_channels(old_channels); /* Can't fail */
+     activate_channels(new_channels); /* Can't fail */
+     close_channels(old_channels);
+     current_active_channels = new_channels;
+
+     return "SUCCESS";
+}
+
+Signed-off-by: Saeed Mahameed <saeedm@mellanox.com>
+Reviewed-by: Tariq Toukan <tariqt@mellanox.com>
+
+@@@COMMIT 7db6b048da3b9f84fe1d22fb29ff7e7c2ec6c0e5
+2017-03-24	Sridhar Samudrala	net: Commonize busy polling code to focus on napi_id instead of socket
+
+Move the core functionality in sk_busy_loop() to napi_busy_loop() and
+make it independent of sk.
+
+This enables re-using this function in epoll busy loop implementation.
+
+Signed-off-by: Sridhar Samudrala <sridhar.samudrala@intel.com>
+Signed-off-by: Alexander Duyck <alexander.h.duyck@intel.com>
+Acked-by: Eric Dumazet <edumazet@google.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT 37056719bba500d0d2b8216fdf641e5507ec9a0e
+2017-03-24	Alexander Duyck	net: Track start of busy loop instead of when it should end
+
+This patch flips the logic we were using to determine if the busy polling
+has timed out.  The main motivation for this is that we will need to
+support two different possible timeout values in the future and by
+recording the start time rather than when we would want to end we can focus
+on making the end_time specific to the task be it epoll or socket based
+polling.
+
+Signed-off-by: Alexander Duyck <alexander.h.duyck@intel.com>
+Acked-by: Eric Dumazet <edumazet@google.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT 2b5cd0dfa384242f78a396b90087368c9440cc9a
+2017-03-24	Alexander Duyck	net: Change return type of sk_busy_loop from bool to void
+
+checking the return value of sk_busy_loop. As there are only a few
+consumers of that data, and the data being checked for can be replaced
+with a check for !skb_queue_empty() we might as well just pull the code
+out of sk_busy_loop and place it in the spots that actually need it.
+
+Signed-off-by: Alexander Duyck <alexander.h.duyck@intel.com>
+Acked-by: Eric Dumazet <edumazet@google.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT 545cd5e5ec5477c325e4098b6fd21213dceda408
+2017-03-24	Alexander Duyck	net: Busy polling should ignore sender CPUs
+
+This patch is a cleanup/fix for NAPI IDs following the changes that made it
+so that sender_cpu and napi_id were doing a better job of sharing the same
+location in the sk_buff.
+
+One issue I found is that we weren't validating the napi_id as being valid
+before we started trying to setup the busy polling.  This change corrects
+that by using the MIN_NAPI_ID value that is now used in both allocating the
+NAPI IDs, as well as validating them.
+
+Signed-off-by: Alexander Duyck <alexander.h.duyck@intel.com>
+Acked-by: Eric Dumazet <edumazet@google.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT 39e12351a308fe022930d0423d88e3aedde795b1
+2017-03-24	Saeed Mahameed	net/mlx5e: Poll XDP TX CQ before RX CQ
+
+Handle XDP TX completions before handling RX packets, to make sure more
+free space is available for XDP TX packets a moment before handling
+RX packets.
+
+Performance improvement:
+System: Intel(R) Xeon(R) CPU E5-2620 v3 @ 2.40GHz
+
+Test case              Before     Now      improvement
+---------------------------------------------------------------
+XDP Drop (1 core)      16.9Mpps  16.9Mpps    No change
+XDP TX   (1 core)      12Mpps    13Mpps      8%
+
+Signed-off-by: Saeed Mahameed <saeedm@mellanox.com>
+Reviewed-by: Tariq Toukan <tariqt@mellanox.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT f223c8752a0b756b82ad8f077172054548a6d644
+2017-03-23	Jacob Keller	i40e: add support for SCTPv4 FDir filters
+
+Enable FDir filters for SCTPv4 packets using the ethtool ntuple
+interface to enable filters. The ethtool API does not allow masking on
+the verification tag.
+
+Change-Id: I093e88a8143994c7e6f4b7b17a0bd5cf861d18e4
+Signed-off-by: Jacob Keller <jacob.e.keller@intel.com>
+Tested-by: Andrew Bowers <andrewx.bowers@intel.com>
+Signed-off-by: Jeff Kirsher <jeffrey.t.kirsher@intel.com>
+
+@@@COMMIT 0e588de17f086c32432d6ca7f4053b37c6fc487c
+2017-03-23	Jacob Keller	i40e: implement support for flexible word payload
+
+Add support for flexible payloads passed via ethtool user-def field.
+This support is somewhat limited due to hardware design. The input set
+can only be programmed once per filter type, and the flexible offset is
+part of this filter input set. This means that the user cannot program
+both a regular and a flexible filter at the same time for a given flow
+type. Additionally, the user may not program two flexible filters of the
+same flow type with different offsets, although they are allowed to
+configure different values at that offset location.
+
+We support a single flexible word (2byte) value per protocol type, and
+we handle the FLX_PIT register using a list of flexible entries so that
+each flow type may be configured separately.
+
+Due to hardware implementation, the flexible data is offset from the
+start of the packet payload, and thus may not be in part of the header
+data. For this reason, the offset provided by the user defined data is
+interpreted as a byte offset from the start of the matching payload.
+Previous implementations have tried to represent the offset as from the
+start of the frame, but this is not feasible because header sizes may
+change due to options.
+
+Change-Id: 36ed27995e97de63f9aea5ade5778ff038d6f811
+Signed-off-by: Jacob Keller <jacob.e.keller@intel.com>
+Tested-by: Andrew Bowers <andrewx.bowers@intel.com>
+Signed-off-by: Jeff Kirsher <jeffrey.t.kirsher@intel.com>
+
+@@@COMMIT 377cc24980588d03abf3a2a843b8c53dfc8b5a1b
+2017-03-20	Jacob Keller	i40e: exit ATR mode only when adding TCP/IPv4 filter succeeds
+
+Move ATR exit check after we have sent the TCP/IPv4 filter to the ring
+successfully. This avoids an issue where we potentially update the
+filter count without actually succeeding in adding the filter. Now, we
+only increment the fd_tcp_rule after we've succeeded. Additionally, we
+will re-enable ATR mode only after deletion of the filter is actually
+posted to the FDIR ring.
+
+Change-ID: If5c1dea422081cc5e2de65618b01b4c3bf6bd586
+Signed-off-by: Jacob Keller <jacob.e.keller@intel.com>
+Reviewed-by: Mitch Williams <mitch.a.williams@intel.com>
+Tested-by: Andrew Bowers <andrewx.bowers@intel.com>
+Signed-off-by: Jeff Kirsher <jeffrey.t.kirsher@intel.com>
+
+@@@COMMIT e5187ee3ee9a95b1aa32a9a3daf4f07a9f89c20c
+2017-03-20	Jacob Keller	i40e: return immediately when failing to add fdir filter
+
+Instead of setting err=true and checking this to determine when to free
+the raw_packet near the end of the function, simply kfree and return
+immediately. The resulting code is a bit cleaner and has one less
+variable. This also resolves a subtle bug in the ipv4 case which could
+fail to add the first filter and then never free the memory, resulting
+in a small memory leak.
+
+Change-ID: I7583aac033481dc794b4acaa14445059c8930ff1
+Signed-off-by: Jacob Keller <jacob.e.keller@intel.com>
+Reviewed-by: Avinash Dayanand <avinash.dayanand@intel.com>
+Reviewed-by: Alan Brady <alan.brady@intel.com>
+Reviewed-by: Mitch Williams <mitch.a.williams@intel.com>
+Tested-by: Andrew Bowers <andrewx.bowers@intel.com>
+Signed-off-by: Jeff Kirsher <jeffrey.t.kirsher@intel.com>
+
+@@@COMMIT 8ce43dce6f272202dcd127e0e288b37277ca87dd
+2017-03-20	Jacob Keller	i40e: don't use arrays for (src|dst)_ip
+
+The code originally included src_ip and dst_ip with enough space to
+support ipv6 filters. However, no actual support for ipv6 filters has
+been implemented. Thus, remove the arrays and just use __be32 values.
+Should ipv6 support be added in the future, we can replace these with
+a union that has sizes for both values.
+
+Change-Id: I1bc04032244a80eb6ebc8a4e6c723a4a665c1dd5
+Signed-off-by: Jacob Keller <jacob.e.keller@intel.com>
+Tested-by: Andrew Bowers <andrewx.bowers@intel.com>
+Signed-off-by: Jeff Kirsher <jeffrey.t.kirsher@intel.com>
+
+@@@COMMIT b77ac975930741f0b6612b18e55d7a72c81ea2ac
+2017-03-15	Harshitha Ramamurthy	i40e: rename auto_disable_flags to hw_disabled_flags
+
+A previous commit introduced a field that tracks the features
+that are disabled due to HW resource limitations as opposed
+to the featured disabled by the user. This patch changes the
+name of the field to make it more readable since it might get
+confusing when looking at code containing both the flags
+field and the auto_disable_features field together.
+
+Change-ID: Idcc9888659698f6fe3ccff17c8c3f09b5026f708
+Signed-off-by: Harshitha Ramamurthy <harshitha.ramamurthy@intel.com>
+Tested-by: Andrew Bowers <andrewx.bowers@intel.com>
+Signed-off-by: Jeff Kirsher <jeffrey.t.kirsher@intel.com>
+
+@@@COMMIT 59605bc09630c2b577858c371edf89c099b5f925
+2017-03-15	Alexander Duyck	i40e/i40evf: Add support for mapping pages with DMA attributes
+
+This patch adds support for DMA_ATTR_SKIP_CPU_SYNC and
+DMA_ATTR_WEAK_ORDERING. By enabling both of these for the Rx path we
+are able to see performance improvements on architectures that implement
+either one due to the fact that page mapping and unmapping only has to
+sync what is actually being used instead of the entire buffer. In addition
+by enabling the weak ordering attribute enables a performance improvement
+for architectures that can associate a memory ordering with a DMA buffer
+such as Sparc.
+
+Change-ID: If176824e8231c5b24b8a5d55b339a6026738fc75
+Signed-off-by: Alexander Duyck <alexander.h.duyck@intel.com>
+Tested-by: Andrew Bowers <andrewx.bowers@intel.com>
+Signed-off-by: Jeff Kirsher <jeffrey.t.kirsher@intel.com>
+
+@@@COMMIT 37c343b4f4e70e9dc328ab04903c0ec8d154c1a4
+2017-03-14	Vlad Yasevich	net: Resend IGMP memberships upon peer notification.
+
+When we notify peers of potential changes,  it's also good to update
+IGMP memberships.  For example, during VM migration, updating IGMP
+memberships will redirect existing multicast streams to the VM at the
+new location.
+
+Signed-off-by: Vladislav Yasevich <vyasevic@redhat.com>
+Acked-by: Michael S. Tsirkin <mst@redhat.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT 34db548bfb9580f33d9a7faecafe4da61a4428a3
+2017-03-09	Eric Dumazet	mlx4: add page recycling in receive path
+
+Same technique than some Intel drivers, for arches where PAGE_SIZE = 4096
+
+In most cases, pages are reused because they were consumed
+before we could loop around the RX ring.
+
+This brings back performance, and is even better,
+a single TCP flow reaches 30Gbit on my hosts.
+
+v2: added full memset() in mlx4_en_free_frag(), as Tariq found it was needed
+if we switch to large MTU, as priv->log_rx_info can dynamically be changed.
+
+Signed-off-by: Eric Dumazet <edumazet@google.com>
+Acked-by: Tariq Toukan <tariqt@mellanox.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT eb1e011a14748a1d9df9a7d7df9a5711721a1bdb
+2017-03-02	Johannes Berg	average: change to declare precision, not factor
+
+Declaring the factor is counter-intuitive, and people are prone
+to using small(-ish) values even when that makes no sense.
+
+Change the DECLARE_EWMA() macro to take the fractional precision,
+in bits, rather than a factor, and update all users.
+
+While at it, add some more documentation.
+
+Acked-by: David S. Miller <davem@davemloft.net>
+Signed-off-by: Johannes Berg <johannes.berg@intel.com>
+
+@@@COMMIT 39e6c8208d7b6fb9d2047850fb3327db567b564b
+2017-03-01	Eric Dumazet	net: solve a NAPI race
+
+While playing with mlx4 hardware timestamping of RX packets, I found
+that some packets were received by TCP stack with a ~200 ms delay...
+
+Since the timestamp was provided by the NIC, and my probe was added
+in tcp_v4_rcv() while in BH handler, I was confident it was not
+a sender issue, or a drop in the network.
+
+This would happen with a very low probability, but hurting RPC
+workloads.
+
+A NAPI driver normally arms the IRQ after the napi_complete_done(),
+after NAPI_STATE_SCHED is cleared, so that the hard irq handler can grab
+it.
+
+Problem is that if another point in the stack grabs NAPI_STATE_SCHED bit
+while IRQ are not disabled, we might have later an IRQ firing and
+finding this bit set, right before napi_complete_done() clears it.
+
+This can happen with busy polling users, or if gro_flush_timeout is
+used. But some other uses of napi_schedule() in drivers can cause this
+as well.
+
+thread 1                                 thread 2 (could be on same cpu, or not)
+
+// busy polling or napi_watchdog()
+napi_schedule();
+...
+napi->poll()
+
+device polling:
+read 2 packets from ring buffer
+                                          Additional 3rd packet is
+available.
+                                          device hard irq
+
+                                          // does nothing because
+NAPI_STATE_SCHED bit is owned by thread 1
+                                          napi_schedule();
+
+napi_complete_done(napi, 2);
+rearm_irq();
+
+Note that rearm_irq() will not force the device to send an additional
+IRQ for the packet it already signaled (3rd packet in my example)
+
+This patch adds a new NAPI_STATE_MISSED bit, that napi_schedule_prep()
+can set if it could not grab NAPI_STATE_SCHED
+
+Then napi_complete_done() properly reschedules the napi to make sure
+we do not miss something.
+
+Since we manipulate multiple bits at once, use cmpxchg() like in
+sk_busy_loop() to provide proper transactions.
+
+In v2, I changed napi_watchdog() to use a relaxed variant of
+napi_schedule_prep() : No need to set NAPI_STATE_MISSED from this point.
+
+In v3, I added more details in the changelog and clears
+NAPI_STATE_MISSED in busy_poll_stop()
+
+In v4, I added the ideas given by Alexander Duyck in v3 review
+
+Signed-off-by: Eric Dumazet <edumazet@google.com>
+Cc: Alexander Duyck <alexander.duyck@gmail.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT 6dc4b54e77282caf17f0ff72aa32dd296037fbc0
+2017-02-23	Saeed Mahameed	net/mlx5e: Update MPWQE stride size when modifying CQE compress state
+7219ab34f184 ("net/mlx5e: CQE compression")
+When the admin enables/disables cqe compression, updating
+mpwqe stride size is required:
+    CQE compress ON  ==> stride size = 256B
+    CQE compress OFF ==> stride size = 64B
+
+This is already done on driver load via mlx5e_set_rq_type_params, all we
+need is just to call it on arbitrary admin changes of cqe compression
+state via priv flags or when changing timestamping state
+(as it is mutually exclusive with cqe compression).
+
+This bug introduces no functional damage, it only makes cqe compression
+occur less often, since in ConnectX4-LX CQE compression is performed
+only on packets smaller than stride size.
+
+Tested:
+ ethtool --set-priv-flags ethxx rx_cqe_compress on
+ pktgen with  64 < pkt size < 256 and netperf TCP_STREAM (IPv4/IPv6)
+ verify `ethtool -S ethxx | grep compress` are advancing more often
+ (rapidly)
+
+Fixes: 7219ab34f184 ("net/mlx5e: CQE compression")
+Signed-off-by: Saeed Mahameed <saeedm@mellanox.com>
+Reviewed-by: Tariq Toukan <tariqt@mellanox.com>
+Cc: kernel-team@fb.com
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT 017b29c38c0dc8aece778b44fad32adf8862c188
+2017-02-20	Jason Wang	virito-net: set queues after reset during xdp_set
+2de2f7f40ef9 ("virtio_net: XDP support for adjust_head")
+We set queues before reset which will cause a crash[1]. This is
+because is_xdp_raw_buffer_queue() depends on the old xdp queue pairs
+number to do the correct detection. So fix this by
+
+- passing xdp queue pairs and current queue pairs to virtnet_reset()
+- change vi->xdp_qp after reset but before refill, to make sure both
+  free_unused_bufs() and refill can make correct detection of XDP.
+- remove the duplicated queue pairs setting before virtnet_reset()
+  since we will do it inside virtnet_reset()
+
+[1]
+
+[   74.328168] general protection fault: 0000 [#1] SMP
+[   74.328625] Modules linked in: nfsd xfs libcrc32c virtio_net virtio_pci
+[   74.329117] CPU: 0 PID: 2849 Comm: xdp2 Not tainted 4.10.0-rc7+ #499
+[   74.329577] Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS rel-1.10.1-0-g8891697-prebuilt.qemu-project.org 04/01/2014
+[   74.330424] task: ffff88007a894000 task.stack: ffffc90004388000
+[   74.330844] RIP: 0010:skb_release_head_state+0x28/0x80
+[   74.331298] RSP: 0018:ffffc9000438b8d0 EFLAGS: 00010206
+[   74.331676] RAX: 0000000000000000 RBX: ffff88007ad96300 RCX: 0000000000000000
+[   74.332217] RDX: ffff88007fc137a8 RSI: ffff88007fc0db28 RDI: 0001bf00000001be
+[   74.332758] RBP: ffffc9000438b8d8 R08: 000000000005008f R09: 00000000000005f9
+[   74.333274] R10: ffff88007d001700 R11: ffffffff820a8a4d R12: ffff88007ad96300
+[   74.333787] R13: 0000000000000002 R14: ffff880036604000 R15: 000077ff80000000
+[   74.334308] FS:  00007fc70d8a7b40(0000) GS:ffff88007fc00000(0000) knlGS:0000000000000000
+[   74.334891] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[   74.335314] CR2: 00007fff4144a710 CR3: 000000007ab56000 CR4: 00000000003406f0
+[   74.335830] DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
+[   74.336373] DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
+[   74.336895] Call Trace:
+[   74.337086]  skb_release_all+0xd/0x30
+[   74.337356]  consume_skb+0x2c/0x90
+[   74.337607]  free_unused_bufs+0x1ff/0x270 [virtio_net]
+[   74.337988]  ? vp_synchronize_vectors+0x3b/0x60 [virtio_pci]
+[   74.338398]  virtnet_xdp+0x21e/0x440 [virtio_net]
+[   74.338741]  dev_change_xdp_fd+0x101/0x140
+[   74.339048]  do_setlink+0xcf4/0xd20
+[   74.339304]  ? symcmp+0xf/0x20
+[   74.339529]  ? mls_level_isvalid+0x52/0x60
+[   74.339828]  ? mls_range_isvalid+0x43/0x50
+[   74.340135]  ? nla_parse+0xa0/0x100
+[   74.340400]  rtnl_setlink+0xd4/0x120
+[   74.340664]  ? cpumask_next_and+0x30/0x50
+[   74.340966]  rtnetlink_rcv_msg+0x7f/0x1f0
+[   74.341259]  ? sock_has_perm+0x59/0x60
+[   74.341586]  ? napi_consume_skb+0xe2/0x100
+[   74.342010]  ? rtnl_newlink+0x890/0x890
+[   74.342435]  netlink_rcv_skb+0x92/0xb0
+[   74.342846]  rtnetlink_rcv+0x23/0x30
+[   74.343277]  netlink_unicast+0x162/0x210
+[   74.343677]  netlink_sendmsg+0x2db/0x390
+[   74.343968]  sock_sendmsg+0x33/0x40
+[   74.344233]  SYSC_sendto+0xee/0x160
+[   74.344482]  ? SYSC_bind+0xb0/0xe0
+[   74.344806]  ? sock_alloc_file+0x92/0x110
+[   74.345106]  ? fd_install+0x20/0x30
+[   74.345360]  ? sock_map_fd+0x3f/0x60
+[   74.345586]  SyS_sendto+0x9/0x10
+[   74.345790]  entry_SYSCALL_64_fastpath+0x1a/0xa9
+[   74.346086] RIP: 0033:0x7fc70d1b8f6d
+[   74.346312] RSP: 002b:00007fff4144a708 EFLAGS: 00000246 ORIG_RAX: 000000000000002c
+[   74.346785] RAX: ffffffffffffffda RBX: 00000000ffffffff RCX: 00007fc70d1b8f6d
+[   74.347244] RDX: 000000000000002c RSI: 00007fff4144a720 RDI: 0000000000000003
+[   74.347683] RBP: 0000000000000003 R08: 0000000000000000 R09: 0000000000000000
+[   74.348544] R10: 0000000000000000 R11: 0000000000000246 R12: 00007fff4144bd90
+[   74.349082] R13: 0000000000000002 R14: 0000000000000002 R15: 00007fff4144cda0
+[   74.349607] Code: 00 00 00 55 48 89 e5 53 48 89 fb 48 8b 7f 58 48 85 ff 74 0e 40 f6 c7 01 74 3d 48 c7 43 58 00 00 00 00 48 8b 7b 68 48 85 ff 74 05 <f0> ff 0f 74 20 48 8b 43 60 48 85 c0 74 14 65 8b 15 f3 ab 8d 7e
+[   74.351008] RIP: skb_release_head_state+0x28/0x80 RSP: ffffc9000438b8d0
+[   74.351625] ---[ end trace fe6e19fd11cfc80b ]---
+
+Fixes: 2de2f7f40ef9 ("virtio_net: XDP support for adjust_head")
+Cc: John Fastabend <john.fastabend@gmail.com>
+Signed-off-by: Jason Wang <jasowang@redhat.com>
+Acked-by: Michael S. Tsirkin <mst@redhat.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT b9c015d421946fe3675fcb9cbacd0a37f1d3263c
+2017-02-18	Jacob Keller	i40e: mark the value passed to csum_replace_by_diff as __wsum
+
+Fix, or rather, avoid a sparse warning caused by the fact that
+csum_replace_by_diff expects to receive a __wsum value. Since the
+calculation appears to work, simply typecast the passed paylen value to
+__wsum to avoid the warning.
+
+This seems pretty fishy since __wsum was obviously annotated as
+a separate type on purpose, so this throws the entire calculation into
+question. Since it currently appears to behave as expected, the typecast
+is probably safe.
+
+Change-ID: I4fdc5cddd589abc16098176e8a61127e761488f4
+Signed-off-by: Jacob Keller <jacob.e.keller@intel.com>
+Tested-by: Andrew Bowers <andrewx.bowers@intel.com>
+Signed-off-by: Jeff Kirsher <jeffrey.t.kirsher@intel.com>
+
+@@@COMMIT 3c234c4709529298498b597bcff35f56ac866a99
+2017-02-18	Carolyn Wyborny	i40e: Fix Adaptive ITR enabling
+
+This patch fixes a bug introduced with the addition of the per queue
+ITR feature support in ethtool.  With that addition, there were
+functions added which converted the ITR settings to binary values.
+The IS_ENABLED macros that run on those values check whether a bit
+is set or not and with the value being binary, the bit check always
+returned ITR disabled which prevents any updating of the ITR rate.
+This patch fixes the problem by changing the functions to return the
+current ITR value instead and renaming it to better reflect
+its function.  These functions now provide a value which will be
+accurately asessed and update the ITR as intended.
+
+Change-ID: I14f1d088d052e27f652aaa3113e186415ddea1fc
+Signed-off-by: Carolyn Wyborny <carolyn.wyborny@intel.com>
+Tested-by: Andrew Bowers <andrewx.bowers@intel.com>
+Signed-off-by: Jeff Kirsher <jeffrey.t.kirsher@intel.com>
+
+@@@COMMIT 6f429223b31c550b835b4f066ac034d0cf0cc71e
+2017-02-16	Alexander Duyck	ixgbe: Add support for build_skb
+
+This patch adds build_skb support to the Rx path.  There are several
+advantages to this change.
+
+1.  It avoids the memcpy and skb->head allocation for small packets which
+    improves performance by about 5% in my tests.
+2.  It avoids the memcpy, skb->head allocation, and eth_get_headlen
+    for larger packets improving performance by about 10% in my tests.
+3.  For VXLAN packets it allows the full header to be in skb->data which
+    improves the performance by as much as 30% in some of my tests.
+
+Signed-off-by: Alexander Duyck <alexander.h.duyck@intel.com>
+Tested-by: Andrew Bowers <andrewx.bowers@intel.com>
+Signed-off-by: Jeff Kirsher <jeffrey.t.kirsher@intel.com>
+
+@@@COMMIT 2de6aa3a666e63699978f81d0d5523e7e0778f7b
+2017-02-16	Alexander Duyck	ixgbe: Add support for padding packet
+
+This patch adds support for providing a buffer with headroom and tailroom
+to allow for shared info, NET_SKB_PAD, and NET_IP_ALIGN.  With this
+combined with the DMA changes we can start using build_skb to build frames
+around an incoming Rx buffer instead of having to memcpy the headers.
+
+Signed-off-by: Alexander Duyck <alexander.h.duyck@intel.com>
+Tested-by: Andrew Bowers <andrewx.bowers@intel.com>
+Signed-off-by: Jeff Kirsher <jeffrey.t.kirsher@intel.com>
+
+@@@COMMIT c3630cc40b4f0fe004e21f19bfb5cd2231c105f8
+2017-02-16	Alexander Duyck	ixgbe: Use length to determine if descriptor is done
+
+This change makes it so that we use the length of the packet instead of the
+DD status bit to determine if a new descriptor is ready to be processed.
+The obvious advantage is that it cuts down on reads as we don't really even
+need the DD bit if going from a 0 to a non-zero value on size is enough to
+inform us that the packet has been completed.
+
+Signed-off-by: Alexander Duyck <alexander.h.duyck@intel.com>
+Tested-by: Andrew Bowers <andrewx.bowers@intel.com>
+Signed-off-by: Jeff Kirsher <jeffrey.t.kirsher@intel.com>
+
+@@@COMMIT 1b56cf49f5b0bab9ad4eab18f9b0aee1929afd89
+2017-02-16	Alexander Duyck	ixgbe: Update code to better handle incrementing page count
+
+Batch the page count updates instead of doing them one at a time.  By doing
+this we can improve the overall performance as the atomic increment
+operations can be expensive due to the fact that on x86 they are locked
+operations which can cause stalls.  By doing bulk updates we can
+consolidate the stall which should help to improve the overall receive
+performance.
+
+Signed-off-by: Alexander Duyck <alexander.h.duyck@intel.com>
+Tested-by: Andrew Bowers <andrewx.bowers@intel.com>
+Acked-by: John Fastabend <john.r.fastabend@intel.com>
+Signed-off-by: Jeff Kirsher <jeffrey.t.kirsher@intel.com>
+
+@@@COMMIT 37fabbf4d489cc2e1cbf7cde816d9453a65ddfb7
+2017-02-13	Eric Dumazet	net: busy-poll: remove LL_FLUSH_FAILED and LL_FLUSH_BUSY
+
+Commit 79e7fff47b7b ("net: remove support for per driver
+ndo_busy_poll()") made them obsolete.
+
+Signed-off-by: Eric Dumazet <edumazet@google.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT a158aeaf5bb5b014240b360693751476aca7440b
+2017-02-11	Jacob Keller	i40e: update comment explaining where FDIR buffers are freed
+
+The original comment implies that the only location where the raw_packet
+buffer will be freed is in i40e_clean_tx_ring() which is incorrect. In
+fact this isn't even the normal case. Update the comment explaining
+where the memory is freed.
+
+Change-ID: Ie0defc35ed1c3af183f81fdc60b6d783707a5595
+Signed-off-by: Jacob Keller <jacob.e.keller@intel.com>
+Tested-by: Andrew Bowers <andrewx.bowers@intel.com>
+Signed-off-by: Jeff Kirsher <jeffrey.t.kirsher@intel.com>
+
+@@@COMMIT 9b37c937313bf6769d0b018ca35180b379d40862
+2017-02-11	Scott Peterson	i40e/i40evf: eliminate i40e_pull_tail()
+
+Reorganize the i40e_pull_tail() logic, doing it in i40e_add_rx_frag()
+where it's cheaper.  The igb driver does this the same way.
+
+Also renames i40e_page_is_reserved() to reflect what it actually
+tests.
+
+Change-ID: Icd9cc507aae1fcdc02308b3a09034111b4c24071
+Signed-off-by: Scott Peterson <scott.d.peterson@intel.com>
+Tested-by: Andrew Bowers <andrewx.bowers@intel.com>
+Signed-off-by: Jeff Kirsher <jeffrey.t.kirsher@intel.com>
+
+@@@COMMIT e72e56597ba15ce70f4fc1eb2ceeaa8da0d4ab5e
+2017-02-11	Scott Peterson	i40e/i40evf: Moves skb from i40e_rx_buffer to i40e_ring
+
+This patch reduces the size of struct i40e_rx_buffer by one pointer,
+and makes the i40e driver a little more consistent with the igb driver
+in terms of packets that span buffers.
+
+We do this by moving the skb field from struct i40e_rx_buffer to
+struct i40e_ring. We pass the skb we already have (or NULL if we
+don't) to i40e_fetch_rx_buffer(), which skips the skb allocation if we
+already have one for this packet.
+
+Change-ID: I4ad48a531844494ba0c5d8e1a62209a057f661b0
+Signed-off-by: Scott Peterson <scott.d.peterson@intel.com>
+Tested-by: Andrew Bowers <andrewx.bowers@intel.com>
+Signed-off-by: Jeff Kirsher <jeffrey.t.kirsher@intel.com>
+
+@@@COMMIT 7987dcd7b95111a5acbf5abdbf155eedacd3546b
+2017-02-11	Scott Peterson	i40e/i40evf: Limit DMA sync of RX buffers to actual packet size
+
+On packet RX, we perform a DMA sync for CPU before passing the
+packet up.  Here we limit that sync to the actual length of the
+incoming packet, rather than always syncing the entire buffer.
+
+Change-ID: I626aaf6c37275a8ce9e81efcaa773f327b331487
+Signed-off-by: Scott Peterson <scott.d.peterson@intel.com>
+Tested-by: Andrew Bowers <andrewx.bowers@intel.com>
+Signed-off-by: Jeff Kirsher <jeffrey.t.kirsher@intel.com>
+
+@@@COMMIT 6bb19474391d17954fee9a9997ecca25b35dfd46
+2017-02-07	Michael Chan	bnxt_en: Refactor rx SKB function.
+
+Minor refactoring of bnxt_rx_skb() so that it can easily be replaced by
+a new function that handles packets in a single page.  Also, use a
+function pointer bp->rx_skb_func() to switch to a new function when
+we add the new mode in the next patch.
+
+Add a new field data_ptr that points to the packet data in the
+bnxt_sw_rx_bd structure.  The original data field is changed to void
+pointer so that it can either hold the kmalloc'ed data or a page
+pointer.
+
+The last parameter of bnxt_rx_skb() which was the length parameter is
+changed to include the payload offset of the packet in the upper 16 bit.
+The offset is needed to support the rx page mode and is not used in
+this existing function.
+
+v3: Added a new data_ptr parameter to bp->rx_skb_func().  The caller
+has the option to modify the starting address of the packet.  This
+will be needed when XDP with headroom support is added.
+
+v2: Changed the name of the last parameter to offset_and_len to make the
+code more clear.
+
+Signed-off-by: Michael Chan <michael.chan@broadcom.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT 2de2f7f40ef92313d76c3df7f545be5d0899b1aa
+2017-02-07	John Fastabend	virtio_net: XDP support for adjust_head
+
+Add support for XDP adjust head by allocating a 256B header region
+that XDP programs can grow into. This is only enabled when a XDP
+program is loaded.
+
+In order to ensure that we do not have to unwind queue headroom push
+queue setup below bpf_prog_add. It reads better to do a prog ref
+unwind vs another queue setup call.
+
+At the moment this code must do a full reset to ensure old buffers
+without headroom on program add or with headroom on program removal
+are not used incorrectly in the datapath. Ideally we would only
+have to disable/enable the RX queues being updated but there is no
+API to do this at the moment in virtio so use the big hammer. In
+practice it is likely not that big of a problem as this will only
+happen when XDP is enabled/disabled changing programs does not
+require the reset. There is some risk that the driver may either
+have an allocation failure or for some reason fail to correctly
+negotiate with the underlying backend in this case the driver will
+be left uninitialized. I have not seen this ever happen on my test
+systems and for what its worth this same failure case can occur
+from probe and other contexts in virtio framework.
+
+Signed-off-by: John Fastabend <john.r.fastabend@intel.com>
+Acked-by: Jason Wang <jasowang@redhat.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT f32f5bd2eb7e91a5090c06bbe1ed14bffbbda5d3
+2017-02-06	Daniel Jurgens	net/mlx5: Configure cache line size for start and end padding
+
+There is a hardware feature that will pad the start or end of a DMA to
+be cache line aligned to avoid RMWs on the last cache line. The default
+cache line size setting for this feature is 64B. This change configures
+the hardware to use 128B alignment on systems with 128B cache lines.
+
+In addition we lower bound MPWRQ stride by HCA cacheline in mlx5e,
+MPWRQ stride should be at least the HCA cacheline, the current default
+is 64B and in case HCA_CAP.cach_line_128byte capability is set, MPWRQ RX
+stride will automatically be aligned to 128B.
+
+Signed-off-by: Daniel Jurgens <danielj@mellanox.com>
+Signed-off-by: Saeed Mahameed <saeedm@mellanox.com>
+
+@@@COMMIT 4d6308aac3258ecad8444811a16951a919adc131
+2017-02-04	Eric Dumazet	virtio_net: exploit napi_complete_done() return value
+
+Since commit 364b6055738b ("net: busy-poll: return busypolling status to
+drivers"), napi_complete_done() returns a boolean that can be used
+by drivers to conditionally rearm interrupts.
+
+This patch changes virtio_net to use this boolean to avoid a bit of
+overhead for busy-poll users.
+
+Jason reports about 1.1% improvement for 1 byte TCP_RR (burst 100).
+
+Signed-off-by: Eric Dumazet <edumazet@google.com>
+Acked-by: Jason Wang <jasowang@redhat.com>
+Cc: Michael S. Tsirkin <mst@redhat.com>
+Cc: Willem de Bruijn <willemb@google.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT 6e7bc478c9a006c701c14476ec9d389a484b4864
+2017-02-03	Eric Dumazet	net: skb_needs_check() accepts CHECKSUM_NONE for tx
+b2504a5dbef3 ("net: reduce skb_warn_bad_offload() noise")
+My recent change missed fact that UFO would perform a complete
+UDP checksum before segmenting in frags.
+
+In this case skb->ip_summed is set to CHECKSUM_NONE.
+
+We need to add this valid case to skb_needs_check()
+
+Fixes: b2504a5dbef3 ("net: reduce skb_warn_bad_offload() noise")
+Signed-off-by: Eric Dumazet <edumazet@google.com>
+Cc: Willem de Bruijn <willemb@google.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT 79e7fff47b7bb4124ef970a13eac4fdeddd1fc25
+2017-02-03	Eric Dumazet	net: remove support for per driver ndo_busy_poll()
+
+We added generic support for busy polling in NAPI layer in linux-4.5
+
+No network driver uses ndo_busy_poll() anymore, we can get rid
+of the pointer in struct net_device_ops, and its use in sk_busy_loop()
+
+Saves NETIF_F_BUSY_POLL features bit.
+
+Signed-off-by: Eric Dumazet <edumazet@google.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT 3ffc1af576550ec61d35668485954e49da29d168
+2017-02-03	Eric Dumazet	ixgbe: get rid of custom busy polling code
+
+In linux-4.5, busy polling was implemented in core
+NAPI stack, meaning that all custom implementation can
+be removed from drivers.
+
+Not only we remove lot's of code, we also remove one lock
+operation in fast path, and allow GRO to do its job.
+
+Signed-off-by: Eric Dumazet <edumazet@google.com>
+Cc: Jeff Kirsher <jeffrey.t.kirsher@intel.com>
+Acked-by: Alexander Duyck <alexander.h.duyck@intel.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT ceef438d613f6d496ca84bad2ddf21786ee0e9f6
+2017-02-03	Eric Dumazet	virtio_net: remove custom busy_poll
+
+Generic NAPI busy polling allows us to remove custom implementations
+found in drivers.
+
+It is possible further optimization could be done by testing
+napi_complete_done() return value.
+
+Signed-off-by: Eric Dumazet <edumazet@google.com>
+Acked-by: Michael S. Tsirkin <mst@redhat.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT 52ea3e802047552a8c1ec8c42cad361ffd4ca09c
+2017-02-02	Alexander Duyck	i40e: Quick refactor to start moving data off stack and into Tx buffer info
+
+This patch does some quick work to pull some of the data off of the stack
+and hopefully start storing it in the Tx buffer info section of the Tx
+ring.  Ideally we should be moving away from having to store much of
+anything on the stack and can just maintain it all in the descriptor rings.
+
+Change-ID: I4b4715ea1920e122502482b3f9e56a9a6cb1e9fe
+Signed-off-by: Alexander Duyck <alexander.h.duyck@intel.com>
+Tested-by: Andrew Bowers <andrewx.bowers@intel.com>
+Signed-off-by: Jeff Kirsher <jeffrey.t.kirsher@intel.com>
+
+@@@COMMIT a100ff3eef193d2d79daf98dcd97a54776ffeb78
+2017-01-29	Gal Pressman	net/mlx5e: Fix update of hash function/key via ethtool
+bdfc028de1b3 ("net/mlx5e: Fix ethtool RX hash func configuration change")
+Modifying TIR hash should change selected fields bitmask in addition to
+the function and key.
+
+Formerly, Only on ethool mlx5e_set_rxfh "ethtoo -X" we would not set this
+field resulting in zeroing of its value, which means no packet fields are
+used for RX RSS hash calculation thus causing all traffic to arrive in
+RQ[0].
+
+On driver load out of the box we don't have this issue, since the TIR
+hash is fully created from scratch.
+
+Tested:
+ethtool -X ethX hkey  <new key>
+ethtool -X ethX hfunc <new func>
+ethtool -X ethX equal <new indirection table>
+
+All cases are verified with TCP Multi-Stream traffic over IPv4 & IPv6.
+
+Fixes: bdfc028de1b3 ("net/mlx5e: Fix ethtool RX hash func configuration change")
+Signed-off-by: Gal Pressman <galp@mellanox.com>
+Signed-off-by: Saeed Mahameed <saeedm@mellanox.com>
+
+@@@COMMIT 9eb7892351a3a3b403d879b41c4e6efb2c96516f
+2017-01-29	Or Gerlitz	net/mlx5: Change ENOTSUPP to EOPNOTSUPP
+
+As ENOTSUPP is specific to NFS, change the return error value to
+EOPNOTSUPP in various places in the mlx5 driver.
+
+Signed-off-by: Or Gerlitz <ogerlitz@mellanox.com>
+Suggested-by: Yotam Gigi <yotamg@mellanox.com>
+Reviewed-by: Matan Barak <matanb@mellanox.com>
+Signed-off-by: Saeed Mahameed <saeedm@mellanox.com>
+
+@@@COMMIT 6a4bc2b4c3c9afd643e8da44dd2318a5c5f22cd0
+2017-01-27	Florian Fainelli	net: Fix ndo_setup_tc comment
+
+Commit 16e5cc647173 ("net: rework setup_tc ndo op to consume
+general tc operand") changed the ndo_setup_tc() signature, but did not
+update the comments in netdevice.h, so do that now.
+
+Signed-off-by: Florian Fainelli <f.fainelli@gmail.com>
+Acked-by: John Fastabend <john.r.fastabend@intel.com>
+Reviewed-by: Jiri Pirko <jiri@mellanox.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT 8c7245a60ef8f8c4a427349690c5a141cfed6217
+2017-01-24	Or Gerlitz	net/mlx5: Push min-inline mode resolution helper into the core
+
+So we can use that from the IB driver too in downstream patches.
+
+This patch doesn't change any functionality.
+
+Signed-off-by: Or Gerlitz <ogerlitz@mellanox.com>
+Signed-off-by: Saeed Mahameed <saeedm@mellanox.com>
+
+@@@COMMIT 1b7cd0044e4a9f69aaf00511870b07fcdeda591d
+2017-01-20	Mahesh Bandewar	net: remove duplicate code.
+
+netdev_rx_handler_register() checks to see if the handler is already
+busy which was recently separated into netdev_is_rx_handler_busy(). So
+use the same function inside register() to avoid code duplication.
+Essentially this change should be a no-op
+
+Signed-off-by: Mahesh Bandewar <maheshb@google.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT e7b9569102995ebc26821789628eef45bd9840d8
+2016-12-29	Michael Chan	bnxt_en: Use napi_complete_done()
+
+For better busy polling and GRO support.  Do not re-arm IRQ if
+napi_complete_done() returns false.
+
+Signed-off-by: Michael Chan <michael.chan@broadcom.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT b356a2e729cec145a648d22ba5686357c009da25
+2016-12-29	Michael Chan	bnxt_en: Remove busy poll logic in the driver.
+
+Use native NAPI polling instead.  The next patch will complete the work
+by switching to use napi_complete_done()
+
+Signed-off-by: Michael Chan <michael.chan@broadcom.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT 17bedab2723145d17b14084430743549e6943d03
+2016-12-08	Martin KaFai Lau	bpf: xdp: Allow head adjustment in XDP prog
+
+This patch allows XDP prog to extend/remove the packet
+data at the head (like adding or removing header).  It is
+done by adding a new XDP helper bpf_xdp_adjust_head().
+
+It also renames bpf_helper_changes_skb_data() to
+bpf_helper_changes_pkt_data() to better reflect
+that XDP prog does not work on skb.
+
+This patch adds one "xdp_adjust_head" bit to bpf_prog for the
+XDP-capable driver to check if the XDP prog requires
+bpf_xdp_adjust_head() support.  The driver can then decide
+to error out during XDP_SETUP_PROG.
+
+Signed-off-by: Martin KaFai Lau <kafai@fb.com>
+Acked-by: Daniel Borkmann <daniel@iogearbox.net>
+Acked-by: Alexei Starovoitov <ast@kernel.org>
+Acked-by: John Fastabend <john.r.fastabend@intel.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT a1653b13f14c714f9bfd5e10c603a37c3bcba7b6
+2016-12-07	Michael Chan	bnxt_en: Refactor the driver registration function with firmware.
+
+The driver register function with firmware consists of passing version
+information and registering for async events.  To support the RDMA driver,
+the async events that we need to register may change.  Separate the
+driver register function into 2 parts so that we can just update the
+async events for the RDMA driver.
+
+Signed-off-by: Michael Chan <michael.chan@broadcom.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT 6beb84a73ec5dbd051005068c130195f77e78cfc
+2016-12-06	Alexander Duyck	i40e/i40evf: napi_poll must return the work done
+
+Currently the function i40e_napi-poll() returns 0 when it clean completely
+the Rx rings, but this foul budget accounting in core code.
+
+Fix this by returning the actual work done, capped to budget - 1, since
+the core doesn't allow to return the full budget when the driver modifies
+the NAPI status
+
+This is based on a similar change that was made for the ixgbe driver by
+Paolo Abeni.
+
+Change-ID: Ic3d93ad2fa2fc8ce3164bc461e69367da0f9173b
+Signed-off-by: Alexander Duyck <alexander.h.duyck@intel.com>
+Tested-by: Andrew Bowers <andrewx.bowers@intel.com>
+Signed-off-by: Jeff Kirsher <jeffrey.t.kirsher@intel.com>
+
+@@@COMMIT c0f1147d14e4b09018a495c5095094e5707a4f44
+2016-12-06	Mohamad Haj Yahia	net/mlx5e: Change the SQ/RQ operational state to positive logic
+6e8dd6d6f4bd ("net/mlx5e: Don't wait for SQ completions on close");f2fde18c52a7 ("net/mlx5e: Don't wait for RQ completions on close")
+When using the negative logic (i.e. FLUSH state), after the RQ/SQ reopen
+we will have a time interval that the RQ/SQ is not really ready and the
+state indicates that its not in FLUSH state because the initial SQ/RQ struct
+memory starts as zeros.
+Now we changed the state to indicate if the SQ/RQ is opened and we will
+set the READY state after finishing preparing all the SQ/RQ resources.
+
+Fixes: 6e8dd6d6f4bd ("net/mlx5e: Don't wait for SQ completions on close")
+Fixes: f2fde18c52a7 ("net/mlx5e: Don't wait for RQ completions on close")
+Signed-off-by: Mohamad Haj Yahia <mohamad@mellanox.com>
+Signed-off-by: Saeed Mahameed <saeedm@mellanox.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT 7091d8c7055d7310339435ae3af2fb490a92524d
+2016-12-02	Hadar Hen Zion	net/sched: cls_flower: Add offload support using egress Hardware device
+
+In order to support hardware offloading when the device given by the tc
+rule is different from the Hardware underline device, extract the mirred
+(egress) device from the tc action when a filter is added, using the new
+tc_action_ops, get_dev().
+
+Flower caches the information about the mirred device and use it for
+calling ndo_setup_tc in filter change, update stats and delete.
+
+Calling ndo_setup_tc of the mirred (egress) device instead of the
+ingress device will allow a resolution between the software ingress
+device and the underline hardware device.
+
+The resolution will take place inside the offloading driver using
+'egress_device' flag added to tc_to_netdev struct which is provided to
+the offloading driver.
+
+Signed-off-by: Hadar Hen Zion <hadarh@mellanox.com>
+Acked-by: Jiri Pirko <jiri@mellanox.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT 85de8576a0b14aecc99136cfbf90e367fa2142cb
+2016-11-30	Daniel Borkmann	bpf, xdp: allow to pass flags to dev_change_xdp_fd
+
+Add an IFLA_XDP_FLAGS attribute that can be passed for setting up
+XDP along with IFLA_XDP_FD, which eventually allows user space to
+implement typical add/replace/delete logic for programs. Right now,
+calling into dev_change_xdp_fd() will always replace previous programs.
+
+When passed XDP_FLAGS_UPDATE_IF_NOEXIST, we can handle this more
+graceful when requested by returning -EBUSY in case we try to
+attach a new program, but we find that another one is already
+attached. This will be used by upcoming front-end for iproute2 as
+well.
+
+Signed-off-by: Daniel Borkmann <daniel@iogearbox.net>
+Acked-by: Alexei Starovoitov <ast@kernel.org>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT 820c2c5e773d283ab102f1b64618e2ddfbb975ef
+2016-11-28	Huy Nguyen	net/mlx5e: Read ETS settings directly from firmware
+
+Issue description:
+Current implementation saves the ETS settings from user in
+a temporal soft copy and returns this settings when user
+queries the ETS settings.
+
+With the new DCBX firmware, the ETS settings can be changed
+by firmware when the DCBX is in firmware controlled mode. Therefore,
+user will obtain wrong values from the temporal soft copy.
+
+Solution:
+1. Read the ETS settings directly from firmware.
+2. For tc_tsa:
+   a. Initialize tc_tsa to vendor IEEE_8021QAZ_TSA_VENDOR at netdev
+      creation.
+   b. When reading ETS setting from FW, if the traffic class bandwidth
+      is less than 100, set tc_tsa to IEEE_8021QAZ_TSA_ETS. This
+      implementation solves the scenarios when the DCBX is in FW control
+      and willing bit is on which means the ETS setting is dictated
+      by remote switch.
+
+Also check ETS capability where needed.
+
+Signed-off-by: Huy Nguyen <huyn@mellanox.com>
+Signed-off-by: Saeed Mahameed <saeedm@mellanox.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT 5a717f4f8f2830f297b5511022481bdc27b9d576
+2016-11-27	Michael S. Tsirkin	netdevice: fix sparse warning for HARD_TX_LOCK
+
+sparse warns about context imbalance in any code
+that uses HARD_TX_LOCK/UNLOCK - this is because it's
+unable to determine that flags don't change so
+lock and unlock are paired.
+
+Seems easy enough to fix by adding __acquire/__release
+calls.
+
+With this patch af_packet.c is now sparse-clean,
+
+Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT f52dffe049ee11ecc02588a118fbe4092672fbaa
+2016-11-25	Eric Dumazet	net: properly flush delay-freed skbs
+
+Typical NAPI drivers use napi_consume_skb(skb) at TX completion time.
+This put skb in a percpu special queue, napi_alloc_cache, to get bulk
+frees.
+
+It turns out the queue is not flushed and hits the NAPI_SKB_CACHE_SIZE
+limit quite often, with skbs that were queued hundreds of usec earlier.
+I measured this can take ~6000 nsec to perform one flush.
+
+__kfree_skb_flush() can be called from two points right now :
+
+1) From net_tx_action(), but only for skbs that were queued to
+sd->completion_queue.
+
+ -> Irrelevant for NAPI drivers in normal operation.
+
+2) From net_rx_action(), but only under high stress or if RPS/RFS has a
+pending action.
+
+This patch changes net_rx_action() to perform the flush in all cases and
+after more urgent operations happened (like kicking remote CPUS for
+RPS/RFS).
+
+Signed-off-by: Eric Dumazet <edumazet@google.com>
+Cc: Jesper Dangaard Brouer <brouer@redhat.com>
+Cc: Alexander Duyck <alexander.h.duyck@intel.com>
+Acked-by: Alexander Duyck <alexander.h.duyck@intel.com>
+Acked-by: Jesper Dangaard Brouer <brouer@redhat.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT 867d1212bf3c53dc057f7bca72155048cc51d18c
+2016-11-24	Andy Gospodarek	bnxt: do not busy-poll when link is down
+
+When busy polling while a link is down (during a link-flap test), TX
+timeouts were observed as well as the following messages in the ring
+buffer:
+
+bnxt_en 0008:01:00.2 enP8p1s0f2d2: Resp cmpl intr err msg: 0x51
+bnxt_en 0008:01:00.2 enP8p1s0f2d2: hwrm_ring_free tx failed. rc:-1
+bnxt_en 0008:01:00.2 enP8p1s0f2d2: Resp cmpl intr err msg: 0x51
+bnxt_en 0008:01:00.2 enP8p1s0f2d2: hwrm_ring_free rx failed. rc:-1
+
+These were resolved by checking for link status and returning if link
+was not up.
+
+Signed-off-by: Andy Gospodarek <gospo@broadcom.com>
+Signed-off-by: Michael Chan <michael.chan@broadcom.com>
+Tested-by: Rob Miller <rob.miller@broadcom.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT dad42c3038a59d27fced28ee4ec1d4a891b28155
+2016-11-21	Eric Dumazet	mlx4: avoid unnecessary dirtying of critical fields
+
+While stressing a 40Gbit mlx4 NIC with busy polling, I found false
+sharing in mlx4 driver that can be easily avoided.
+
+This patch brings an additional 7 % performance improvement in UDP_RR
+workload.
+
+1) If we received no frame during one mlx4_en_process_rx_cq()
+   invocation, no need to call mlx4_cq_set_ci() and/or dirty ring->cons
+
+2) Do not refill rx buffers if we have plenty of them.
+   This avoids false sharing and allows some bulk/batch optimizations.
+   Page allocator and its locks will thank us.
+
+Finally, mlx4_en_poll_rx_cq() should not return 0 if it determined
+cpu handling NIC IRQ should be changed. We should return budget-1
+instead, to not fool net_rx_action() and its netdev_budget.
+
+v2: keep AVG_PERF_COUNTER(... polled) even if polled is 0
+
+Signed-off-by: Eric Dumazet <edumazet@google.com>
+Cc: Tariq Toukan <tariqt@mellanox.com>
+Reviewed-by: Tariq Toukan <tariqt@mellanox.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT a055c19be98bc065a4478663ba7f6833693b8958
+2016-11-21	Daniel Borkmann	bpf, mlx5: drop priv->xdp_prog reference on netdev cleanup
+86994156c736 ("net/mlx5e: XDP fast RX drop bpf programs support")
+mlx5e_xdp_set() is currently the only place where we drop reference on the
+prog sitting in priv->xdp_prog when it's exchanged by a new one. We also
+need to make sure that we eventually release that reference, for example,
+in case the netdev is dismantled, otherwise we leak the program.
+
+Fixes: 86994156c736 ("net/mlx5e: XDP fast RX drop bpf programs support")
+Signed-off-by: Daniel Borkmann <daniel@iogearbox.net>
+Acked-by: Saeed Mahameed <saeedm@mellanox.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT c54c06290428554bc0e26d58f21a7865cbe995af
+2016-11-21	Daniel Borkmann	bpf, mlx5: fix various refcount issues in mlx5e_xdp_set
+86994156c736 ("net/mlx5e: XDP fast RX drop bpf programs support")
+There are multiple issues in mlx5e_xdp_set():
+
+1) The batched bpf_prog_add() is currently not checked for errors. When
+   doing so, it should be done at an earlier point in time to makes sure
+   that we cannot fail anymore at the time we want to set the program for
+   each channel. The batched refs short-cut can only be performed when we
+   don't need to perform a reset for changing the rq type and the device
+   was in opened state. In case the device was not in opened state, then
+   the next mlx5e_open_locked() will aquire the refs from the control prog
+   via mlx5e_create_rq(), same when we need to perform a reset.
+
+2) When swapping the priv->xdp_prog, then no extra reference count must be
+   taken since we got that from call path via dev_change_xdp_fd() already.
+   Otherwise, we'd never be able to release the program. Also, bpf_prog_add()
+   without checking the return code could fail.
+
+Fixes: 86994156c736 ("net/mlx5e: XDP fast RX drop bpf programs support")
+Signed-off-by: Daniel Borkmann <daniel@iogearbox.net>
+Acked-by: Saeed Mahameed <saeedm@mellanox.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT e5f6f564fd191d365fcd775c06a732a488205588
+2016-11-16	Eric Dumazet	bnxt: add a missing rcu synchronization
+c0c050c58d84 ("bnxt_en: New Broadcom ethernet driver.")
+Add a missing synchronize_net() call to avoid potential use after free,
+since we explicitly call napi_hash_del() to factorize the RCU grace
+period.
+
+Fixes: c0c050c58d84 ("bnxt_en: New Broadcom ethernet driver.")
+Signed-off-by: Eric Dumazet <edumazet@google.com>
+Cc: Michael Chan <michael.chan@broadcom.com>
+Acked-by: Michael Chan <michael.chan@broadcom.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+

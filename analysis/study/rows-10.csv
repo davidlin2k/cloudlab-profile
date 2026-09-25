@@ -1,0 +1,11 @@
+commit,date,subsystem,symptom,trigger,sustaining_loop,recovers_when_load_drops,found_by,fix_type,introduced_by,lifetime_days,confidence
+217f6974368188fd8bd7804bf5a036aa5762c5e4,2016-11-16,busy-poll,starvation,overload,unknown,unknown,unknown,reschedule,,,low
+124905012db8bdeebf5a7d1ddc841eaadda84a75,2016-10-31,driver:i40e,stall,unknown,Y,unknown,unknown,re-check,,,low
+144ed1763003c6a88a4b788cc5da1d8a1ddf061f,2016-10-31,driver:i40e,lost-event,unknown,N,N,unknown,re-check,,,high
+96db776a368263bcce9f7eb12e878b0aef1a1974,2016-10-28,driver:i40e,starvation,affinity change,Y,Y,unknown,re-check,,,high
+e4961b0768852d9eb7383e1a5df178eacb714656,2016-10-19,core-napi,livelock,unknown,Y,N,test,other,7ce856aaaf13,107,high
+4cd13c21b207e80ddb1144c576500098f2d5f882,2016-09-30,softirq,starvation,overload,Y,Y,test,reschedule,,,high
+fe4c988bdd1cc60402a4e3ca3976a686ea991b5a,2016-08-28,driver:mlx5e,stall,unknown,Y,unknown,unknown,re-check,bc77b240b3c5,129,high
+94ce9caa0f75b0d56e69550e84d7a1653f0ef3b0,2016-07-19,driver:bnxt_en,stall,unknown,Y,unknown,unknown,other,,,high
+40d72a50986271e5c30f111e08ebd6d846708bbc,2016-02-17,driver:i40e,lost-event,race,Y,N,unknown,re-arm,,,high
+c2e245ab1e9a61e66217aafea66c7dc6481f12f0,2016-02-17,driver:i40e,no-recovery,overload,Y,N,unknown,reschedule,,,high

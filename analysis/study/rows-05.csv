@@ -1,0 +1,11 @@
+commit,date,subsystem,symptom,trigger,sustaining_loop,recovers_when_load_drops,found_by,fix_type,introduced_by,lifetime_days,confidence
+17958d7cd731b977ae7d4af38d891c3a1235b5f1,2021-12-22,driver:mlx5e,no-recovery,race,unknown,unknown,unknown,barrier,be5323c8379f,855,low
+8c8cf0382257b28378eeff535150c087a653ca19,2021-11-30,driver:mlx5e,livelock,unknown,Y,N,unknown,other,64509b052525,35,high
+87a7f321bb6a45e54b7d6c90d032ee5636a6ad97,2021-10-11,driver:gve,stall,unknown,Y,unknown,unknown,reschedule,9e5f7d26a4c08,833,low
+3765996e4f0b8a755cab215a08df744490c76052,2021-09-20,core-napi,stall,race,Y,N,unknown,barrier,2d8bff12699abc,2189,high
+3c603136c9f82833813af77185618de5af67676c,2021-08-13,driver:bnxt_en,stall,race,Y,N,unknown,barrier,c0c050c58d84,2122,low
+c12e1643d2738bcd4e26252ce531878841dd3f38,2021-06-18,driver:bnxt_en,stall,overload,unknown,unknown,unknown,other,c7dd7ab4b204,410,high
+b7306b42beaf6abdbcb49849b5254ad06321abd1,2021-04-14,driver:ice,lost-event,unknown,Y,Y,unknown,re-arm,,,high
+27f0ad71699de41bae013c367b95a6b319cc46a9,2021-04-09,threaded,stall,overload,Y,N,test,re-check,29863d41bb6e,59,high
+cb038357937ee4f589aab2469ec3896dce90f317,2021-03-17,threaded,stall,race,unknown,unknown,production,re-check,29863d41bb6e,36,low
+1c0c4bc1ceb580851b2d76fdef9712b3bdae134b,2021-03-15,softirq,stall,overload,Y,N,test,re-check,,,high

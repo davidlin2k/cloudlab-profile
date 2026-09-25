@@ -1,0 +1,6 @@
+commit,date,subsystem,symptom,trigger,sustaining_loop,recovers_when_load_drops,found_by,fix_type,introduced_by,lifetime_days,confidence
+9e0945b1901c9eed4fbee3b8a3870487b2bdc936,2024-06-01,driver:virtio_net,no-recovery,config toggle,Y,N,unknown,re-arm,6208799553a8,171,high
+9a5e0776d11f1ac9c740a6e24ff0e0facb6e3ddb,2024-05-05,driver:gve,starvation,overload,Y,Y,unknown,reschedule,,,high
+ea558de7238bb12c3435c47f0631e9d17bf4a09f,2024-03-26,driver:i40e,lost-event,config toggle,N,unknown,test,re-arm,0bcd952feec7,1952,high
+d6dbbb11247c71203785a2c9da474c36f4b19eae,2024-03-20,threaded,starvation,overload,Y,Y,unknown,reschedule,29863d41bb6e,1135,high
+aded5d1feb08e48d544845d3594d70c4d5fe6e54,2023-12-08,driver:bnxt_en,stall,unknown,Y,N,unknown,other,86b05508f775,112,low

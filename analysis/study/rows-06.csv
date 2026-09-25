@@ -1,0 +1,9 @@
+commit,date,subsystem,symptom,trigger,sustaining_loop,recovers_when_load_drops,found_by,fix_type,introduced_by,lifetime_days,confidence
+9c25a22dfb00270372224721fed646965420323a,2020-09-21,driver:mlx5e,stall,config toggle,Y,Y,unknown,barrier,acc6c5953af1,1274,high
+fe45386a208277cae4648106133c08246eecd012,2020-09-21,driver:mlx5e,stall,config toggle,Y,Y,unknown,barrier,86994156c736,1460,high
+2de79ee27fdb52626ac4ac48ec6d8d52ba6f9047,2020-09-14,softirq,stall,unknown,Y,N,unknown,re-check,,,low
+b43b9f53fbb06faa4f2fcdbf235db3289026e2e4,2020-08-26,driver:bnxt_en,stall,unknown,Y,N,unknown,re-check,1667cbf6a4eb,49,high
+5fa65524f6e0b9528c6ceac3f33f7e8f0c3a084a,2020-08-26,driver:bnxt_en,stall,config toggle,Y,N,unknown,other,bd3191b5d87d,49,low
+27640ce68d21e556b66bc5fa022aacd26e53c947,2020-07-12,driver:bnxt_en,stall,overload,Y,N,unknown,other,c0c050c58d84,1725,high
+389a877a3b20c1bc058143dfc4d95fd754fb0240,2020-03-08,driver:bnxt_en,starvation,overload,Y,Y,unknown,re-check,,,high
+6adc4601c2a1ac87b4ab8ed0cb55db6efd0264e8,2019-12-13,driver:bnxt_en,livelock,config toggle,Y,unknown,unknown,other,74706afa712d,424,high

@@ -1,0 +1,73 @@
+commit,date,subsystem,symptom,trigger,sustaining_loop,recovers_when_load_drops,found_by,fix_type,introduced_by,lifetime_days,confidence
+40d72a50986271e5c30f111e08ebd6d846708bbc,2016-02-17,driver:i40e,lost-event,race,Y,N,unknown,re-arm,,,high
+c2e245ab1e9a61e66217aafea66c7dc6481f12f0,2016-02-17,driver:i40e,no-recovery,overload,Y,N,unknown,reschedule,,,high
+94ce9caa0f75b0d56e69550e84d7a1653f0ef3b0,2016-07-19,driver:bnxt_en,stall,unknown,Y,unknown,unknown,other,,,high
+fe4c988bdd1cc60402a4e3ca3976a686ea991b5a,2016-08-28,driver:mlx5e,stall,unknown,Y,unknown,unknown,re-check,bc77b240b3c5,129,high
+4cd13c21b207e80ddb1144c576500098f2d5f882,2016-09-30,softirq,starvation,overload,Y,Y,test,reschedule,,,high
+e4961b0768852d9eb7383e1a5df178eacb714656,2016-10-19,core-napi,livelock,unknown,Y,N,test,other,7ce856aaaf13,107,high
+96db776a368263bcce9f7eb12e878b0aef1a1974,2016-10-28,driver:i40e,starvation,affinity change,Y,Y,unknown,re-check,,,high
+124905012db8bdeebf5a7d1ddc841eaadda84a75,2016-10-31,driver:i40e,stall,unknown,Y,unknown,unknown,re-check,,,low
+144ed1763003c6a88a4b788cc5da1d8a1ddf061f,2016-10-31,driver:i40e,lost-event,unknown,N,N,unknown,re-check,,,high
+217f6974368188fd8bd7804bf5a036aa5762c5e4,2016-11-16,busy-poll,starvation,overload,unknown,unknown,unknown,reschedule,,,low
+867d1212bf3c53dc057f7bca72155048cc51d18c,2016-11-24,busy-poll,no-recovery,reset,unknown,unknown,test,re-check,,,low
+a100ff3eef193d2d79daf98dcd97a54776ffeb78,2017-01-29,driver:mlx5e,starvation,config toggle,Y,N,unknown,other,bdfc028de1b3,333,high
+39e6c8208d7b6fb9d2047850fb3327db567b564b,2017-03-01,core-napi,lost-event,race,N,unknown,test,reschedule,,,high
+0e626ff7ccbfc43c6cc4aeea611c40b899682382,2017-04-19,driver:i40e,stall,config toggle,Y,N,unknown,re-check,,,high
+a8c2eb15797a0f0bf17734d365da7bdc3e263155,2017-09-03,driver:mlx5e,starvation,affinity change,Y,Y,unknown,reschedule,,,high
+f5a71caa1763cc8fd1b108234689d6a7e4fe9d2f,2017-10-09,driver:ixgbe,no-recovery,config toggle,Y,N,unknown,other,,,low
+fdaa767aefc1685f9a41e91f447c9aea94103df6,2017-12-08,driver:virtio_net,starvation,overload,Y,Y,unknown,re-check,,,low
+4e09ff5362843dff3accfa84c805c7f3a99de9cd,2018-02-28,driver:virtio_net,stall,config toggle,Y,N,unknown,re-check,4941d472bf95b,219,high
+c58387ab1614f6d7fb9e244f214b61e7631421fc,2018-07-09,driver:bnxt_en,stall,unknown,Y,N,unknown,other,c0c050c58d84,991,high
+3c53776e29f81719efcf8f7a6e30cdf753bee94d,2018-07-17,softirq,starvation,overload,N,Y,test,reschedule,,,high
+0a0e0829f990120cef165bbb804237f400953ec2,2018-08-03,softirq,lost-event,race,Y,N,test,re-arm,,,high
+a1f240f1801721f76bee734c50df2d9529da86e0,2018-11-19,driver:mlx5e,no-recovery,reset,Y,N,unknown,other,89d44f0a6c73,1132,low
+0b815023a1d479aa8f8851ee880d5388e53b7ae5,2019-01-12,driver:bnxt_en,lost-event,config toggle,Y,N,unknown,re-check,36d65be9a880,26,low
+4a9b32f30f805ca596d76605903a48eab58e0b88,2019-02-21,driver:ixgbe,lost-event,config toggle,Y,N,unknown,re-arm,d0bcacd0a130,141,high
+e18953240de8b46360a67090c87ee1ef8160b35d,2019-06-27,driver:mlx5e,no-recovery,config toggle,Y,N,unknown,other,,,low
+ac6f733a7bd5e23ce9d58ef995f51fbd1ad2fa97,2019-08-20,driver:ice,livelock,unknown,Y,N,unknown,other,,,high
+2ab28bb04ce6432f15cd5086e7c7384f3deab639,2019-08-20,driver:ice,lost-event,config toggle,unknown,unknown,unknown,other,,,low
+718be6bab26fb01fa0147a2b614a3eefd96a2957,2019-09-04,driver:virtio-net,starvation,overload,N,Y,unknown,reschedule,,,low
+6adc4601c2a1ac87b4ab8ed0cb55db6efd0264e8,2019-12-13,driver:bnxt_en,livelock,config toggle,Y,unknown,unknown,other,74706afa712d,424,high
+389a877a3b20c1bc058143dfc4d95fd754fb0240,2020-03-08,driver:bnxt_en,starvation,overload,Y,Y,unknown,re-check,,,high
+27640ce68d21e556b66bc5fa022aacd26e53c947,2020-07-12,driver:bnxt_en,stall,overload,Y,N,unknown,other,c0c050c58d84,1725,high
+b43b9f53fbb06faa4f2fcdbf235db3289026e2e4,2020-08-26,driver:bnxt_en,stall,unknown,Y,N,unknown,re-check,1667cbf6a4eb,49,high
+5fa65524f6e0b9528c6ceac3f33f7e8f0c3a084a,2020-08-26,driver:bnxt_en,stall,config toggle,Y,N,unknown,other,bd3191b5d87d,49,low
+2de79ee27fdb52626ac4ac48ec6d8d52ba6f9047,2020-09-14,softirq,stall,unknown,Y,N,unknown,re-check,,,low
+9c25a22dfb00270372224721fed646965420323a,2020-09-21,driver:mlx5e,stall,config toggle,Y,Y,unknown,barrier,acc6c5953af1,1274,high
+fe45386a208277cae4648106133c08246eecd012,2020-09-21,driver:mlx5e,stall,config toggle,Y,Y,unknown,barrier,86994156c736,1460,high
+1c0c4bc1ceb580851b2d76fdef9712b3bdae134b,2021-03-15,softirq,stall,overload,Y,N,test,re-check,,,high
+cb038357937ee4f589aab2469ec3896dce90f317,2021-03-17,threaded,stall,race,unknown,unknown,production,re-check,29863d41bb6e,36,low
+27f0ad71699de41bae013c367b95a6b319cc46a9,2021-04-09,threaded,stall,overload,Y,N,test,re-check,29863d41bb6e,59,high
+b7306b42beaf6abdbcb49849b5254ad06321abd1,2021-04-14,driver:ice,lost-event,unknown,Y,Y,unknown,re-arm,,,high
+c12e1643d2738bcd4e26252ce531878841dd3f38,2021-06-18,driver:bnxt_en,stall,overload,unknown,unknown,unknown,other,c7dd7ab4b204,410,high
+3c603136c9f82833813af77185618de5af67676c,2021-08-13,driver:bnxt_en,stall,race,Y,N,unknown,barrier,c0c050c58d84,2122,low
+3765996e4f0b8a755cab215a08df744490c76052,2021-09-20,core-napi,stall,race,Y,N,unknown,barrier,2d8bff12699abc,2189,high
+87a7f321bb6a45e54b7d6c90d032ee5636a6ad97,2021-10-11,driver:gve,stall,unknown,Y,unknown,unknown,reschedule,9e5f7d26a4c08,833,low
+8c8cf0382257b28378eeff535150c087a653ca19,2021-11-30,driver:mlx5e,livelock,unknown,Y,N,unknown,other,64509b052525,35,high
+17958d7cd731b977ae7d4af38d891c3a1235b5f1,2021-12-22,driver:mlx5e,no-recovery,race,unknown,unknown,unknown,barrier,be5323c8379f,855,low
+2e642afb61b24401a7ec819d27ddcd69c7c29784,2022-05-31,driver:mlx5e,livelock,race,Y,N,production,barrier,bc77b240b3c5,2231,high
+6a4763e268030362340bc3286560d44be15a7421,2022-08-11,driver:virtio_net,stall,config toggle,Y,N,test,re-check,,,low
+d15121be7485655129101f3960ae6add40204463,2023-05-09,softirq,starvation,overload,Y,Y,unknown,other,,,low
+aded5d1feb08e48d544845d3594d70c4d5fe6e54,2023-12-08,driver:bnxt_en,stall,unknown,Y,N,unknown,other,86b05508f775,112,low
+d6dbbb11247c71203785a2c9da474c36f4b19eae,2024-03-20,threaded,starvation,overload,Y,Y,unknown,reschedule,29863d41bb6e,1135,high
+ea558de7238bb12c3435c47f0631e9d17bf4a09f,2024-03-26,driver:i40e,lost-event,config toggle,N,unknown,test,re-arm,0bcd952feec7,1952,high
+9a5e0776d11f1ac9c740a6e24ff0e0facb6e3ddb,2024-05-05,driver:gve,starvation,overload,Y,Y,unknown,reschedule,,,high
+9e0945b1901c9eed4fbee3b8a3870487b2bdc936,2024-06-01,driver:virtio_net,no-recovery,config toggle,Y,N,unknown,re-arm,6208799553a8,171,high
+49a17639508c3b35f90ca829e60dddeeeb750e74,2024-11-07,softirq,starvation,overload,Y,Y,unknown,reschedule,,,low
+cecc1555a8c2acd65f9d36182c28ae463db0ad7e,2024-12-03,core-napi,stall,race,Y,N,test,barrier,86e25f40aa1e,50,high
+ba0925c34e0fa6fe02d3d642bc02ab099ab312c7,2024-12-20,driver:gve,lost-event,config toggle,unknown,unknown,unknown,reschedule,fd8e40321a12,644,low
+77e45145e3039a0fb212556ab3f8c87f54771757,2025-02-26,core-napi,lost-event,unknown,Y,N,production,reschedule,,,low
+4bc12818b363bd30f0f7348dd9ab077290a637ae,2025-04-22,driver:virtio-net,stall,race,Y,N,unknown,other,413f0271f396,97,high
+1e20324b23f0afba27997434fb978f1e4a1dbcb6,2025-05-05,driver:virtio-net,stall,config toggle,Y,N,unknown,other,4bc12818b363,13,high
+e6d76268813dc64cc0b74ea9c274501f2de05344,2025-08-05,threaded,stall,config toggle,Y,N,unknown,other,2677010e7793,22,high
+97bcc5b6f45425ac56fb04b0893cdaa607ec7e45,2025-08-27,core-napi,livelock,overload,Y,Y,unknown,re-check,,,low
+fd4e876f59b7e70283b4025c717cad8948397be1,2025-09-17,softirq,livelock,race,Y,N,unknown,barrier,,,low
+6f5dacf88a32b3fd8b52c8ea781bf188c42aaa95,2025-09-30,driver:mlx5e,no-recovery,config toggle,Y,N,unknown,other,ceddedc969f0,35,low
+fcdef3bcbb2c04e06ae89f8faff2cd6416b3a467,2026-01-10,driver:virtio_net,stall,race,Y,N,unknown,reschedule,4bc12818b363,263,high
+09e6960e843586315ddf3222daa217244688e76d,2026-02-04,driver:mlx5e,stall,config toggle,Y,N,unknown,re-check,,,high
+1a86a1f7d88996085934139fa4c063b6299a2dd3,2026-03-03,threaded,stall,config toggle,Y,unknown,unknown,other,c18d4b190a46,120,high
+58e2330bd45572a6e3d46ea94cf7a9641f43591a,2026-05-08,busy-poll,stall,race,Y,N,unknown,re-arm,7fd3253a7de6,1984,high
+1eb8fc67ca41db71c90866ff76c990d85247daef,2026-06-30,driver:virtio_net,livelock,overload,Y,Y,unknown,re-arm,ceef438d613f,3434,low
+51e96fa31f7e7eac2cba8f854e24d36600cc040b,2026-08-10,driver:bnxt,stall,affinity change,Y,N,unknown,reschedule,c214410c47d6,542,low
+a155ac8f0c523bd53f412196dcbb104ad1f4595f,2026-08-30,softirq,starvation,race,Y,N,unknown,barrier,e901c1510e24,20,high
+06e3f54e8b22040ada01a28343badf1990b4dd7d,2026-09-24,core-napi,stall,race,Y,N,unknown,other,68822bdf76f1,1612,low

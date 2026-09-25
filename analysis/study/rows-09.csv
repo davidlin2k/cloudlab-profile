@@ -1,0 +1,6 @@
+commit,date,subsystem,symptom,trigger,sustaining_loop,recovers_when_load_drops,found_by,fix_type,introduced_by,lifetime_days,confidence
+a8c2eb15797a0f0bf17734d365da7bdc3e263155,2017-09-03,driver:mlx5e,starvation,affinity change,Y,Y,unknown,reschedule,,,high
+0e626ff7ccbfc43c6cc4aeea611c40b899682382,2017-04-19,driver:i40e,stall,config toggle,Y,N,unknown,re-check,,,high
+39e6c8208d7b6fb9d2047850fb3327db567b564b,2017-03-01,core-napi,lost-event,race,N,unknown,test,reschedule,,,high
+a100ff3eef193d2d79daf98dcd97a54776ffeb78,2017-01-29,driver:mlx5e,starvation,config toggle,Y,N,unknown,other,bdfc028de1b3,333,high
+867d1212bf3c53dc057f7bca72155048cc51d18c,2016-11-24,busy-poll,no-recovery,reset,unknown,unknown,test,re-check,,,low

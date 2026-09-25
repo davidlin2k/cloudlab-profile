@@ -1,0 +1,5 @@
+commit,date,subsystem,symptom,trigger,sustaining_loop,recovers_when_load_drops,found_by,fix_type,introduced_by,lifetime_days,confidence
+c58387ab1614f6d7fb9e244f214b61e7631421fc,2018-07-09,driver:bnxt_en,stall,unknown,Y,N,unknown,other,c0c050c58d84,991,high
+4e09ff5362843dff3accfa84c805c7f3a99de9cd,2018-02-28,driver:virtio_net,stall,config toggle,Y,N,unknown,re-check,4941d472bf95b,219,high
+fdaa767aefc1685f9a41e91f447c9aea94103df6,2017-12-08,driver:virtio_net,starvation,overload,Y,Y,unknown,re-check,,,low
+f5a71caa1763cc8fd1b108234689d6a7e4fe9d2f,2017-10-09,driver:ixgbe,no-recovery,config toggle,Y,N,unknown,other,,,low

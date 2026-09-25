@@ -1,0 +1,10 @@
+commit,date,subsystem,symptom,trigger,sustaining_loop,recovers_when_load_drops,found_by,fix_type,introduced_by,lifetime_days,confidence
+718be6bab26fb01fa0147a2b614a3eefd96a2957,2019-09-04,driver:virtio-net,starvation,overload,N,Y,unknown,reschedule,,,low
+ac6f733a7bd5e23ce9d58ef995f51fbd1ad2fa97,2019-08-20,driver:ice,livelock,unknown,Y,N,unknown,other,,,high
+2ab28bb04ce6432f15cd5086e7c7384f3deab639,2019-08-20,driver:ice,lost-event,config toggle,unknown,unknown,unknown,other,,,low
+e18953240de8b46360a67090c87ee1ef8160b35d,2019-06-27,driver:mlx5e,no-recovery,config toggle,Y,N,unknown,other,,,low
+4a9b32f30f805ca596d76605903a48eab58e0b88,2019-02-21,driver:ixgbe,lost-event,config toggle,Y,N,unknown,re-arm,d0bcacd0a130,141,high
+0b815023a1d479aa8f8851ee880d5388e53b7ae5,2019-01-12,driver:bnxt_en,lost-event,config toggle,Y,N,unknown,re-check,36d65be9a880,26,low
+a1f240f1801721f76bee734c50df2d9529da86e0,2018-11-19,driver:mlx5e,no-recovery,reset,Y,N,unknown,other,89d44f0a6c73,1132,low
+0a0e0829f990120cef165bbb804237f400953ec2,2018-08-03,softirq,lost-event,race,Y,N,test,re-arm,,,high
+3c53776e29f81719efcf8f7a6e30cdf753bee94d,2018-07-17,softirq,starvation,overload,N,Y,test,reschedule,,,high

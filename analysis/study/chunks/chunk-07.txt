@@ -1,0 +1,3061 @@
+@@@COMMIT d4e4fdf9e4a27c87edb79b1478955075be141f67
+2019-10-25	Guillaume Nault	netns: fix GFP flags in rtnl_net_notifyid()
+9a9634545c70 ("netns: notify netns id events")
+In rtnl_net_notifyid(), we certainly can't pass a null GFP flag to
+rtnl_notify(). A GFP_KERNEL flag would be fine in most circumstances,
+but there are a few paths calling rtnl_net_notifyid() from atomic
+context or from RCU critical sections. The later also precludes the use
+of gfp_any() as it wouldn't detect the RCU case. Also, the nlmsg_new()
+call is wrong too, as it uses GFP_KERNEL unconditionally.
+
+Therefore, we need to pass the GFP flags as parameter and propagate it
+through function calls until the proper flags can be determined.
+
+In most cases, GFP_KERNEL is fine. The exceptions are:
+  * openvswitch: ovs_vport_cmd_get() and ovs_vport_cmd_dump()
+    indirectly call rtnl_net_notifyid() from RCU critical section,
+
+  * rtnetlink: rtmsg_ifinfo_build_skb() already receives GFP flags as
+    parameter.
+
+Also, in ovs_vport_cmd_build_info(), let's change the GFP flags used
+by nlmsg_new(). The function is allowed to sleep, so better make the
+flags consistent with the ones used in the following
+ovs_vport_cmd_fill_info() call.
+
+Found by code inspection.
+
+Fixes: 9a9634545c70 ("netns: notify netns id events")
+Signed-off-by: Guillaume Nault <gnault@redhat.com>
+Acked-by: Nicolas Dichtel <nicolas.dichtel@6wind.com>
+Acked-by: Pravin B Shelar <pshelar@ovn.org>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT 32b6d34fedc2229cdf6a047fdbc0704085441915
+2019-10-24	Taehee Yoo	net: core: add ignore flag to netdev_adjacent structure
+
+In order to link an adjacent node, netdev_upper_dev_link() is used
+and in order to unlink an adjacent node, netdev_upper_dev_unlink() is used.
+unlink operation does not fail, but link operation can fail.
+
+In order to exchange adjacent nodes, we should unlink an old adjacent
+node first. then, link a new adjacent node.
+If link operation is failed, we should link an old adjacent node again.
+But this link operation can fail too.
+It eventually breaks the adjacent link relationship.
+
+This patch adds an ignore flag into the netdev_adjacent structure.
+If this flag is set, netdev_upper_dev_link() ignores an old adjacent
+node for a moment.
+
+This patch also adds new functions for other modules.
+netdev_adjacent_change_prepare()
+netdev_adjacent_change_commit()
+netdev_adjacent_change_abort()
+
+netdev_adjacent_change_prepare() inserts new device into adjacent list
+but new device is not allowed to use immediately.
+If netdev_adjacent_change_prepare() fails, it internally rollbacks
+adjacent list so that we don't need any other action.
+netdev_adjacent_change_commit() deletes old device in the adjacent list
+and allows new device to use.
+netdev_adjacent_change_abort() rollbacks adjacent list.
+
+Signed-off-by: Taehee Yoo <ap420073@gmail.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT ab92d68fc22f9afab480153bd82a20f6e2533769
+2019-10-24	Taehee Yoo	net: core: add generic lockdep keys
+
+Some interface types could be nested.
+(VLAN, BONDING, TEAM, MACSEC, MACVLAN, IPVLAN, VIRT_WIFI, VXLAN, etc..)
+These interface types should set lockdep class because, without lockdep
+class key, lockdep always warn about unexisting circular locking.
+
+In the current code, these interfaces have their own lockdep class keys and
+these manage itself. So that there are so many duplicate code around the
+/driver/net and /net/.
+This patch adds new generic lockdep keys and some helper functions for it.
+
+This patch does below changes.
+a) Add lockdep class keys in struct net_device
+   - qdisc_running, xmit, addr_list, qdisc_busylock
+   - these keys are used as dynamic lockdep key.
+b) When net_device is being allocated, lockdep keys are registered.
+   - alloc_netdev_mqs()
+c) When net_device is being free'd llockdep keys are unregistered.
+   - free_netdev()
+d) Add generic lockdep key helper function
+   - netdev_register_lockdep_key()
+   - netdev_unregister_lockdep_key()
+   - netdev_update_lockdep_key()
+e) Remove unnecessary generic lockdep macro and functions
+f) Remove unnecessary lockdep code of each interfaces.
+
+After this patch, each interface modules don't need to maintain
+their lockdep keys.
+
+Signed-off-by: Taehee Yoo <ap420073@gmail.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT 6570bc79c0dfff0f228b7afd2de720fb4e84d61d
+2019-10-15	Alexander Lobakin	net: core: use listified Rx for GRO_NORMAL in napi_gro_receive()
+
+Commit 323ebb61e32b4 ("net: use listified RX for handling GRO_NORMAL
+skbs") made use of listified skb processing for the users of
+napi_gro_frags().
+The same technique can be used in a way more common napi_gro_receive()
+to speed up non-merged (GRO_NORMAL) skbs for a wide range of drivers
+including gro_cells and mac80211 users.
+This slightly changes the return value in cases where skb is being
+dropped by the core stack, but it seems to have no impact on related
+drivers' functionality.
+gro_normal_batch is left untouched as it's very individual for every
+single system configuration and might be tuned in manual order to
+achieve an optimal performance.
+
+Signed-off-by: Alexander Lobakin <alobakin@dlink.ru>
+Acked-by: Edward Cree <ecree@solarflare.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT fb91a8bb73ec91e86806b82f474221d3888d6eb7
+2019-09-11	Tonghao Zhang	ixgbe: use skb_get_queue_mapping in tx path
+
+Use the common api, and don't access queue_mapping directly.
+
+Signed-off-by: Tonghao Zhang <xiangxia.m.yue@gmail.com>
+Tested-by: Andrew Bowers <andrewx.bowers@intel.com>
+Signed-off-by: Jeff Kirsher <jeffrey.t.kirsher@intel.com>
+
+@@@COMMIT 6503b659302893af700d9e9b82d3210d09a3aefb
+2019-09-05	Jesse Brandeburg	ice: move code closer together
+
+This is a simple patch to move the assignment to a local variable
+closer to the site where the local variable is used.  This
+can help readability and also maybe performance, although the
+performance enhancement is really dependent upon the compiler.
+
+No functional change.
+
+Signed-off-by: Jesse Brandeburg <jesse.brandeburg@intel.com>
+Tested-by: Andrew Bowers <andrewx.bowers@intel.com>
+Signed-off-by: Jeff Kirsher <jeffrey.t.kirsher@intel.com>
+
+@@@COMMIT 718be6bab26fb01fa0147a2b614a3eefd96a2957
+2019-09-04	? jiang	virtio-net: lower min ring num_free for efficiency
+
+This change lowers ring buffer reclaim threshold from 1/2*queue to budget
+for better performance. According to our test with qemu + dpdk, packet
+dropping happens when the guest is not able to provide free buffer in
+avail ring timely with default 1/2*queue. The value in the patch has been
+tested and does show better performance.
+
+Test setup: iperf3 to generate packets to guest (total 30mins, pps 400k, UDP)
+avg packets drop before: 2842
+avg packets drop after: 360(-87.3%)
+
+Further, current code suffers from a starvation problem: the amount of
+work done by try_fill_recv is not bounded by the budget parameter, thus
+(with large queues) once in a while userspace gets blocked for a long
+time while queue is being refilled. Trigger refills earlier to make sure
+the amount of work to do is limited.
+
+Signed-off-by: jiangkidd <jiangkidd@hotmail.com>
+Acked-by: Jason Wang <jasowang@redhat.com>
+Acked-by: Michael S. Tsirkin <mst@redhat.com>
+Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
+
+@@@COMMIT ba642ab773db97c32293547485f562d2dfc06666
+2019-08-30	Michael Chan	bnxt_en: Prepare bnxt_init_one() to be called multiple times.
+
+In preparation for the new firmware reset feature, some of the logic
+in bnxt_init_one() and related functions will be called again after
+firmware has reset.  Reset some of the flags and capabilities so that
+everything that can change can be re-initialized.  Refactor some
+functions to probe firmware versions and capabilities.  Check some
+buffers before allocating as they may have been allocated previously.
+
+Signed-off-by: Michael Chan <michael.chan@broadcom.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT 3c14562663c603bc523b6619a2b19a411e1cdc8e
+2019-08-28	Tariq Toukan	net/mlx5e: Expose new function for TIS destroy loop
+
+For better modularity and code sharing.
+Function internal change to be introduced in the next patches.
+
+Signed-off-by: Tariq Toukan <tariqt@mellanox.com>
+Signed-off-by: Saeed Mahameed <saeedm@mellanox.com>
+
+@@@COMMIT cef35af34d6dc3792333075115c7deb7062b6e18
+2019-08-22	Eran Ben Elisha	net/mlx5e: Add mlx5e HV VHCA stats agent
+
+HV VHCA stats agent is responsible on running a preiodic rx/tx
+packets/bytes stats update. Currently the supported format is version
+MLX5_HV_VHCA_STATS_VERSION. Block ID 1 is dedicated for statistics data
+transfer from the VF to the PF.
+
+The reporter fetch the statistics data from all opened channels, fill it
+in a buffer and send it to mlx5_hv_vhca_write_agent.
+
+As the stats layer should include some metadata per block (sequence and
+offset), the HV VHCA layer shall modify the buffer before actually send it
+over block 1.
+
+Signed-off-by: Eran Ben Elisha <eranbe@mellanox.com>
+Signed-off-by: Saeed Mahameed <saeedm@mellanox.com>
+Signed-off-by: Haiyang Zhang <haiyangz@microsoft.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT ac6f733a7bd5e23ce9d58ef995f51fbd1ad2fa97
+2019-08-20	Mitch Williams	ice: allow empty Rx descriptors
+
+In some circumstances, the hardware will hand us a receive descriptor
+which has no data attached, but is otherwise valid. The receive code was
+improperly ignoring these descriptors, which result in an infinite loop.
+
+To fix this, change the receive code to process all descriptors,
+regardless of the size of the associated data. Add checks to the
+memory-handling functions to allow for zero size.
+
+Signed-off-by: Mitch Williams <mitch.a.williams@intel.com>
+Tested-by: Andrew Bowers <andrewx.bowers@intel.com>
+Signed-off-by: Jeff Kirsher <jeffrey.t.kirsher@intel.com>
+
+@@@COMMIT 2ab28bb04ce6432f15cd5086e7c7384f3deab639
+2019-08-20	Brett Creeley	ice: Set WB_ON_ITR when we don't re-enable interrupts
+
+Currently when busy polling is enabled we aren't setting/enabling
+WB_ON_ITR in the driver. This doesn't break the driver, but it does
+cause issues. If we don't enable WB_ON_ITR mode we will still get
+write-backs from hardware during polling when a cache line has been
+filled, but if a cache line is not filled we will not get the
+write-back because WB_ON_ITR is not set. Fix this by enabling
+WB_ON_ITR in the driver when interrupts are disabled.
+
+Signed-off-by: Brett Creeley <brett.creeley@intel.com>
+Signed-off-by: Tony Nguyen <anthony.l.nguyen@intel.com>
+Tested-by: Andrew Bowers <andrewx.bowers@intel.com>
+Signed-off-by: Jeff Kirsher <jeffrey.t.kirsher@intel.com>
+
+@@@COMMIT 06293ae4fa0a1b62bf3bb8add8f9bbe8815b0aba
+2019-08-20	Aya Levin	net/mlx5e: Change naming convention for reporter's functions
+
+Change from mlx5e_tx_reporter_* to mlx5e_reporter_tx_*. In the following
+patches in the set rx reporter is added, the new naming convention is
+more uniformed.
+
+Signed-off-by: Aya Levin <ayal@mellanox.com>
+Reviewed-by: Tariq Toukan <tariqt@mellanox.com>
+Acked-by: Jiri Pirko <jiri@mellanox.com>
+Signed-off-by: Saeed Mahameed <saeedm@mellanox.com>
+
+@@@COMMIT c14a9f633d9eb5c0fdd0cb4135b6be978fd538f3
+2019-08-17	Maxim Mikityanskiy	net: Don't call XDP_SETUP_PROG when nothing is changed
+
+Don't uninstall an XDP program when none is installed, and don't install
+an XDP program that has the same ID as the one already installed.
+
+dev_change_xdp_fd doesn't perform any checks in case it uninstalls an
+XDP program. It means that the driver's ndo_bpf can be called with
+XDP_SETUP_PROG asking to set it to NULL even if it's already NULL. This
+case happens if the user runs `ip link set eth0 xdp off` when there is
+no XDP program attached.
+
+The symmetrical case is possible when the user tries to set the program
+that is already set.
+
+The drivers typically perform some heavy operations on XDP_SETUP_PROG,
+so they all have to handle these cases internally to return early if
+they happen. This patch puts this check into the kernel code, so that
+all drivers will benefit from it.
+
+Signed-off-by: Maxim Mikityanskiy <maximmi@mellanox.com>
+Acked-by: Jonathan Lemon <jonathan.lemon@gmail.com>
+Reviewed-by: Jakub Kicinski <jakub.kicinski@netronome.com>
+Signed-off-by: Daniel Borkmann <daniel@iogearbox.net>
+
+@@@COMMIT a7bd4018d6424f652f3aabdc5d0d9c64303fa36a
+2019-08-17	Maxim Mikityanskiy	net/mlx5e: Add AF_XDP need_wakeup support
+
+This commit adds support for the new need_wakeup feature of AF_XDP. The
+applications can opt-in by using the XDP_USE_NEED_WAKEUP bind() flag.
+When this feature is enabled, some behavior changes:
+
+RX side: If the Fill Ring is empty, instead of busy-polling, set the
+flag to tell the application to kick the driver when it refills the Fill
+Ring.
+
+TX side: If there are pending completions or packets queued for
+transmission, set the flag to tell the application that it can skip the
+sendto() syscall and save time.
+
+The performance testing was performed on a machine with the following
+configuration:
+
+- 24 cores of Intel Xeon E5-2620 v3 @ 2.40 GHz
+- Mellanox ConnectX-5 Ex with 100 Gbit/s link
+
+The results with retpoline disabled:
+
+       | without need_wakeup  | with need_wakeup     |
+       |----------------------|----------------------|
+       | one core | two cores | one core | two cores |
+-------|----------|-----------|----------|-----------|
+txonly | 20.1     | 33.5      | 29.0     | 34.2      |
+rxdrop | 0.065    | 14.1      | 12.0     | 14.1      |
+l2fwd  | 0.032    | 7.3       | 6.6      | 7.2       |
+
+"One core" means the application and NAPI run on the same core. "Two
+cores" means they are pinned to different cores.
+
+Signed-off-by: Maxim Mikityanskiy <maximmi@mellanox.com>
+Reviewed-by: Tariq Toukan <tariqt@mellanox.com>
+Reviewed-by: Saeed Mahameed <saeedm@mellanox.com>
+Acked-by: Jonathan Lemon <jonathan.lemon@gmail.com>
+Signed-off-by: Daniel Borkmann <daniel@iogearbox.net>
+
+@@@COMMIT 871aa189a69f7bbe6254459d17b78e1cce65c9ae
+2019-08-17	Maxim Mikityanskiy	net/mlx5e: Move the SW XSK code from NAPI poll to a separate function
+
+Two XSK tasks are performed during NAPI polling, that are not bound to
+hardware interrupts: TXing packets and polling for frames in the Fill
+Ring. They are special in a way that the hardware doesn't know about
+these tasks, so it doesn't trigger interrupts if there is still some
+work to be done, it's our driver's responsibility to ensure NAPI will be
+rescheduled if needed.
+
+Create a new function to handle these tasks and move the corresponding
+code from mlx5e_napi_poll to the new function to improve modularity and
+prepare for the changes in the following patch.
+
+Signed-off-by: Maxim Mikityanskiy <maximmi@mellanox.com>
+Reviewed-by: Tariq Toukan <tariqt@mellanox.com>
+Reviewed-by: Saeed Mahameed <saeedm@mellanox.com>
+Acked-by: Jonathan Lemon <jonathan.lemon@gmail.com>
+Signed-off-by: Daniel Borkmann <daniel@iogearbox.net>
+
+@@@COMMIT 065af355470519bd184019a93ac579f22b036045
+2019-08-05	Jesper Dangaard Brouer	net: fix bpf_xdp_adjust_head regression for generic-XDP
+458bf2f224f0 ("net: core: support XDP generic on stacked devices.")
+When generic-XDP was moved to a later processing step by commit
+458bf2f224f0 ("net: core: support XDP generic on stacked devices.")
+a regression was introduced when using bpf_xdp_adjust_head.
+
+The issue is that after this commit the skb->network_header is now
+changed prior to calling generic XDP and not after. Thus, if the header
+is changed by XDP (via bpf_xdp_adjust_head), then skb->network_header
+also need to be updated again.  Fix by calling skb_reset_network_header().
+
+Fixes: 458bf2f224f0 ("net: core: support XDP generic on stacked devices.")
+Reported-by: Brandon Cazander <brandon.cazander@multapplied.net>
+Signed-off-by: Jesper Dangaard Brouer <brouer@redhat.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT 226f2ca3075ab20abf69c68235e8ba9ac2dab596
+2019-07-29	Vlad Buslov	net/mlx5e: Change flow flags type to unsigned long
+
+To remove dependency on rtnl lock and allow concurrent modification of
+'flags' field of tc flow structure, change flow flag type to unsigned long
+and use atomic bit ops for reading and changing the flags. Implement
+auxiliary functions for setting, resetting and getting specific flag, and
+for checking most often used flag values.
+
+Always set flags with smp_mb__before_atomic() to ensure that all
+mlx5e_tc_flow are updated before concurrent readers can read new flags
+value. Rearrange all code paths to actually set flow->rule[] pointers
+before setting the OFFLOADED flag. On read side, use smp_mb__after_atomic()
+when accessing flags to ensure that offload-related flow fields are only
+read after the flags.
+
+Signed-off-by: Vlad Buslov <vladbu@mellanox.com>
+Reviewed-by: Jianbo Liu <jianbol@mellanox.com>
+Reviewed-by: Roi Dayan <roid@mellanox.com>
+Signed-off-by: Saeed Mahameed <saeedm@mellanox.com>
+
+@@@COMMIT f45b7b78c619cd73c7ca25b68c6ba9653b8e4a0a
+2019-07-29	Michael Chan	bnxt_en: Set TPA GRO mode flags on 57500 chips properly.
+
+On 57500 chips, hardware GRO mode cannot be determined from the TPA
+end, so we need to check bp->flags to determine if we are in hardware
+GRO mode or not.  Modify bnxt_set_features so that the TPA flags
+in bp->flags don't change until the device is closed.  This will ensure
+that the fast path can safely rely on bp->flags to determine the
+TPA mode.
+
+Signed-off-by: Michael Chan <michael.chan@broadcom.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT 55b40dbf0e76b4bfb9d8b3a16a0208640a9a45df
+2019-07-29	Jiri Pirko	net: fix ifindex collision during namespace removal
+aca51397d014 ("netns: Fix arbitrary net_device-s corruptions on net_ns stop.")
+Commit aca51397d014 ("netns: Fix arbitrary net_device-s corruptions
+on net_ns stop.") introduced a possibility to hit a BUG in case device
+is returning back to init_net and two following conditions are met:
+1) dev->ifindex value is used in a name of another "dev%d"
+   device in init_net.
+2) dev->name is used by another device in init_net.
+
+Under real life circumstances this is hard to get. Therefore this has
+been present happily for over 10 years. To reproduce:
+
+$ ip a
+1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+    inet 127.0.0.1/8 scope host lo
+       valid_lft forever preferred_lft forever
+    inet6 ::1/128 scope host
+       valid_lft forever preferred_lft forever
+2: dummy0: <BROADCAST,NOARP> mtu 1500 qdisc noop state DOWN group default qlen 1000
+    link/ether 86:89:3f:86:61:29 brd ff:ff:ff:ff:ff:ff
+3: enp0s2: <BROADCAST,MULTICAST> mtu 1500 qdisc noop state DOWN group default qlen 1000
+    link/ether 52:54:00:12:34:56 brd ff:ff:ff:ff:ff:ff
+$ ip netns add ns1
+$ ip -n ns1 link add dummy1ns1 type dummy
+$ ip -n ns1 link add dummy2ns1 type dummy
+$ ip link set enp0s2 netns ns1
+$ ip -n ns1 link set enp0s2 name dummy0
+[  100.858894] virtio_net virtio0 dummy0: renamed from enp0s2
+$ ip link add dev4 type dummy
+$ ip -n ns1 a
+1: lo: <LOOPBACK> mtu 65536 qdisc noop state DOWN group default qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+2: dummy1ns1: <BROADCAST,NOARP> mtu 1500 qdisc noop state DOWN group default qlen 1000
+    link/ether 16:63:4c:38:3e:ff brd ff:ff:ff:ff:ff:ff
+3: dummy2ns1: <BROADCAST,NOARP> mtu 1500 qdisc noop state DOWN group default qlen 1000
+    link/ether aa:9e:86:dd:6b:5d brd ff:ff:ff:ff:ff:ff
+4: dummy0: <BROADCAST,MULTICAST> mtu 1500 qdisc noop state DOWN group default qlen 1000
+    link/ether 52:54:00:12:34:56 brd ff:ff:ff:ff:ff:ff
+$ ip a
+1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+    inet 127.0.0.1/8 scope host lo
+       valid_lft forever preferred_lft forever
+    inet6 ::1/128 scope host
+       valid_lft forever preferred_lft forever
+2: dummy0: <BROADCAST,NOARP> mtu 1500 qdisc noop state DOWN group default qlen 1000
+    link/ether 86:89:3f:86:61:29 brd ff:ff:ff:ff:ff:ff
+4: dev4: <BROADCAST,NOARP> mtu 1500 qdisc noop state DOWN group default qlen 1000
+    link/ether 5a:e1:4a:b6:ec:f8 brd ff:ff:ff:ff:ff:ff
+$ ip netns del ns1
+[  158.717795] default_device_exit: failed to move dummy0 to init_net: -17
+[  158.719316] ------------[ cut here ]------------
+[  158.720591] kernel BUG at net/core/dev.c:9824!
+[  158.722260] invalid opcode: 0000 [#1] SMP KASAN PTI
+[  158.723728] CPU: 0 PID: 56 Comm: kworker/u2:1 Not tainted 5.3.0-rc1+ #18
+[  158.725422] Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS 1.12.0-2.fc30 04/01/2014
+[  158.727508] Workqueue: netns cleanup_net
+[  158.728915] RIP: 0010:default_device_exit.cold+0x1d/0x1f
+[  158.730683] Code: 84 e8 18 c9 3e fe 0f 0b e9 70 90 ff ff e8 36 e4 52 fe 89 d9 4c 89 e2 48 c7 c6 80 d6 25 84 48 c7 c7 20 c0 25 84 e8 f4 c8 3e
+[  158.736854] RSP: 0018:ffff8880347e7b90 EFLAGS: 00010282
+[  158.738752] RAX: 000000000000003b RBX: 00000000ffffffef RCX: 0000000000000000
+[  158.741369] RDX: 0000000000000000 RSI: ffffffff8128013d RDI: ffffed10068fcf64
+[  158.743418] RBP: ffff888033550170 R08: 000000000000003b R09: fffffbfff0b94b9c
+[  158.745626] R10: fffffbfff0b94b9b R11: ffffffff85ca5cdf R12: ffff888032f28000
+[  158.748405] R13: dffffc0000000000 R14: ffff8880335501b8 R15: 1ffff110068fcf72
+[  158.750638] FS:  0000000000000000(0000) GS:ffff888036000000(0000) knlGS:0000000000000000
+[  158.752944] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[  158.755245] CR2: 00007fe8b45d21d0 CR3: 00000000340b4005 CR4: 0000000000360ef0
+[  158.757654] DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
+[  158.760012] DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
+[  158.762758] Call Trace:
+[  158.763882]  ? dev_change_net_namespace+0xbb0/0xbb0
+[  158.766148]  ? devlink_nl_cmd_set_doit+0x520/0x520
+[  158.768034]  ? dev_change_net_namespace+0xbb0/0xbb0
+[  158.769870]  ops_exit_list.isra.0+0xa8/0x150
+[  158.771544]  cleanup_net+0x446/0x8f0
+[  158.772945]  ? unregister_pernet_operations+0x4a0/0x4a0
+[  158.775294]  process_one_work+0xa1a/0x1740
+[  158.776896]  ? pwq_dec_nr_in_flight+0x310/0x310
+[  158.779143]  ? do_raw_spin_lock+0x11b/0x280
+[  158.780848]  worker_thread+0x9e/0x1060
+[  158.782500]  ? process_one_work+0x1740/0x1740
+[  158.784454]  kthread+0x31b/0x420
+[  158.786082]  ? __kthread_create_on_node+0x3f0/0x3f0
+[  158.788286]  ret_from_fork+0x3a/0x50
+[  158.789871] ---[ end trace defd6c657c71f936 ]---
+[  158.792273] RIP: 0010:default_device_exit.cold+0x1d/0x1f
+[  158.795478] Code: 84 e8 18 c9 3e fe 0f 0b e9 70 90 ff ff e8 36 e4 52 fe 89 d9 4c 89 e2 48 c7 c6 80 d6 25 84 48 c7 c7 20 c0 25 84 e8 f4 c8 3e
+[  158.804854] RSP: 0018:ffff8880347e7b90 EFLAGS: 00010282
+[  158.807865] RAX: 000000000000003b RBX: 00000000ffffffef RCX: 0000000000000000
+[  158.811794] RDX: 0000000000000000 RSI: ffffffff8128013d RDI: ffffed10068fcf64
+[  158.816652] RBP: ffff888033550170 R08: 000000000000003b R09: fffffbfff0b94b9c
+[  158.820930] R10: fffffbfff0b94b9b R11: ffffffff85ca5cdf R12: ffff888032f28000
+[  158.825113] R13: dffffc0000000000 R14: ffff8880335501b8 R15: 1ffff110068fcf72
+[  158.829899] FS:  0000000000000000(0000) GS:ffff888036000000(0000) knlGS:0000000000000000
+[  158.834923] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[  158.838164] CR2: 00007fe8b45d21d0 CR3: 00000000340b4005 CR4: 0000000000360ef0
+[  158.841917] DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
+[  158.845149] DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
+
+Fix this by checking if a device with the same name exists in init_net
+and fallback to original code - dev%d to allocate name - in case it does.
+
+This was found using syzkaller.
+
+Fixes: aca51397d014 ("netns: Fix arbitrary net_device-s corruptions on net_ns stop.")
+Signed-off-by: Jiri Pirko <jiri@mellanox.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT 4e95bc268b915c3a19ec8b9110f61e4ea41a1ed0
+2019-07-09	Pablo Neira Ayuso	net: flow_offload: add flow_block_cb_setup_simple()
+
+Most drivers do the same thing to set up the flow block callbacks, this
+patch adds a helper function to do this.
+
+This preparation patch reduces the number of changes to adapt the
+existing drivers to use the flow block callback API.
+
+This new helper function takes a flow block list per-driver, which is
+set to NULL until this driver list is used.
+
+This patch also introduces the flow_block_command and
+flow_block_binder_type enumerations, which are renamed to use
+FLOW_BLOCK_* in follow up patches.
+
+There are three definitions (aliases) in order to reduce the number of
+updates in this patch, which go away once drivers are fully adapted to
+use this flow block API.
+
+Signed-off-by: Pablo Neira Ayuso <pablo@netfilter.org>
+Reviewed-by: Jakub Kicinski <jakub.kicinski@netronome.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT 6413139dfc641aaaa30580b59696a5f7ea274194
+2019-07-08	Willem de Bruijn	skbuff: increase verbosity when dumping skb data
+
+skb_warn_bad_offload and netdev_rx_csum_fault trigger on hard to debug
+issues. Dump more state and the header.
+
+Optionally dump the entire packet and linear segment. This is required
+to debug checksum bugs that may include bytes past skb_tail_pointer().
+
+Both call sites call this function inside a net_ratelimit() block.
+Limit full packet log further to a hard limit of can_dump_full (5).
+
+Based on an earlier patch by Cong Wang, see link below.
+
+Changes v1 -> v2
+  - dump frag_list only on full_pkt
+
+Link: https://patchwork.ozlabs.org/patch/1000841/
+Signed-off-by: Willem de Bruijn <willemb@google.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT 1da4bbeffe41ba318812d7590955faee8636668b
+2019-07-08	Ivan Khoronzhuk	net: core: page_pool: add user refcnt and reintroduce page_pool_destroy
+5c67bf0ec4d0 ("net: netsec: Use page_pool API")
+Jesper recently removed page_pool_destroy() (from driver invocation)
+and moved shutdown and free of page_pool into xdp_rxq_info_unreg(),
+in-order to handle in-flight packets/pages. This created an asymmetry
+in drivers create/destroy pairs.
+
+This patch reintroduce page_pool_destroy and add page_pool user
+refcnt. This serves the purpose to simplify drivers error handling as
+driver now drivers always calls page_pool_destroy() and don't need to
+track if xdp_rxq_info_reg_mem_model() was unsuccessful.
+
+This could be used for a special cases where a single RX-queue (with a
+single page_pool) provides packets for two net_device'es, and thus
+needs to register the same page_pool twice with two xdp_rxq_info
+structures.
+
+This patch is primarily to ease API usage for drivers. The recently
+merged netsec driver, actually have a bug in this area, which is
+solved by this API change.
+
+This patch is a modified version of Ivan Khoronzhuk's original patch.
+
+Link: https://lore.kernel.org/netdev/20190625175948.24771-2-ivan.khoronzhuk@linaro.org/
+Fixes: 5c67bf0ec4d0 ("net: netsec: Use page_pool API")
+Signed-off-by: Jesper Dangaard Brouer <brouer@redhat.com>
+Reviewed-by: Ilias Apalodimas <ilias.apalodimas@linaro.org>
+Acked-by: Jesper Dangaard Brouer <brouer@redhat.com>
+Reviewed-by: Saeed Mahameed <saeedm@mellanox.com>
+Signed-off-by: Ivan Khoronzhuk <ivan.khoronzhuk@linaro.org>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT e5b845dc79838e17ebeda63795337b5261a772eb
+2019-07-01	Catherine Sullivan	gve: Add ethtool support
+
+Add support for the following ethtool commands:
+
+ethtool -s|--change devname [msglvl N] [msglevel type on|off]
+ethtool -S|--statistics devname
+ethtool -i|--driver devname
+ethtool -l|--show-channels devname
+ethtool -L|--set-channels devname
+ethtool -g|--show-ring devname
+ethtool --reset devname
+
+Signed-off-by: Catherine Sullivan <csully@google.com>
+Signed-off-by: Sagi Shahar <sagis@google.com>
+Signed-off-by: Jon Olson <jonolson@google.com>
+Acked-by: Willem de Bruijn <willemb@google.com>
+Reviewed-by: Luigi Rizzo <lrizzo@google.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT d77b1ad8e87dc5a6cd0d9158b097a4817946ca3b
+2019-06-30	Michael Chan	bnxt_en: Fix statistics context reservation logic for RDMA driver.
+780baad44f0f ("bnxt_en: Reserve 1 stat_ctx for RDMA driver.")
+The current logic assumes that the RDMA driver uses one statistics
+context adjacent to the ones used by the network driver.  This
+assumption is not true and the statistics context used by the
+RDMA driver is tied to its MSIX base vector.  This wrong assumption
+can cause RDMA driver failure after changing ethtool rings on the
+network side.  Fix the statistics reservation logic accordingly.
+
+Fixes: 780baad44f0f ("bnxt_en: Reserve 1 stat_ctx for RDMA driver.")
+Signed-off-by: Michael Chan <michael.chan@broadcom.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT a90f88fe557d7f2318b724a93875dcaac45b5f05
+2019-06-28	Gavi Teitz	net/mlx5e: Don't refresh TIRs when updating representor SQs
+
+Refreshing TIRs is done in order to update the TIRs with the current
+state of SQs in the transport domain, so that the TIRs can filter out
+undesired self-loopback packets based on the source SQ of the packet.
+
+Representor TIRs will only receive packets that originate from their
+associated vport, due to dedicated steering, and therefore will never
+receive self-loopback packets, whose source vport will be the vport of
+the E-Switch manager, and therefore not the vport associated with the
+representor. As such, it is not necessary to refresh the representors'
+TIRs, since self-loopback packets can't reach them.
+
+Since representors only exist in switchdev mode, and there is no
+scenario in which a representor will exist in the transport domain
+alongside a non-representor, it is not necessary to refresh the
+transport domain's TIRs upon changing the state of a representor's
+queues. Therefore, do not refresh TIRs upon such a change. Achieve
+this by adding an update_rx callback to the mlx5e_profile, which
+refreshes TIRs for non-representors and does nothing for representors,
+and replace instances of mlx5e_refresh_tirs() upon changing the state
+of the queues with update_rx().
+
+Signed-off-by: Gavi Teitz <gavi@mellanox.com>
+Reviewed-by: Roi Dayan <roid@mellanox.com>
+Reviewed-by: Tariq Toukan <tariqt@mellanox.com>
+Signed-off-by: Saeed Mahameed <saeedm@mellanox.com>
+
+@@@COMMIT e4683f35f8e5ef43fb75e306113814a563ed1f18
+2019-06-28	Ariel Levkovich	net/mlx5e: Move to HW checksumming advertising
+
+This patch changes the way the driver advertises its checksum offload
+capabilities within the net device features bit mask.
+
+Instead of advertising protocol specific checksumming capabilities
+which are limited today to IPv4 and IPv6, we move to reporing
+generic HW checksumming capabilities.
+
+This will allow the network stack to let mlx5 device offload checksum
+for cases where the IP header is encapsulated within another protocol
+and the skb->protocol doesn't indicate one of the IP versions protocol,
+specifically in the case of MPLS label encapsulating the IP header and
+the skb->protocol indiciates MPLS ethertype rather than IP.
+
+Moving the HW_CSUM reporting is required in the basic net device hw
+features mask and also in the extensions (vlan and encpasulation
+features) since the extensions are always multiplied by the basic
+features set during the packet's traversal through the stack's tx flow.
+
+Signed-off-by: Ariel Levkovich <lariel@mellanox.com>
+Signed-off-by: Saeed Mahameed <saeedm@mellanox.com>
+
+@@@COMMIT 720f22fed81bc6fd1765db7014651b6718887bea
+2019-06-28	John Hurley	net: sched: refactor reinsert action
+
+The TC_ACT_REINSERT return type was added as an in-kernel only option to
+allow a packet ingress or egress redirect. This is used to avoid
+unnecessary skb clones in situations where they are not required. If a TC
+hook returns this code then the packet is 'reinserted' and no skb consume
+is carried out as no clone took place.
+
+This return type is only used in act_mirred. Rather than have the reinsert
+called from the main datapath, call it directly in act_mirred. Instead of
+returning TC_ACT_REINSERT, change the type to the new TC_ACT_CONSUMED
+which tells the caller that the packet has been stolen by another process
+and that no consume call is required.
+
+Moving all redirect calls to the act_mirred code is in preparation for
+tracking recursion created by act_mirred.
+
+Signed-off-by: John Hurley <john.hurley@netronome.com>
+Reviewed-by: Simon Horman <simon.horman@netronome.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT db05815b36cbd486c86fd002dfa81c9af6245e25
+2019-06-27	Maxim Mikityanskiy	net/mlx5e: Add XSK zero-copy support
+
+This commit adds support for AF_XDP zero-copy RX and TX.
+
+We create a dedicated XSK RQ inside the channel, it means that two
+RQs are running simultaneously: one for non-XSK traffic and the other
+for XSK traffic. The regular and XSK RQs use a single ID namespace split
+into two halves: the lower half is regular RQs, and the upper half is
+XSK RQs. When any zero-copy AF_XDP socket is active, changing the number
+of channels is not allowed, because it would break to mapping between
+XSK RQ IDs and channels.
+
+XSK requires different page allocation and release routines. Such
+functions as mlx5e_{alloc,free}_rx_mpwqe and mlx5e_{get,put}_rx_frag are
+generic enough to be used for both regular and XSK RQs, and they use the
+mlx5e_page_{alloc,release} wrappers around the real allocation
+functions. Function pointers are not used to avoid losing the
+performance with retpolines. Wherever it's certain that the regular
+(non-XSK) page release function should be used, it's called directly.
+
+Only the stats that could be meaningful for XSK are exposed to the
+userspace. Those that don't take part in the XSK flow are not
+considered.
+
+Note that we don't wait for WQEs on the XSK RQ (unlike the regular RQ),
+because the newer xdpsock sample doesn't provide any Fill Ring entries
+at the setup stage.
+
+We create a dedicated XSK SQ in the channel. This separation has its
+advantages:
+
+1. When the UMEM is closed, the XSK SQ can also be closed and stop
+receiving completions. If an existing SQ was used for XSK, it would
+continue receiving completions for the packets of the closed socket. If
+a new UMEM was opened at that point, it would start getting completions
+that don't belong to it.
+
+2. Calculating statistics separately.
+
+When the userspace kicks the TX, the driver triggers a hardware
+interrupt by posting a NOP to a dedicated XSK ICO (internal control
+operations) SQ, in order to trigger NAPI on the right CPU core. This XSK
+ICO SQ is protected by a spinlock, as the userspace application may kick
+the TX from any core.
+
+Store the pointers to the UMEMs in the net device private context,
+independently from the kernel. This way the driver can distinguish
+between the zero-copy and non-zero-copy UMEMs. The kernel function
+xdp_get_umem_from_qid does not care about this difference, but the
+driver is only interested in zero-copy UMEMs, particularly, on the
+cleanup it determines whether to close the XSK RQ and SQ or not by
+looking at the presence of the UMEM. Use state_lock to protect the
+access to this area of UMEM pointers.
+
+LRO isn't compatible with XDP, but there may be active UMEMs while
+XDP is off. If this is the case, don't allow LRO to ensure XDP can
+be reenabled at any time.
+
+The validation of XSK parameters typically happens when XSK queues
+open. However, when the interface is down or the XDP program isn't
+set, it's still possible to have active AF_XDP sockets and even to
+open new, but the XSK queues will be closed. To cover these cases,
+perform the validation also in these flows:
+
+1. A new UMEM is registered, but the XSK queues aren't going to be
+created due to missing XDP program or interface being down.
+
+2. MTU changes while there are UMEMs registered.
+
+Having this early check prevents mlx5e_open_channels from failing
+at a later stage, where recovery is impossible and the application
+has no chance to handle the error, because it got the successful
+return value for an MTU change or XSK open operation.
+
+The performance testing was performed on a machine with the following
+configuration:
+
+- 24 cores of Intel Xeon E5-2620 v3 @ 2.40 GHz
+- Mellanox ConnectX-5 Ex with 100 Gbit/s link
+
+The results with retpoline disabled, single stream:
+
+txonly: 33.3 Mpps (21.5 Mpps with queue and app pinned to the same CPU)
+rxdrop: 12.2 Mpps
+l2fwd: 9.4 Mpps
+
+The results with retpoline enabled, single stream:
+
+txonly: 21.3 Mpps (14.1 Mpps with queue and app pinned to the same CPU)
+rxdrop: 9.9 Mpps
+l2fwd: 6.8 Mpps
+
+Signed-off-by: Maxim Mikityanskiy <maximmi@mellanox.com>
+Signed-off-by: Tariq Toukan <tariqt@mellanox.com>
+Acked-by: Saeed Mahameed <saeedm@mellanox.com>
+Signed-off-by: Daniel Borkmann <daniel@iogearbox.net>
+
+@@@COMMIT 0a06382fa40601e750a9477e9cccffcb6cb4206c
+2019-06-27	Maxim Mikityanskiy	net/mlx5e: Encapsulate open/close queues into a function
+
+Create new functions mlx5e_{open,close}_queues to encapsulate opening
+and closing RQs and SQs, and call the new functions from
+mlx5e_{open,close}_channel. It simplifies the existing functions a bit
+and prepares them for the upcoming AF_XDP changes.
+
+Signed-off-by: Maxim Mikityanskiy <maximmi@mellanox.com>
+Signed-off-by: Tariq Toukan <tariqt@mellanox.com>
+Acked-by: Saeed Mahameed <saeedm@mellanox.com>
+Signed-off-by: Daniel Borkmann <daniel@iogearbox.net>
+
+@@@COMMIT b9673cf5558c0ae1be787611884d4131633f31a8
+2019-06-27	Maxim Mikityanskiy	net/mlx5e: Share the XDP SQ for XDP_TX between RQs
+
+Put the XDP SQ that is used for XDP_TX into the channel. It used to be a
+part of the RQ, but with introduction of AF_XDP there will be one more
+RQ that could share the same XDP SQ. This patch is a preparation for
+that change.
+
+Separate XDP_TX statistics per RQ were implemented in one of the previous
+patches.
+
+Signed-off-by: Maxim Mikityanskiy <maximmi@mellanox.com>
+Signed-off-by: Tariq Toukan <tariqt@mellanox.com>
+Acked-by: Saeed Mahameed <saeedm@mellanox.com>
+Signed-off-by: Daniel Borkmann <daniel@iogearbox.net>
+
+@@@COMMIT a069e977d6d8f26c90a5d9374135729dc41c3a0d
+2019-06-27	Maxim Mikityanskiy	net/mlx5e: Calculate linear RX frag size considering XSK
+
+Additional conditions introduced:
+
+- XSK implies XDP.
+- Headroom includes the XSK headroom if it exists.
+- No space is reserved for struct shared_skb_info in XSK mode.
+- Fragment size smaller than the XSK chunk size is not allowed.
+
+A new auxiliary function mlx5e_get_linear_rq_headroom with the support
+for XSK is introduced. Use this function in the implementation of
+mlx5e_get_rq_headroom. Change headroom to u32 to match the headroom
+field in struct xdp_umem.
+
+Signed-off-by: Maxim Mikityanskiy <maximmi@mellanox.com>
+Signed-off-by: Tariq Toukan <tariqt@mellanox.com>
+Acked-by: Saeed Mahameed <saeedm@mellanox.com>
+Signed-off-by: Daniel Borkmann <daniel@iogearbox.net>
+
+@@@COMMIT e18953240de8b46360a67090c87ee1ef8160b35d
+2019-06-27	Maxim Mikityanskiy	net/mlx5e: Attach/detach XDP program safely
+
+When an XDP program is set, a full reopen of all channels happens in two
+cases:
+
+1. When there was no program set, and a new one is being set.
+
+2. When there was a program set, but it's being unset.
+
+The full reopen is necessary, because the channel parameters may change
+if XDP is enabled or disabled. However, it's performed in an unsafe way:
+if the new channels fail to open, the old ones are already closed, and
+the interface goes down. Use the safe way to switch channels instead.
+The same way is already used for other configuration changes.
+
+Signed-off-by: Maxim Mikityanskiy <maximmi@mellanox.com>
+Signed-off-by: Tariq Toukan <tariqt@mellanox.com>
+Signed-off-by: Saeed Mahameed <saeedm@mellanox.com>
+Signed-off-by: Daniel Borkmann <daniel@iogearbox.net>
+
+@@@COMMIT 8afecaa68df1e94a9d634f1f961533a925f239fc
+2019-06-23	Muchun Song	softirq: Use __this_cpu_write() in takeover_tasklets()
+
+The code is executed with interrupts disabled, so it's safe to use
+__this_cpu_write().
+
+[ tglx: Massaged changelog ]
+
+Signed-off-by: Muchun Song <smuchun@gmail.com>
+Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+Cc: joel@joelfernandes.org
+Cc: rostedt@goodmis.org
+Cc: frederic@kernel.org
+Cc: paulmck@linux.vnet.ibm.com
+Cc: alexander.levin@verizon.com
+Cc: peterz@infradead.org
+Link: https://lkml.kernel.org/r/20190618143305.2038-1-smuchun@gmail.com
+
+
+@@@COMMIT d3cbd4254df881777e2efb68ee10ede0d9dc0647
+2019-06-07	Chris Mi	net/mlx5e: Add ndo_set_feature for uplink representor
+aec002f6f82c ("net/mlx5e: Uninstantiate esw manager vport netdev on switchdev mode")
+After we have a dedicated uplink representor, the new netdev ops
+doesn't support ndo_set_feature. Because of that, we can't change
+some features, eg. rxvlan. Now add it back.
+
+In this patch, I also do a cleanup for the features flag handling,
+eg. remove duplicate NETIF_F_HW_TC flag setting.
+
+Fixes: aec002f6f82c ("net/mlx5e: Uninstantiate esw manager vport netdev on switchdev mode")
+Signed-off-by: Chris Mi <chrism@mellanox.com>
+Reviewed-by: Roi Dayan <roid@mellanox.com>
+Reviewed-by: Vlad Buslov <vladbu@mellanox.com>
+Signed-off-by: Saeed Mahameed <saeedm@mellanox.com>
+
+@@@COMMIT 2f2da36ebf42ef73a4591870b805f5ad0fbc10d5
+2019-05-30	Anirudh Venkataramanan	ice: Trivial cosmetic changes
+
+This patch mostly capitalizes abbreviations in code comments. Fixed some
+typos and removed some unnecessary newlines as well.
+
+Signed-off-by: Anirudh Venkataramanan <anirudh.venkataramanan@intel.com>
+Tested-by: Andrew Bowers <andrewx.bowers@intel.com>
+Signed-off-by: Jeff Kirsher <jeffrey.t.kirsher@intel.com>
+
+@@@COMMIT 1b3f0b75c39f534278a895c117282014e9d0ae1f
+2019-05-22	Michael Chan	bnxt_en: Fix possible BUG() condition when calling pci_disable_msix().
+41e8d7983752 ("bnxt_en: Modify the ring reservation functions for 57500 series chips.")
+When making configuration changes, the driver calls bnxt_close_nic()
+and then bnxt_open_nic() for the changes to take effect.  A parameter
+irq_re_init is passed to the call sequence to indicate if IRQ
+should be re-initialized.  This irq_re_init parameter needs to
+be included in the bnxt_reserve_rings() call.  bnxt_reserve_rings()
+can only call pci_disable_msix() if the irq_re_init parameter is
+true, otherwise it may hit BUG() because some IRQs may not have been
+freed yet.
+
+Fixes: 41e8d7983752 ("bnxt_en: Modify the ring reservation functions for 57500 series chips.")
+Signed-off-by: Michael Chan <michael.chan@broadcom.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT 01989c6b69d91a0df0af8d5c6b5f33d82a239ae0
+2019-05-05	Michael Chan	bnxt_en: Improve NQ reservations.
+c0b8cda05e1d ("bnxt_en: Fix NQ/CP rings accounting on the new 57500 chips.")
+bnxt_need_reserve_rings() determines if any resources have changed and
+requires new reservation with firmware.  The NQ checking is currently
+just an approximation.  Improve the NQ checking logic to make it
+accurate.  NQ reservation is only needed on 57500 PFs.  This fix will
+eliminate unnecessary reservations and will reduce NQ reservations
+when some NQs have been released on 57500 PFs.
+
+Fixes: c0b8cda05e1d ("bnxt_en: Fix NQ/CP rings accounting on the new 57500 chips.")
+Signed-off-by: Michael Chan <michael.chan@broadcom.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT b07833a00d70fb731bb3aba8876a56e37b549f3e
+2019-05-02	Brett Creeley	ice: Add reg_idx variable in ice_q_vector structure
+
+Every time we want to re-enable interrupts and/or write to a register
+that requires an interrupt vector's hardware index we do the following:
+
+vsi->hw_base_vector + q_vector->v_idx
+
+This is a wasteful operation, especially in the hot path. Fix this by
+adding a u16 reg_idx member to the ice_q_vector structure and make the
+necessary changes to make this work.
+
+Signed-off-by: Brett Creeley <brett.creeley@intel.com>
+Signed-off-by: Anirudh Venkataramanan <anirudh.venkataramanan@intel.com>
+Tested-by: Andrew Bowers <andrewx.bowers@intel.com>
+Signed-off-by: Jeff Kirsher <jeffrey.t.kirsher@intel.com>
+
+@@@COMMIT c42260f1954598b92d9e834f3d55160318573a5e
+2019-04-29	Vu Pham	net/mlx5: Separate and generalize dma device from pci device
+
+The mlx5 Sub-Function (SF) sub device will be introduced in
+subsequent patches. It will be created as mediated device and
+belong to mdev bus. It is necessary to treat dma operations on
+PF, VF and SF in uniform way, hence reduce the dependency on
+pdev pci dev struct and work directly out of newly introduced
+'struct device' from previous patch.
+
+This patch does not change any functionality.
+
+Signed-off-by: Vu Pham <vuhuong@mellanox.com>
+Reviewed-by: Parav Pandit <parav@mellanox.com>
+Signed-off-by: Saeed Mahameed <saeedm@mellanox.com>
+
+@@@COMMIT 8065a779f17e94536a1c4dcee4f9d88011672f97
+2019-04-10	Si-Wei Liu	failover: allow name change on IFF_UP slave interfaces
+30c8bd5aa8b2 ("net: Introduce generic failover module")
+When a netdev appears through hot plug then gets enslaved by a failover
+master that is already up and running, the slave will be opened
+right away after getting enslaved. Today there's a race that userspace
+(udev) may fail to rename the slave if the kernel (net_failover)
+opens the slave earlier than when the userspace rename happens.
+Unlike bond or team, the primary slave of failover can't be renamed by
+userspace ahead of time, since the kernel initiated auto-enslavement is
+unable to, or rather, is never meant to be synchronized with the rename
+request from userspace.
+
+As the failover slave interfaces are not designed to be operated
+directly by userspace apps: IP configuration, filter rules with
+regard to network traffic passing and etc., should all be done on master
+interface. In general, userspace apps only care about the
+name of master interface, while slave names are less important as long
+as admin users can see reliable names that may carry
+other information describing the netdev. For e.g., they can infer that
+"ens3nsby" is a standby slave of "ens3", while for a
+name like "eth0" they can't tell which master it belongs to.
+
+Historically the name of IFF_UP interface can't be changed because
+there might be admin script or management software that is already
+relying on such behavior and assumes that the slave name can't be
+changed once UP. But failover is special: with the in-kernel
+auto-enslavement mechanism, the userspace expectation for device
+enumeration and bring-up order is already broken. Previously initramfs
+and various userspace config tools were modified to bypass failover
+slaves because of auto-enslavement and duplicate MAC address. Similarly,
+in case that users care about seeing reliable slave name, the new type
+of failover slaves needs to be taken care of specifically in userspace
+anyway.
+
+It's less risky to lift up the rename restriction on failover slave
+which is already UP. Although it's possible this change may potentially
+break userspace component (most likely configuration scripts or
+management software) that assumes slave name can't be changed while
+UP, it's relatively a limited and controllable set among all userspace
+components, which can be fixed specifically to listen for the rename
+events on failover slaves. Userspace component interacting with slaves
+is expected to be changed to operate on failover master interface
+instead, as the failover slave is dynamic in nature which may come and
+go at any point.  The goal is to make the role of failover slaves less
+relevant, and userspace components should only deal with failover master
+in the long run.
+
+Fixes: 30c8bd5aa8b2 ("net: Introduce generic failover module")
+Signed-off-by: Si-Wei Liu <si-wei.liu@oracle.com>
+Reviewed-by: Liran Alon <liran.alon@oracle.com>
+Acked-by: Sridhar Samudrala <sridhar.samudrala@intel.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT 5d0bb3bac4b9f6c22280b04545626fdfd99edc6b
+2019-04-09	Saeed Mahameed	net/mlx5e: XDP, Avoid checksum complete when XDP prog is loaded
+86994156c736 ("net/mlx5e: XDP fast RX drop bpf programs support")
+XDP programs might change packets data contents which will make the
+reported skb checksum (checksum complete) invalid.
+
+When XDP programs are loaded/unloaded set/clear rx RQs
+MLX5E_RQ_STATE_NO_CSUM_COMPLETE flag.
+
+Fixes: 86994156c736 ("net/mlx5e: XDP fast RX drop bpf programs support")
+Reviewed-by: Tariq Toukan <tariqt@mellanox.com>
+Signed-off-by: Saeed Mahameed <saeedm@mellanox.com>
+
+@@@COMMIT fb24ea52f78e0d595852e09e3a55697c8f442189
+2019-04-08	Will Deacon	drivers: Remove explicit invocations of mmiowb()
+
+mmiowb() is now implied by spin_unlock() on architectures that require
+it, so there is no reason to call it from driver code. This patch was
+generated using coccinelle:
+
+	@mmiowb@
+	@@
+	- mmiowb();
+
+and invoked as:
+
+$ for d in drivers include/linux/qed sound; do \
+spatch --include-headers --sp-file mmiowb.cocci --dir $d --in-place; done
+
+NOTE: mmiowb() has only ever guaranteed ordering in conjunction with
+spin_unlock(). However, pairing each mmiowb() removal in this patch with
+the corresponding call to spin_unlock() is not at all trivial, so there
+is a small chance that this change may regress any drivers incorrectly
+relying on mmiowb() to order MMIO writes between CPUs using lock-free
+synchronisation. If you've ended up bisecting to this commit, you can
+reintroduce the mmiowb() calls using wmb() instead, which should restore
+the old behaviour on all architectures other than some esoteric ia64
+systems.
+
+Acked-by: Linus Torvalds <torvalds@linux-foundation.org>
+Signed-off-by: Will Deacon <will.deacon@arm.com>
+
+@@@COMMIT 6b16f9ee89b8d5709f24bc3ac89ae8b5452c0d7c
+2019-04-01	Florian Westphal	net: move skb->xmit_more hint to softnet data
+
+There are two reasons for this.
+
+First, the xmit_more flag conceptually doesn't fit into the skb, as
+xmit_more is not a property related to the skb.
+Its only a hint to the driver that the stack is about to transmit another
+packet immediately.
+
+Second, it was only done this way to not have to pass another argument
+to ndo_start_xmit().
+
+We can place xmit_more in the softnet data, next to the device recursion.
+The recursion counter is already written to on each transmit. The "more"
+indicator is placed right next to it.
+
+Drivers can use the netdev_xmit_more() helper instead of skb->xmit_more
+to check the "more packets coming" hint.
+
+skb->xmit_more is retained (but always 0) to not cause build breakage.
+
+This change takes care of the simple s/skb->xmit_more/netdev_xmit_more()/
+conversions.  Remaining drivers are converted in the next patches.
+
+Suggested-by: Eric Dumazet <edumazet@google.com>
+Signed-off-by: Florian Westphal <fw@strlen.de>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT 97cdcf37b57e3f204be3000b9eab9686f38b4356
+2019-04-01	Florian Westphal	net: place xmit recursion in softnet data
+
+This fills a hole in softnet data, so no change in structure size.
+
+Also prepares for xmit_more placement in the same spot;
+skb->xmit_more will be removed in followup patch.
+
+Signed-off-by: Florian Westphal <fw@strlen.de>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT 5dc37bb9b03586e8fdeb47d25e8d2a0399984936
+2019-03-28	Jiri Pirko	net: replace ndo_get_devlink with ndo_get_devlink_port
+
+Follow-up patch is going to need a devlink port instance according to
+a netdev. Devlink port instance should be always available when devlink
+is used. So change the recently introduced ndo_get_devlink to
+ndo_get_devlink_port. With that, adjust the wrapper for the only
+user to get devlink pointer.
+
+Signed-off-by: Jiri Pirko <jiri@mellanox.com>
+Reviewed-by: Michal Kubecek <mkubecek@suse.cz>
+Reviewed-by: Florian Fainelli <f.fainelli@gmail.com>
+Reviewed-by: Jakub Kicinski <jakub.kicinski@netronome.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT 8244dd2d23b251dcba3238e42216e9277beb5729
+2019-03-26	Brett Creeley	ice: Audit hotpath structures with pahole
+
+Currently the ice_q_vector structure and ice_ring_container structure
+are taking up more space than necessary due to cache alignment holes
+and unnecessary variables respectively. This is not helping the
+driver's performance. The following fixes were done to improve cache
+alignment, reduce wasted space, and increase performance.
+
+1. Remove the ice_latency_range enum as it is unused.
+2. Remove the latency_range variable in the ice_ring_container structure.
+3. Change the size of the itr_idx in the ice_ring_container structure
+   from an int to an u16. This reduced the size of ice_ring_container
+   structure to 32 Bytes so it has no holes or padding.
+4. Re-arrange the ice_q_vector structure using pahole to align
+   members as best as possible in regards to 64 Byte cache line size.
+
+Signed-off-by: Brett Creeley <brett.creeley@intel.com>
+Signed-off-by: Anirudh Venkataramanan <anirudh.venkataramanan@intel.com>
+Tested-by: Andrew Bowers <andrewx.bowers@intel.com>
+Signed-off-by: Jeff Kirsher <jeffrey.t.kirsher@intel.com>
+
+@@@COMMIT a65f71fed5add2ec5713fcc605842f5f2dff22a3
+2019-03-25	Maciej Fijalkowski	ice: map Rx buffer pages with DMA attributes
+
+Provide DMA_ATTR_WEAK_ORDERING and DMA_ATTR_SKIP_CPU_SYNC attributes to
+the DMA API during the mapping operations on Rx side. With this change
+the non-x86 platforms will be able to sync only with what is being used
+(2k buffer) instead of entire page. This should yield a slight
+performance improvement.
+
+Furthermore, DMA unmap may destroy the changes that were made to the
+buffer by CPU when platform is not a x86 one. DMA_ATTR_SKIP_CPU_SYNC
+attribute usage fixes this issue.
+
+Also add a sync_single_for_device call during the Rx buffer assignment,
+to make sure that the cache lines are cleared before device attempting
+to write to the buffer.
+
+Signed-off-by: Maciej Fijalkowski <maciej.fijalkowski@intel.com>
+Signed-off-by: Anirudh Venkataramanan <anirudh.venkataramanan@intel.com>
+Tested-by: Andrew Bowers <andrewx.bowers@intel.com>
+Signed-off-by: Jeff Kirsher <jeffrey.t.kirsher@intel.com>
+
+@@@COMMIT 1857ca42a734d41261f4c30e5f625fa7e2b70b0d
+2019-03-25	Maciej Fijalkowski	ice: Get rid of ice_pull_tail
+
+Instead of adding a frag and later when dealing with EOP frame accessing
+that frag in order to copy the headers onto linear part of skb, we can do
+this in ice_add_rx_frag in case where the data_len is still 0 and frame
+won't fit onto the linear part as a whole.
+
+Function comment of ice_pull_tail was a bit misleading because of
+mentioned optimizations that can be performed (drop a frag/maintaining
+accurate truesize of skb) - it seems that this part of logic was dropped
+and the comment was not updated to reflect this change.
+
+Signed-off-by: Maciej Fijalkowski <maciej.fijalkowski@intel.com>
+Signed-off-by: Anirudh Venkataramanan <anirudh.venkataramanan@intel.com>
+Tested-by: Andrew Bowers <andrewx.bowers@intel.com>
+Signed-off-by: Jeff Kirsher <jeffrey.t.kirsher@intel.com>
+
+@@@COMMIT ba27b4cdaaa66561aaedb2101876e563738d36fe
+2019-03-23	Paolo Abeni	net: dev: introduce support for sch BYPASS for lockless qdisc
+
+With commit c5ad119fb6c0 ("net: sched: pfifo_fast use skb_array")
+pfifo_fast no longer benefit from the TCQ_F_CAN_BYPASS optimization.
+Due to retpolines the cost of the enqueue()/dequeue() pair has become
+relevant and we observe measurable regression for the uncontended
+scenario when the packet-rate is below line rate.
+
+After commit 46b1c18f9deb ("net: sched: put back q.qlen into a
+single location") we can check for empty qdisc with a reasonably
+fast operation even for nolock qdiscs.
+
+This change extends TCQ_F_CAN_BYPASS support to nolock qdisc.
+The new chunk of code mirrors closely the existing one for traditional
+qdisc, leveraging a newly introduced helper to read atomically the
+qdisc length.
+
+Tested with pktgen in queue xmit mode, with pfifo_fast, a MQ
+device, and MQ root qdisc:
+
+threads         vanilla         patched
+                kpps            kpps
+1               2465            2889
+2               4304            5188
+4               7898            9589
+
+Same as above, but with a single queue device:
+
+threads         vanilla         patched
+                kpps            kpps
+1               2556            2827
+2               2900            2900
+4               5000            5000
+8               4700            4700
+
+No mesaurable changes in the contended scenarios, and more 10%
+improvement in the uncontended ones.
+
+ v1 -> v2:
+  - rebased after flag name change
+
+Signed-off-by: Paolo Abeni <pabeni@redhat.com>
+Tested-by: Ivan Vecera <ivecera@redhat.com>
+Reviewed-by: Eric Dumazet <edumazet@google.com>
+Reviewed-by: Ivan Vecera <ivecera@redhat.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT a350eccee5830d9a1f29e393a88dc05a15326d44
+2019-03-20	Paolo Abeni	net: remove 'fallback' argument from dev->ndo_select_queue()
+
+After the previous patch, all the callers of ndo_select_queue()
+provide as a 'fallback' argument netdev_pick_tx.
+The only exceptions are nested calls to ndo_select_queue(),
+which pass down the 'fallback' available in the current scope
+- still netdev_pick_tx.
+
+We can drop such argument and replace fallback() invocation with
+netdev_pick_tx(). This avoids an indirect call per xmit packet
+in some scenarios (TCP syn, UDP unconnected, XDP generic, pktgen)
+with device drivers implementing such ndo. It also clean the code
+a bit.
+
+Tested with ixgbe and CONFIG_FCOE=m
+
+With pktgen using queue xmit:
+threads		vanilla 	patched
+		(kpps)		(kpps)
+1		2334		2428
+2		4166		4278
+4		7895		8100
+
+ v1 -> v2:
+ - rebased after helper's name change
+
+Signed-off-by: Paolo Abeni <pabeni@redhat.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT b71b5837f8711dbc4bc0424cb5c75e5921be055c
+2019-03-20	Paolo Abeni	packet: rework packet_pick_tx_queue() to use common code selection
+
+Currently packet_pick_tx_queue() is the only caller of
+ndo_select_queue() using a fallback argument other than
+netdev_pick_tx.
+
+Leveraging rx queue, we can obtain a similar queue selection
+behavior using core helpers. After this change, ndo_select_queue()
+is always invoked with netdev_pick_tx() as fallback.
+We can change ndo_select_queue() signature in a followup patch,
+dropping an indirect call per transmitted packet in some scenarios
+(e.g. TCP syn and XDP generic xmit)
+
+This changes slightly how af packet queue selection happens when
+PACKET_QDISC_BYPASS is set. It's now more similar to plan dev_queue_xmit()
+tacking in account both XPS and TC mapping.
+
+ v1  -> v2:
+  - rebased after helper name change
+ RFC -> v1:
+  - initialize sender_cpu to the expected value
+
+Signed-off-by: Paolo Abeni <pabeni@redhat.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT ad71b256ba4e6e469d60e3f7b9973fd195b04bee
+2019-03-19	Brett Creeley	ice: Determine descriptor count and ring size based on PAGE_SIZE
+
+Currently we set the default number of Tx and Rx descriptors to 128 by
+default. For Rx this amounts to a full page (assuming 4K pages) because
+each Rx descriptor is 32 Bytes, but for Tx it only amounts to a half
+page because each Tx descriptor is 16 Bytes (assuming 4K pages).
+Instead of assuming 4K pages, determine the ring size and the number of
+descriptors for Tx and Rx based on a calculation using the PAGE_SIZE,
+ICE_MAX_NUM_DESC, and ICE_REQ_DESC_MULTIPLE. This change is being made
+to improve the performance of the driver when using the default
+settings.
+
+Signed-off-by: Brett Creeley <brett.creeley@intel.com>
+Signed-off-by: Anirudh Venkataramanan <anirudh.venkataramanan@intel.com>
+Tested-by: Andrew Bowers <andrewx.bowers@intel.com>
+Signed-off-by: Jeff Kirsher <jeffrey.t.kirsher@intel.com>
+
+@@@COMMIT b0ddfe2bb2bd80b1090d5bf42bb65243b76d3b97
+2019-03-19	Serhey Popovych	intel: correct return from set features callback
+
+According to comments in <linux/netdevice.h> we should return either >0
+or -errno from ->ndo_set_features() if changing dev->features by itself.
+
+Return 1 in such places to notify netdev_update_features() about applied
+changes in dev->features.
+
+Signed-off-by: Serhey Popovych <serhe.popovych@gmail.com>
+Tested-by: Aaron Brown <aaron.f.brown@intel.com>
+Signed-off-by: Jeff Kirsher <jeffrey.t.kirsher@intel.com>
+
+@@@COMMIT b58996795dc4921123ada213f9f10b8317d3f34f
+2019-02-24	Andy Roulin	net: dev: add generic protodown handler
+
+Introduce dev_change_proto_down_generic, a generic ndo_change_proto_down
+implementation, which sets the netdev carrier state according to proto_down.
+
+This adds the ability to set protodown on vxlan and macvlan devices in a
+generic way for use by control protocols like VRRPD.
+
+Signed-off-by: Andy Roulin <aroulin@cumulusnetworks.com>
+Acked-by: Roopa Prabhu <roopa@cumulusnetworks.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT 4a9b32f30f805ca596d76605903a48eab58e0b88
+2019-02-21	Magnus Karlsson	ixgbe: fix potential RX buffer starvation for AF_XDP
+d0bcacd0a130 ("ixgbe: add AF_XDP zero-copy Rx support")
+When the RX rings are created they are also populated with buffers so
+that packets can be received. Usually these are kernel buffers, but
+for AF_XDP in zero-copy mode, these are user-space buffers and in this
+case the application might not have sent down any buffers to the
+driver at this point. And if no buffers are allocated at ring creation
+time, no packets can be received and no interrupts will be generated so
+the NAPI poll function that allocates buffers to the rings will never
+get executed.
+
+To rectify this, we kick the NAPI context of any queue with an
+attached AF_XDP zero-copy socket in two places in the code. Once after
+an XDP program has loaded and once after the umem is registered.  This
+take care of both cases: XDP program gets loaded first then AF_XDP
+socket is created, and the reverse, AF_XDP socket is created first,
+then XDP program is loaded.
+
+Fixes: d0bcacd0a130 ("ixgbe: add AF_XDP zero-copy Rx support")
+Signed-off-by: Magnus Karlsson <magnus.karlsson@intel.com>
+Tested-by: Andrew Bowers <andrewx.bowers@intel.com>
+Signed-off-by: Jeff Kirsher <jeffrey.t.kirsher@intel.com>
+
+@@@COMMIT 2a516444434ffa4419e67c5289d5f53272cb9674
+2019-02-19	Michael Chan	bnxt_en: Propagate trusted VF attribute to firmware.
+
+Newer firmware understands the concept of a trusted VF, so propagate the
+trusted VF attribute set by the PF admin. to the firmware.  Also, check
+the firmware trusted setting when considering the VF MAC address change
+and reporting the trusted setting to the user.
+
+Signed-off-by: Michael Chan <michael.chan@broadcom.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT 407e17b1a69a51ba9a512a04342da56c1f931df4
+2019-02-13	Saeed Mahameed	net/mlx5e: XDP, fix redirect resources availability check
+58b99ee3e3eb ("net/mlx5e: Add support for XDP_REDIRECT in device-out side")
+Currently mlx5 driver creates xdp redirect hw queues unconditionally on
+netdevice open, This is great until someone starts redirecting XDP traffic
+via ndo_xdp_xmit on mlx5 device and changes the device configuration at
+the same time, this might cause crashes, since the other device's napi
+is not aware of the mlx5 state change (resources un-availability).
+
+To fix this we must synchronize with other devices napi's on the system.
+Added a new flag under mlx5e_priv to determine XDP TX resources are
+available, set/clear it up when necessary and use synchronize_rcu()
+when the flag is turned off, so other napi's are in-sync with it, before
+we actually cleanup the hw resources.
+
+The flag is tested prior to committing to transmit on mlx5e_xdp_xmit, and
+it is sufficient to determine if it safe to transmit or not. The other
+two internal flags (MLX5E_STATE_OPENED and MLX5E_SQ_STATE_ENABLED) become
+unnecessary. Thus, they are removed from data path.
+
+Fixes: 58b99ee3e3eb ("net/mlx5e: Add support for XDP_REDIRECT in device-out side")
+Reported-by: Toke Høiland-Jørgensen <toke@redhat.com>
+Reviewed-by: Tariq Toukan <tariqt@mellanox.com>
+Signed-off-by: Saeed Mahameed <saeedm@mellanox.com>
+
+@@@COMMIT 01dde20ce04b3a18f1e91d6d1ee0ef484d20bbf2
+2019-02-01	Maciej Fijalkowski	xdp: Provide extack messages when prog attachment failed
+
+In order to provide more meaningful messages to user when the process of
+loading xdp program onto network interface failed, let's add extack
+messages within dev_change_xdp_fd.
+
+Suggested-by: Jakub Kicinski <jakub.kicinski@netronome.com>
+Signed-off-by: Maciej Fijalkowski <maciej.fijalkowski@intel.com>
+Acked-by: Jesper Dangaard Brouer <brouer@redhat.com>
+Signed-off-by: Daniel Borkmann <daniel@iogearbox.net>
+
+@@@COMMIT 5050471d35d1316ba32dfcbb409978337eb9e75e
+2019-01-30	Toshiaki Makita	virtio_net: Differentiate sk_buff and xdp_frame on freeing
+4941d472bf95 ("virtio-net: do not reset during XDP set")
+We do not reset or free up unused buffers when enabling/disabling XDP,
+so it can happen that xdp_frames are freed after disabling XDP or
+sk_buffs are freed after enabling XDP on xdp tx queues.
+Thus we need to handle both forms (xdp_frames and sk_buffs) regardless
+of XDP setting.
+One way to trigger this problem is to disable XDP when napi_tx is
+enabled. In that case, virtnet_xdp_set() calls virtnet_napi_enable()
+which kicks NAPI. The NAPI handler will call virtnet_poll_cleantx()
+which invokes free_old_xmit_skbs() for queues which have been used by
+XDP.
+
+Note that even with this change we need to keep skipping
+free_old_xmit_skbs() from NAPI handlers when XDP is enabled, because XDP
+tx queues do not aquire queue locks.
+
+- v2: Use napi_consume_skb() instead of dev_consume_skb_any()
+
+Fixes: 4941d472bf95 ("virtio-net: do not reset during XDP set")
+Signed-off-by: Toshiaki Makita <makita.toshiaki@lab.ntt.co.jp>
+Acked-by: Jason Wang <jasowang@redhat.com>
+Acked-by: Michael S. Tsirkin <mst@redhat.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT 03aa6d34868c07b2b1b8b2db080602d7ec528173
+2019-01-30	Toshiaki Makita	virtio_net: Don't process redirected XDP frames when XDP is disabled
+186b3c998c50 ("virtio-net: support XDP_REDIRECT")
+Commit 8dcc5b0ab0ec ("virtio_net: fix ndo_xdp_xmit crash towards dev not
+ready for XDP") tried to avoid access to unexpected sq while XDP is
+disabled, but was not complete.
+
+There was a small window which causes out of bounds sq access in
+virtnet_xdp_xmit() while disabling XDP.
+
+An example case of
+ - curr_queue_pairs = 6 (2 for SKB and 4 for XDP)
+ - online_cpu_num = xdp_queue_paris = 4
+when XDP is enabled:
+
+CPU 0                         CPU 1
+(Disabling XDP)               (Processing redirected XDP frames)
+
+                              virtnet_xdp_xmit()
+virtnet_xdp_set()
+ _virtnet_set_queues()
+  set curr_queue_pairs (2)
+                               check if rq->xdp_prog is not NULL
+                               virtnet_xdp_sq(vi)
+                                qp = curr_queue_pairs -
+                                     xdp_queue_pairs +
+                                     smp_processor_id()
+                                   = 2 - 4 + 1 = -1
+                                sq = &vi->sq[qp] // out of bounds access
+  set xdp_queue_pairs (0)
+  rq->xdp_prog = NULL
+
+Basically we should not change curr_queue_pairs and xdp_queue_pairs
+while someone can read the values. Thus, when disabling XDP, assign NULL
+to rq->xdp_prog first, and wait for RCU grace period, then change
+xxx_queue_pairs.
+Note that we need to keep the current order when enabling XDP though.
+
+- v2: Make rcu_assign_pointer/synchronize_net conditional instead of
+      _virtnet_set_queues.
+
+Fixes: 186b3c998c50 ("virtio-net: support XDP_REDIRECT")
+Signed-off-by: Toshiaki Makita <makita.toshiaki@lab.ntt.co.jp>
+Acked-by: Jason Wang <jasowang@redhat.com>
+Acked-by: Michael S. Tsirkin <mst@redhat.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT 188313c137c4f76afd0862f50dbc185b198b9e2a
+2019-01-30	Toshiaki Makita	virtio_net: Fix not restoring real_num_rx_queues
+4941d472bf95 ("virtio-net: do not reset during XDP set")
+When _virtnet_set_queues() failed we did not restore real_num_rx_queues.
+Fix this by placing the change of real_num_rx_queues after
+_virtnet_set_queues().
+This order is also in line with virtnet_set_channels().
+
+Fixes: 4941d472bf95 ("virtio-net: do not reset during XDP set")
+Signed-off-by: Toshiaki Makita <makita.toshiaki@lab.ntt.co.jp>
+Acked-by: Jason Wang <jasowang@redhat.com>
+Acked-by: Michael S. Tsirkin <mst@redhat.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT 35edfdc77f683c8fd27d7732af06cf6489af60a5
+2019-01-29	Josh Elsasser	net: set default network namespace in init_dummy_netdev()
+7db6b048da3b ("net: Commonize busy polling code to focus on napi_id instead of socket")
+Assign a default net namespace to netdevs created by init_dummy_netdev().
+Fixes a NULL pointer dereference caused by busy-polling a socket bound to
+an iwlwifi wireless device, which bumps the per-net BUSYPOLLRXPACKETS stat
+if napi_poll() received packets:
+
+  BUG: unable to handle kernel NULL pointer dereference at 0000000000000190
+  IP: napi_busy_loop+0xd6/0x200
+  Call Trace:
+    sock_poll+0x5e/0x80
+    do_sys_poll+0x324/0x5a0
+    SyS_poll+0x6c/0xf0
+    do_syscall_64+0x6b/0x1f0
+    entry_SYSCALL_64_after_hwframe+0x3d/0xa2
+
+Fixes: 7db6b048da3b ("net: Commonize busy polling code to focus on napi_id instead of socket")
+Signed-off-by: Josh Elsasser <jelsasser@appneta.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT 149e566fef8120a00c49f24e8f570186200e1e81
+2019-01-25	Moshe Shemesh	net/mlx5e: Expand XPS cpumask to cover all online cpus
+
+Currently we have one cpu in XPS cpumask per tx queue, this is good
+enough for default configuration where there is a tx queue per cpu.
+However, once configuration changes to use less tx queues, part of the
+cpus are not XPS-mapped and so the select queue decision falls back to
+hash calculation and balancing is not guaranteed.
+
+Expand XPS cpumask to enable using all cpus even when number of tx
+queues is smaller than number of cpus.
+
+Signed-off-by: Moshe Shemesh <moshe@mellanox.com>
+Reviewed-off-by: Tariq Toukan <tariqt@mellanox.com>
+Signed-off-by: Saeed Mahameed <saeedm@mellanox.com>
+
+@@@COMMIT 92b32772940b981240f6471a70c0fdbff23983ea
+2019-01-25	Shay Agroskin	net/mlx5e: Fix wrong private flag usage causing checksum disable
+8ff57c18e9f6 ("net/mlx5e: Improve ethtool private-flags code structure")
+MLX5E_PFLAG_* definitions were changed from bitmask to enumerated
+values. However, in mlx5e_open_rq(), the proper API (MLX5E_GET_PFLAG macro)
+was not used to read the flag value of MLX5E_PFLAG_RX_NO_CSUM_COMPLETE.
+Fixed it.
+
+Fixes: 8ff57c18e9f6 ("net/mlx5e: Improve ethtool private-flags code structure")
+Signed-off-by: Shay Agroskin <shayag@mellanox.com>
+Reviewed-by: Tariq Toukan <tariqt@mellanox.com>
+Signed-off-by: Saeed Mahameed <saeedm@mellanox.com>
+
+@@@COMMIT 30e5c2c6bf285d93dee4c45f23da95d7d50b125a
+2019-01-25	David S. Miller	net: Revert devlink health changes.
+
+This reverts the devlink health changes from 9/17/2019,
+Jiri wants things to be designed differently and it was
+agreed that the easiest way to do this is start from the
+beginning again.
+
+Commits reverted:
+
+cb5ccfbe73b389470e1dc11061bb185ef4bc9aec
+880ee82f0313453ec5a6cb122866ac057263066b
+c7af343b4e33578b7de91786a3f639c8cfa0d97b
+ff253fedab961b22117a73ab808fcfa9e6852b50
+6f9d56132eb6d2603d4273cfc65bed914ec47acb
+fcd852c69d776c0f46c8f79e8e431e5cc6ddc7b7
+8a66704a13d9713593342e29b4f0c19762f5746b
+12bd0dcefe88782ac1c9fff632958dd1b71d27e5
+aba25279c10094c5c97d09c3491ca86d00b4ad5e
+ce019faa70f81555fa17ebc1d5a03651f2e7e15a
+b8c45a033acc607201588f7665ba84207e5149e0
+
+And the follow-on build fix:
+
+o33a0efa4baecd689da9474ce0e8b673eb6931c60
+
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT 856c395cfa63b94a1d8215182f0243c222f6f927
+2019-01-22	Cong Wang	net: introduce a knob to control whether to inherit devconf config
+
+There have been many people complaining about the inconsistent
+behaviors of IPv4 and IPv6 devconf when creating new network
+namespaces.  Currently, for IPv4, we inherit all current settings
+from init_net, but for IPv6 we reset all setting to default.
+
+This patch introduces a new /proc file
+/proc/sys/net/core/devconf_inherit_init_net to control the
+behavior of whether to inhert sysctl current settings from init_net.
+This file itself is only available in init_net.
+
+As demonstrated below:
+
+Initial setup in init_net:
+ # cat /proc/sys/net/ipv4/conf/all/rp_filter
+ 2
+ # cat /proc/sys/net/ipv6/conf/all/accept_dad
+ 1
+
+Default value 0 (current behavior):
+ # ip netns del test
+ # ip netns add test
+ # ip netns exec test cat /proc/sys/net/ipv4/conf/all/rp_filter
+ 2
+ # ip netns exec test cat /proc/sys/net/ipv6/conf/all/accept_dad
+ 0
+
+Set to 1 (inherit from init_net):
+ # echo 1 > /proc/sys/net/core/devconf_inherit_init_net
+ # ip netns del test
+ # ip netns add test
+ # ip netns exec test cat /proc/sys/net/ipv4/conf/all/rp_filter
+ 2
+ # ip netns exec test cat /proc/sys/net/ipv6/conf/all/accept_dad
+ 1
+
+Set to 2 (reset to default):
+ # echo 2 > /proc/sys/net/core/devconf_inherit_init_net
+ # ip netns del test
+ # ip netns add test
+ # ip netns exec test cat /proc/sys/net/ipv4/conf/all/rp_filter
+ 0
+ # ip netns exec test cat /proc/sys/net/ipv6/conf/all/accept_dad
+ 0
+
+Set to a value out of range (invalid):
+ # echo 3 > /proc/sys/net/core/devconf_inherit_init_net
+ -bash: echo: write error: Invalid argument
+ # echo -1 > /proc/sys/net/core/devconf_inherit_init_net
+ -bash: echo: write error: Invalid argument
+
+Reported-by: Zhu Yanjun <Yanjun.Zhu@windriver.com>
+Reported-by: Tonghao Zhang <xiangxia.m.yue@gmail.com>
+Cc: Nicolas Dichtel <nicolas.dichtel@6wind.com>
+Signed-off-by: Cong Wang <xiyou.wangcong@gmail.com>
+Acked-by: Nicolas Dichtel <nicolas.dichtel@6wind.com>
+Acked-by: Tonghao Zhang <xiangxia.m.yue@gmail.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT 0b815023a1d479aa8f8851ee880d5388e53b7ae5
+2019-01-12	Michael Chan	bnxt_en: Fix ring checking logic on 57500 chips.
+36d65be9a880 ("bnxt_en: Disable MSIX before re-reserving NQs/CMPL rings.")
+In bnxt_hwrm_check_pf_rings(), add the proper flag to test the NQ
+resources.  Without the proper flag, the firmware will change
+the NQ resource allocation and remap the IRQ, causing missing
+IRQs.  This issue shows up when adding MQPRIO TX queues, for example.
+
+Fixes: 36d65be9a880 ("bnxt_en: Disable MSIX before re-reserving NQs/CMPL rings.")
+Signed-off-by: Michael Chan <michael.chan@broadcom.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT 750afb08ca71310fcf0c4e2cb1565c63b8235b60
+2019-01-08	Luis Chamberlain	cross-tree: phase out dma_zalloc_coherent()
+
+We already need to zero out memory for dma_alloc_coherent(), as such
+using dma_zalloc_coherent() is superflous. Phase it out.
+
+This change was generated with the following Coccinelle SmPL patch:
+
+@ replace_dma_zalloc_coherent @
+expression dev, size, data, handle, flags;
+@@
+
+-dma_zalloc_coherent(dev, size, handle, flags)
++dma_alloc_coherent(dev, size, handle, flags)
+
+Suggested-by: Christoph Hellwig <hch@lst.de>
+Signed-off-by: Luis Chamberlain <mcgrof@kernel.org>
+[hch: re-ran the script on the latest tree]
+Signed-off-by: Christoph Hellwig <hch@lst.de>
+
+@@@COMMIT feb2ff9d74f76a174e284255b7e537b6c090c13c
+2018-12-20	Tariq Toukan	net/mlx5e: XDP, Change the XDP SQ redirect indication
+
+Do not maintain an SQ state bit to indicate whether an
+XDP SQ serves redirect operations.
+
+Instead, rely on the fact that such an XDP SQ doesn't reside
+in an RQ instance, while the others do.
+This info is not known to the XDP SQ functions themselves,
+and they rely on their callers to distinguish between the cases.
+
+Signed-off-by: Tariq Toukan <tariqt@mellanox.com>
+Signed-off-by: Saeed Mahameed <saeedm@mellanox.com>
+
+@@@COMMIT a02e8964eaf9271a8a5fcc0c55bd13f933bafc56
+2018-12-20	Willem de Bruijn	virtio-net: ethtool configurable LRO
+
+Virtio-net devices negotiate LRO support with the host.
+Display the initially negotiated state with ethtool -k.
+
+Also allow configuring it with ethtool -K, reusing the existing
+virtnet_set_guest_offloads helper that configures LRO for XDP.
+This is conditional on VIRTIO_NET_F_CTRL_GUEST_OFFLOADS.
+
+Virtio-net negotiates TSO4 and TSO6 separately, but ethtool does not
+distinguish between the two. Display LRO as on only if any offload
+is active.
+
+RTNL is held while calling virtnet_set_features, same as on the path
+from virtnet_xdp_set.
+
+Changes v1 -> v2
+  - allow ethtool config (-K) only if VIRTIO_NET_F_CTRL_GUEST_OFFLOADS
+  - show LRO as enabled if any LRO variant is enabled
+  - do not allow configuration while XDP is active
+  - differentiate current features from the capable set, to restore
+    on XDP down only those features that were active on XDP up
+  - move test out of VIRTIO_NET_F_CSUM/TSO branch, which is tx only
+
+Signed-off-by: Willem de Bruijn <willemb@google.com>
+Acked-by: Michael S. Tsirkin <mst@redhat.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT 760b6d33410cda351f236058585471cb0f417978
+2018-12-20	Venkat Duvvuru	bnxt_en: Add support for 2nd firmware message channel.
+
+Earlier, some of the firmware commands (ex: CFA_FLOW_*) which are processed
+by KONG processor were sent to the CHIMP processor from the host. This
+approach was taken as there was no direct message channel to KONG.
+CHIMP in turn used to send them to KONG. Newer firmware supports a new
+message channel which the host can send messages directly to the KONG
+processor.
+
+This patch adds support for required changes needed in the driver
+to support direct KONG message channel.  This speeds up flow related
+messages sent to the firmware for CLS_FLOWER offload.
+
+Signed-off-by: Venkat Duvvuru <venkatkumar.duvvuru@broadcom.com>
+Signed-off-by: Michael Chan <michael.chan@broadcom.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT 2fdb435bc0d7492b8137d4c9db6a465511154e29
+2018-12-19	Florian Westphal	drivers: net: intel: use secpath helpers in more places
+
+Use skb_sec_path and secpath_exists helpers where possible.
+This reduces noise in followup patch that removes skb->sp pointer.
+
+v2: no changes, preseve acks from v1.
+
+Acked-by: Shannon Nelson <shannon.lee.nelson@gmail.com>
+Signed-off-by: Florian Westphal <fw@strlen.de>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT 36d65be9a88052cdfc8524eb591baf0e6c878408
+2018-12-17	Michael Chan	bnxt_en: Disable MSIX before re-reserving NQs/CMPL rings.
+
+When bringing up a device, the code checks to see if the number of
+MSIX has changed.  pci_disable_msix() should be called first before
+changing the number of reserved NQs/CMPL rings.  This ensures that
+the MSIX vectors associated with the NQs/CMPL rings are still
+properly mapped when pci_disable_msix() masks the vectors.
+
+This patch will prevent errors when RDMA support is added for the new
+57500 chips.  When the RDMA driver shuts down, the number of NQs is
+decreased and we must use the new sequence to prevent MSIX errors.
+
+Signed-off-by: Michael Chan <michael.chan@broadcom.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT aaa5d90b395a72faff797b00d815165ee0e664c0
+2018-12-15	Paolo Abeni	net: use indirect call wrappers at GRO network layer
+
+This avoids an indirect calls for L3 GRO receive path, both
+for ipv4 and ipv6, if the latter is not compiled as a module.
+
+Note that when IPv6 is compiled as builtin, it will be checked first,
+so we have a single additional compare for the more common path.
+
+v1 -> v2:
+ - adapted to INDIRECT_CALL_ changes
+
+Signed-off-by: Paolo Abeni <pabeni@redhat.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT d59cdf9475ad84d1f57cab1d162cf289702cfb15
+2018-12-13	Petr Machata	net: dev: Issue NETDEV_PRE_CHANGEADDR
+
+When a device address is about to be changed, or an address added to the
+list of device HW addresses, it is necessary to ensure that all
+interested parties can support the address. Therefore, send the
+NETDEV_PRE_CHANGEADDR notification, and if anyone bails on it, do not
+change the address.
+
+Signed-off-by: Petr Machata <petrm@mellanox.com>
+Acked-by: Jiri Pirko <jiri@mellanox.com>
+Reviewed-by: Ido Schimmel <idosch@mellanox.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT 1570415f0810fce085066fb39827397452c3965a
+2018-12-13	Petr Machata	net: dev: Add NETDEV_PRE_CHANGEADDR
+
+The NETDEV_CHANGEADDR notification is emitted after a device address
+changes. Extending this message to allow vetoing is certainly possible,
+but several other notification types have instead adopted a simple
+two-stage approach: first a "pre" notification is sent to make sure all
+interested parties are OK with a change that's about to be done. Then
+the change is done, and afterwards a "post" notification is sent.
+
+This dual approach is easier to use: when the change is vetoed, nothing
+has changed yet, and it's therefore unnecessary to roll anything back.
+Therefore adopt it for NETDEV_CHANGEADDR as well.
+
+To that end, add NETDEV_PRE_CHANGEADDR and an info structure to go along
+with it.
+
+Signed-off-by: Petr Machata <petrm@mellanox.com>
+Acked-by: Jiri Pirko <jiri@mellanox.com>
+Reviewed-by: Ido Schimmel <idosch@mellanox.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT 3a37a9636cf3a1af2621a33f7eef8a2a3da81030
+2018-12-13	Petr Machata	net: dev: Add extack argument to dev_set_mac_address()
+
+A follow-up patch will add a notifier type NETDEV_PRE_CHANGEADDR, which
+allows vetoing of MAC address changes. One prominent path to that
+notification is through dev_set_mac_address(). Therefore give this
+function an extack argument, so that it can be packed together with the
+notification. Thus a textual reason for rejection (or a warning) can be
+communicated back to the user.
+
+Signed-off-by: Petr Machata <petrm@mellanox.com>
+Acked-by: Jiri Pirko <jiri@mellanox.com>
+Reviewed-by: Ido Schimmel <idosch@mellanox.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT 2fd527b72bb6f95dfe8a1902e998cb76390c431e
+2018-12-12	Petr Machata	net: ndo_bridge_setlink: Add extack
+
+Drivers may not be able to implement a VLAN addition or reconfiguration.
+In those cases it's desirable to explain to the user that it was
+rejected (and why).
+
+To that end, add extack argument to ndo_bridge_setlink. Adapt all users
+to that change.
+
+Following patches will use the new argument in the bridge driver.
+
+Signed-off-by: Petr Machata <petrm@mellanox.com>
+Acked-by: Jiri Pirko <jiri@mellanox.com>
+Reviewed-by: Ido Schimmel <idosch@mellanox.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT 5c7e8bbb025726f9cb9b2bc050509a94262426f8
+2018-12-11	Eyal Davidovich	net/mlx5e: Use monitor counters for update stats
+
+- Adding new notifier block (struct mlx5_nb) monitor_counters_nb
+  for handeling MONITOR_COUNTER new event type.
+- Adding work queue element: monitor_counters_work for re-arm and
+  update stats.
+- We re-queue the update stat work, only when working over firmware
+  that doesn't support the monitored counters.
+
+Signed-off-by: Eyal Davidovich <eyald@mellanox.com>
+Reviewed-by: Saeed Mahameed <saeedm@mellanox.com>
+Signed-off-by: Saeed Mahameed <saeedm@mellanox.com>
+
+@@@COMMIT 71d82d2a90327c9c816e65471b7859b601993f89
+2018-12-10	Oz Shlomo	net/mlx5e: Provide the TC filter netdev as parameter to flower callbacks
+
+Currently the driver controls flower filters that are installed on its
+devices. However, with the introduction of the indirect block
+notifications platform the driver may receive control events for filters
+that are installed on higher level net devices (e.g. tunnel devices).
+Therefore, the driver filter control API will not be able to implicitly
+assume the filter's net device.
+
+Explicitly specify the filter's net device, no functional change
+
+Signed-off-by: Oz Shlomo <ozsh@mellanox.com>
+Reviewed-by: Eli Britstein <elibr@mellanox.com>
+Reviewed-by: Or Gerlitz <ogerlitz@mellanox.com>
+Signed-off-by: Saeed Mahameed <saeedm@mellanox.com>
+
+@@@COMMIT 804fba4e9f508c8004a4bfbdf3f300ca237c56df
+2018-12-09	Michael Chan	bnxt_en: Fix CNP CoS queue regression.
+98f04cf0f1fc ("bnxt_en: Check context memory requirements from firmware.")
+Recent changes to support the 57500 devices have created this
+regression.  The bnxt_hwrm_queue_qportcfg() call was moved to be
+called earlier before the RDMA support was determined, causing
+the CoS queues configuration to be set before knowing whether RDMA
+was supported or not.  Fix it by moving it to the right place right
+after RDMA support is determined.
+
+Fixes: 98f04cf0f1fc ("bnxt_en: Check context memory requirements from firmware.")
+Signed-off-by: Michael Chan <michael.chan@broadcom.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT 40c900aa1ff580afe941ff77f327f004546f0ce7
+2018-12-06	Petr Machata	net: core: dev: Attach extack to NETDEV_PRE_UP
+
+Drivers may need to validate configuration of a device that's about to
+be upped. Should the validation fail, there's currently no way to
+communicate details of the failure to the user, beyond an error number.
+
+To mend that, change __dev_open() to take an extack argument and pass it
+from __dev_change_flags() and dev_open(), where it was propagated in the
+previous patches.
+
+Change __dev_open() to call call_netdevice_notifiers_extack() so that
+the passed-in extack is attached to the NETDEV_PRE_UP notifier.
+
+Signed-off-by: Petr Machata <petrm@mellanox.com>
+Acked-by: Jiri Pirko <jiri@mellanox.com>
+Reviewed-by: Ido Schimmel <idosch@mellanox.com>
+Reviewed-by: David Ahern <dsahern@gmail.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT 6d0403216d030e5623de3911168fceeaac2e14d6
+2018-12-06	Petr Machata	net: core: dev: Add extack argument to __dev_change_flags()
+
+In order to pass extack together with NETDEV_PRE_UP notifications, it's
+necessary to route the extack to __dev_open() from diverse (possibly
+indirect) callers. The last missing API is __dev_change_flags().
+
+Therefore extend __dev_change_flags() with and extra extack argument and
+update the two existing users.
+
+Since the function declaration line is changed anyway, name the struct
+net_device argument to placate checkpatch.
+
+Signed-off-by: Petr Machata <petrm@mellanox.com>
+Acked-by: Jiri Pirko <jiri@mellanox.com>
+Reviewed-by: Ido Schimmel <idosch@mellanox.com>
+Reviewed-by: David Ahern <dsahern@gmail.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT 567c5e13be5cc74d24f5eb54cf353c2e2277189b
+2018-12-06	Petr Machata	net: core: dev: Add extack argument to dev_change_flags()
+
+In order to pass extack together with NETDEV_PRE_UP notifications, it's
+necessary to route the extack to __dev_open() from diverse (possibly
+indirect) callers. One prominent API through which the notification is
+invoked is dev_change_flags().
+
+Therefore extend dev_change_flags() with and extra extack argument and
+update all users. Most of the calls end up just encoding NULL, but
+several sites (VLAN, ipvlan, VRF, rtnetlink) do have extack available.
+
+Since the function declaration line is changed anyway, name the other
+function arguments to placate checkpatch.
+
+Signed-off-by: Petr Machata <petrm@mellanox.com>
+Acked-by: Jiri Pirko <jiri@mellanox.com>
+Reviewed-by: Ido Schimmel <idosch@mellanox.com>
+Reviewed-by: David Ahern <dsahern@gmail.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT 756c41603a189e4ae9dca77c3c3d80a926d8bedf
+2018-12-05	Aya Levin	net/mlx5e: ethtool, Support user configuration for RX hash fields
+
+Enable user configuration of RX hash fields that are used for traffic
+spreading into RX queues. User can change built-in RSS (Receive Side
+Scaling) profiles on the following traffic types: UDP4, UDP6, TCP4 and
+TCP6.  This configuration effects both outer and inner headers.  Added
+support for ethtool commands: ETHTOOL_SRXFH and ETHTOOL_GRXFH.
+
+Command example respectively:
+$ethtool -N eth1 rx-flow-hash tcp4 sdfn
+$ethtool -n eth1 rx-flow-hash tcpp4
+IP SA
+IP DA
+L4 bytes 0 & 1 [TCP/UDP src port]
+L4 bytes 2 & 3 [TCP/UDP dst port]
+
+Signed-off-by: Aya Levin <ayal@mellanox.com>
+Reviewed-by: Tariq Toukan <tariqt@mellanox.com>
+Signed-off-by: Saeed Mahameed <saeedm@mellanox.com>
+
+@@@COMMIT bbeb53b8b2c92fd4e5b51e8fd9ab1c4000e4d350
+2018-12-05	Aya Levin	net/mlx5e: Move RSS params to a dedicated struct
+
+Remove RSS params from params struct under channels, and introduce
+a new struct with RSS configuration params under priv struct. There is
+no functional change here.
+
+Signed-off-by: Aya Levin <ayal@mellanox.com>
+Reviewed-by: Tariq Toukan <tariqt@mellanox.com>
+Signed-off-by: Saeed Mahameed <saeedm@mellanox.com>
+
+@@@COMMIT 080d1b17fbc51789287cd8b2044a8cc9ec600e81
+2018-12-04	Aya Levin	net/mlx5e: Move modify tirs hash functionality
+
+Move modify tirs hash functionality (mlx5e_modify_tirs_hash) from
+en_ethtool.c to en_main.c. This allows future use of this fuctionality
+from en_fs_ethtool.c, while keeping current convention: en_ethtool.c
+doesn't have an API.  There is no functional change here.
+
+Signed-off-by: Aya Levin <ayal@mellanox.com>
+Reviewed-by: Tariq Toukan <tariqt@mellanox.com>
+Signed-off-by: Saeed Mahameed <saeedm@mellanox.com>
+
+@@@COMMIT 7cffaddd39b438fab49863ea4602d6294a9d657f
+2018-11-29	Saeed Mahameed	net/mlx5e: Use the new mlx5 core notifier API
+
+Remove the deprecated mlx5_interface->event mlx5e callback and use new
+mlx5 notifier API to subscribe for mlx5 events, handle port change event
+as received from FW rather than handling the mlx5 core processed port
+change software version event.
+
+Signed-off-by: Saeed Mahameed <saeedm@mellanox.com>
+
+@@@COMMIT 8166abb1ea7d53a26ac0e2598b77a5440216811a
+2018-11-21	Paul E. McKenney	ixgbe: Replace synchronize_sched() with synchronize_rcu()
+
+Now that synchronize_rcu() waits for preempt-disable regions of code
+as well as RCU read-side critical sections, synchronize_sched() can be
+replaced by synchronize_rcu().  This commit therefore makes this change.
+
+Signed-off-by: "Paul E. McKenney" <paulmck@linux.ibm.com>
+Tested-by: Andrew Bowers <andrewx.bowers@intel.com>
+Signed-off-by: Jeff Kirsher <jeffrey.t.kirsher@intel.com>
+
+@@@COMMIT 0bcd952feec7042d9a5383b639c8edc943402add
+2018-11-21	Jesse Brandeburg	ethernet/intel: consolidate NAPI and NAPI exit
+
+While reviewing code, I noticed that Eric Dumazet recommends that
+drivers check the return code of napi_complete_done, and use that
+to decide to enable interrupts or not when exiting poll.  One of
+the Intel drivers was already fixed (ixgbe).
+
+Upon looking at the Intel drivers as a whole, we are handling our
+polling and NAPI exit in a few different ways based on whether we
+have multiqueue and whether we have Tx cleanup included. Several
+drivers had the bug of exiting NAPI with return 0, which appears
+to mess up the accounting in the stack.
+
+Consolidate all the NAPI routines to do best known way of exiting
+and to just mostly look like each other.
+1) check return code of napi_complete_done to control interrupt enable
+2) return the actual amount of work done.
+3) return budget immediately if need NAPI poll again
+
+Tested the changes on e1000e with a high interrupt rate set, and
+it shows about an 8% reduction in the CPU utilization when busy
+polling because we aren't re-enabling interrupts when we're about
+to be polled.
+
+Signed-off-by: Jesse Brandeburg <jesse.brandeburg@intel.com>
+Tested-by: Andrew Bowers <andrewx.bowers@intel.com>
+Reviewed-by: Jacob Keller <jacob.e.keller@intel.com>
+Signed-off-by: Jeff Kirsher <jeffrey.t.kirsher@intel.com>
+
+@@@COMMIT df17b7e02f0fa3a13c5aac26c317447d72612e1c
+2018-11-20	Anirudh Venkataramanan	ice: Cosmetic formatting changes
+
+1. Fix several cases of double spacing
+2. Fix typos
+3. Capitalize abbreviations
+
+Signed-off-by: Anirudh Venkataramanan <anirudh.venkataramanan@intel.com>
+Tested-by: Andrew Bowers <andrewx.bowers@intel.com>
+Signed-off-by: Jeff Kirsher <jeffrey.t.kirsher@intel.com>
+
+@@@COMMIT e0c9fd9b77a7334032ec407d9e14d7c3cac1ac4f
+2018-11-20	Dave Ertman	ice: Fix return value from NAPI poll
+
+ice_napi_poll is hard-coded to return zero when it's done. It should
+instead return the work done (if any work was done). The only time it
+should return zero is if an interrupt or poll is handled and no work
+is performed. So change the return value to be the minimum of work
+done or budget-1.
+
+Signed-off-by: Dave Ertman <david.m.ertman@intel.com>
+Signed-off-by: Anirudh Venkataramanan <anirudh.venkataramanan@intel.com>
+Tested-by: Andrew Bowers <andrewx.bowers@intel.com>
+Signed-off-by: Jeff Kirsher <jeffrey.t.kirsher@intel.com>
+
+@@@COMMIT 1e86ace4c140fd5a693e266c9b23409358f25381
+2018-11-20	Saeed Mahameed	net/mlx5: EQ, Use the right place to store/read IRQ affinity hint
+
+Currently the cpu affinity hint mask for completion EQs is stored and
+read from the wrong place, since reading and storing is done from the
+same index, there is no actual issue with that, but internal irq_info
+for completion EQs stars at MLX5_EQ_VEC_COMP_BASE offset in irq_info
+array, this patch changes the code to use the correct offset to store
+and read the IRQ affinity hint.
+
+Signed-off-by: Saeed Mahameed <saeedm@mellanox.com>
+Reviewed-by: Leon Romanovsky <leonro@mellanox.com>
+Reviewed-by: Tariq Toukan <tariqt@mellanox.com>
+Signed-off-by: Leon Romanovsky <leonro@mellanox.com>
+
+@@@COMMIT 890d8d23ec3c9eca847be0593c0cf5f650b97271
+2018-11-19	Jakub Kicinski	net: sched: gred: add basic Qdisc offload
+
+Add basic offload for the GRED Qdisc.  Inform the drivers any
+time Qdisc or virtual queue configuration changes.
+
+Signed-off-by: Jakub Kicinski <jakub.kicinski@netronome.com>
+Reviewed-by: John Hurley <john.hurley@netronome.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT a1f240f1801721f76bee734c50df2d9529da86e0
+2018-11-19	Yuval Avnery	net/mlx5e: Adjust to max number of channles when re-attaching
+89d44f0a6c73 ("net/mlx5_core: Add pci error handlers to mlx5_core driver")
+When core driver enters deattach/attach flow after pci reset,
+Number of logical CPUs may have changed.
+As a result we need to update the cpu affiliated resource tables.
+	1. indirect rqt list
+	2. eq table
+
+Reproduction (PowerPC):
+	echo 1000 > /sys/kernel/debug/powerpc/eeh_max_freezes
+	ppc64_cpu --smt=on
+	# Restart driver
+	modprobe -r ... ; modprobe ...
+	# Link up
+	ifconfig ...
+	# Only physical CPUs
+	ppc64_cpu --smt=off
+	# Inject PCI errors so PCI will reset - calling the pci error handler
+	echo 0x8000000000000000 > /sys/kernel/debug/powerpc/<PCI BUS>/err_injct_inboundA
+
+Call trace when trying to add non-existing rqs to an indirect rqt:
+	mlx5e_redirect_rqt+0x84/0x260 [mlx5_core] (unreliable)
+	mlx5e_redirect_rqts+0x188/0x190 [mlx5_core]
+	mlx5e_activate_priv_channels+0x488/0x570 [mlx5_core]
+	mlx5e_open_locked+0xbc/0x140 [mlx5_core]
+	mlx5e_open+0x50/0x130 [mlx5_core]
+	mlx5e_nic_enable+0x174/0x1b0 [mlx5_core]
+	mlx5e_attach_netdev+0x154/0x290 [mlx5_core]
+	mlx5e_attach+0x88/0xd0 [mlx5_core]
+	mlx5_attach_device+0x168/0x1e0 [mlx5_core]
+	mlx5_load_one+0x1140/0x1210 [mlx5_core]
+	mlx5_pci_resume+0x6c/0xf0 [mlx5_core]
+
+Create cq will fail when trying to use non-existing EQ.
+
+Fixes: 89d44f0a6c73 ("net/mlx5_core: Add pci error handlers to mlx5_core driver")
+Signed-off-by: Yuval Avnery <yuvalav@mellanox.com>
+Signed-off-by: Saeed Mahameed <saeedm@mellanox.com>
+
+@@@COMMIT 00db12c3d141356a4d1e6b6f688e0d5ed3b1f757
+2018-11-10	Quentin Monnet	bpf: call verifier_prep from its callback in struct bpf_offload_dev
+
+In a way similar to the change previously brought to the verify_insn
+hook and to the finalize callback, switch to the newly added ops in
+struct bpf_prog_offload for calling the functions used to prepare driver
+verifiers.
+
+Since the dev_ops pointer in struct bpf_prog_offload is no longer used
+by any callback, we can now remove it from struct bpf_prog_offload.
+
+Signed-off-by: Quentin Monnet <quentin.monnet@netronome.com>
+Reviewed-by: Jakub Kicinski <jakub.kicinski@netronome.com>
+Signed-off-by: Alexei Starovoitov <ast@kernel.org>
+
+@@@COMMIT e7946760de5852f32c4e52ce47f37e85346981b9
+2018-11-08	Ivan Khoronzhuk	net: core: dev_addr_lists: add auxiliary func to handle reference address updates
+
+In order to avoid all table update, and only remove or add new
+address, the auxiliary function exists, named __hw_addr_sync_dev().
+It allows end driver do nothing when nothing changed and add/rm when
+concrete address is firstly added or lastly removed. But it doesn't
+include cases when an address of real device or vlan was reused by
+other vlans or vlan/macval devices.
+
+For handaling events when address was reused/unreused the patch adds
+new auxiliary routine - __hw_addr_ref_sync_dev(). It allows to do
+nothing when nothing was changed and do updates only for an address
+being added/reused/deleted/unreused. Thus, clone address changes for
+vlans can be mirrored in the table. The function is exclusive with
+__hw_addr_sync_dev(). It's responsibility of the end driver to
+identify address vlan device, if it needs so.
+
+Signed-off-by: Ivan Khoronzhuk <ivan.khoronzhuk@linaro.org>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT a9e510589d7017ee4e82800d0a1d78a694772787
+2018-11-07	Jacob Keller	intel-ethernet: software timestamp skbs as late as possible
+
+Many of the Intel Ethernet drivers call skb_tx_timestamp() earlier than
+necessary. Move the calls to this function to the latest point possible,
+just prior to notifying hardware of the new Tx packet when we bump the
+tail register.
+
+This affects i40e, iavf, igb, igc, and ixgbe.
+
+The e100, e1000, e1000e, fm10k, and ice drivers already call the
+skb_tx_timestamp() function just prior to indicating the Tx packet to
+hardware, so they do not need to be changed.
+
+Signed-off-by: Jacob Keller <jacob.e.keller@intel.com>
+Tested-by: Andrew Bowers <andrewx.bowers@intel.com>
+Signed-off-by: Jeff Kirsher <jeffrey.t.kirsher@intel.com>
+
+@@@COMMIT c585ea42ec75e8d3afa278b7095d9f0dd6ee515b
+2018-11-06	Brett Creeley	ice: Fix tx_timeout in PF driver
+
+Prior to this commit the driver was running into tx_timeouts when a
+queue was stressed enough. This was happening because the HW tail
+and SW tail (NTU) were incorrectly out of sync. Consequently this was
+causing the HW head to collide with the HW tail, which to the hardware
+means that all descriptors posted for Tx have been processed.
+
+Due to the Tx logic used in the driver SW tail and HW tail are allowed
+to be out of sync. This is done as an optimization because it allows the
+driver to write HW tail as infrequently as possible, while still
+updating the SW tail index to keep track. However, there are situations
+where this results in the tail never getting updated, resulting in Tx
+timeouts.
+
+Tx HW tail write condition:
+	if (netif_xmit_stopped(txring_txq(tx_ring) || !skb->xmit_more)
+		writel(sw_tail, tx_ring->tail);
+
+An issue was found in the Tx logic that was causing the afore mentioned
+condition for updating HW tail to never happen, causing tx_timeouts.
+
+In ice_xmit_frame_ring we calculate how many descriptors we need for the
+Tx transaction based on the skb the kernel hands us. This is then passed
+into ice_maybe_stop_tx along with some extra padding to determine if we
+have enough descriptors available for this transaction. If we don't then
+we return -EBUSY to the stack, otherwise we move on and eventually
+prepare the Tx descriptors accordingly in ice_tx_map and set
+next_to_watch. In ice_tx_map we make another call to ice_maybe_stop_tx
+with a value of MAX_SKB_FRAGS + 4. The key here is that this value is
+possibly less than the value we sent in the first call to
+ice_maybe_stop_tx in ice_xmit_frame_ring. Now, if the number of unused
+descriptors is between MAX_SKB_FRAGS + 4 and the value used in the first
+call to ice_maybe_stop_tx in ice_xmit_frame_ring then we do not update
+the HW tail because of the "Tx HW tail write condition" above. This is
+because in ice_maybe_stop_tx we return success from ice_maybe_stop_tx
+instead of calling __ice_maybe_stop_tx and subsequently calling
+netif_stop_subqueue, which sets the __QUEUE_STATE_DEV_XOFF bit. This
+bit is then checked in the "Tx HW tail write condition" by calling
+netif_xmit_stopped and subsequently updating HW tail if the
+afore mentioned bit is set.
+
+In ice_clean_tx_irq, if next_to_watch is not NULL, we end up cleaning
+the descriptors that HW sets the DD bit on and we have the budget. The
+HW head will eventually run into the HW tail in response to the
+description in the paragraph above.
+
+The next time through ice_xmit_frame_ring we make the initial call to
+ice_maybe_stop_tx with another skb from the stack. This time we do not
+have enough descriptors available and we return NETDEV_TX_BUSY to the
+stack and end up setting next_to_watch to NULL.
+
+This is where we are stuck. In ice_clean_tx_irq we never clean anything
+because next_to_watch is always NULL and in ice_xmit_frame_ring we never
+update HW tail because we already return NETDEV_TX_BUSY to the stack and
+eventually we hit a tx_timeout.
+
+This issue was fixed by making sure that the second call to
+ice_maybe_stop_tx in ice_tx_map is passed a value that is >= the value
+that was used on the initial call to ice_maybe_stop_tx in
+ice_xmit_frame_ring. This was done by adding the following defines to
+make the logic more clear and to reduce the chance of mucking this up
+again:
+
+ICE_CACHE_LINE_BYTES		64
+ICE_DESCS_PER_CACHE_LINE	(ICE_CACHE_LINE_BYTES / \
+				 sizeof(struct ice_tx_desc))
+ICE_DESCS_FOR_CTX_DESC		1
+ICE_DESCS_FOR_SKB_DATA_PTR	1
+
+The ICE_CACHE_LINE_BYTES being 64 is an assumption being made so we
+don't have to figure this out on every pass through the Tx path. Instead
+I added a sanity check in ice_probe to verify cache line size and print
+a message if it's not 64 Bytes. This will make it easier to file issues
+if they are seen when the cache line size is not 64 Bytes when reading
+from the GLPCI_CNF2 register.
+
+Signed-off-by: Brett Creeley <brett.creeley@intel.com>
+Signed-off-by: Anirudh Venkataramanan <anirudh.venkataramanan@intel.com>
+Tested-by: Andrew Bowers <andrewx.bowers@intel.com>
+Signed-off-by: Jeff Kirsher <jeffrey.t.kirsher@intel.com>
+
+@@@COMMIT 3e59020abf0f88182730527ee5b862e786eb485a
+2018-11-03	Eric Dumazet	net: bql: add __netdev_tx_sent_queue()
+
+When qdisc_run() tries to use BQL budget to bulk-dequeue a batch
+of packets, GSO can later transform this list in another list
+of skbs, and each skb is sent to device ndo_start_xmit(),
+one at a time, with skb->xmit_more being set to one but
+for last skb.
+
+Problem is that very often, BQL limit is hit in the middle of
+the packet train, forcing dev_hard_start_xmit() to stop the
+bulk send and requeue the end of the list.
+
+BQL role is to avoid head of line blocking, making sure
+a qdisc can deliver high priority packets before low priority ones.
+
+But there is no way requeued packets can be bypassed by fresh
+packets in the qdisc.
+
+Aborting the bulk send increases TX softirqs, and hot cache
+lines (after skb_segment()) are wasted.
+
+Note that for TSO packets, we never split a packet in the middle
+because of BQL limit being hit.
+
+Drivers should be able to update BQL counters without
+flipping/caring about BQL status, if the current skb
+has xmit_more set.
+
+Upper layers are ultimately responsible to stop sending another
+packet train when BQL limit is hit.
+
+Code template in a driver might look like the following :
+
+	send_doorbell = __netdev_tx_sent_queue(tx_queue, nr_bytes, skb->xmit_more);
+
+Note that __netdev_tx_sent_queue() use is not mandatory,
+since following patch will change dev_hard_start_xmit()
+to not care about BQL status.
+
+But it is highly recommended so that xmit_more full benefits
+can be reached (less doorbells sent, and less atomic operations as well)
+
+Signed-off-by: Eric Dumazet <edumazet@google.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT d48051c5b8376038c2b287c3b1bd55b8d391d567
+2018-10-31	Eric Dumazet	net/mlx5e: fix csum adjustments caused by RXFCS
+902a545904c7 ("net/mlx5e: When RXFCS is set, add FCS data into checksum calculation")
+As shown by Dmitris, we need to use csum_block_add() instead of csum_add()
+when adding the FCS contribution to skb csum.
+
+Before 4.18 (more exactly commit 88078d98d1bb "net: pskb_trim_rcsum()
+and CHECKSUM_COMPLETE are friends"), the whole skb csum was thrown away,
+so RXFCS changes were ignored.
+
+Then before commit d55bef5059dd ("net: fix pskb_trim_rcsum_slow() with
+odd trim offset") both mlx5 and pskb_trim_rcsum_slow() bugs were canceling
+each other.
+
+Now we fixed pskb_trim_rcsum_slow() we need to fix mlx5.
+
+Note that this patch also rewrites mlx5e_get_fcs() to :
+
+- Use skb_header_pointer() instead of reinventing it.
+- Use __get_unaligned_cpu32() to avoid possible non aligned accesses
+  as Dmitris pointed out.
+
+Fixes: 902a545904c7 ("net/mlx5e: When RXFCS is set, add FCS data into checksum calculation")
+Reported-by: Paweł Staszewski <pstaszewski@itcare.pl>
+Signed-off-by: Eric Dumazet <edumazet@google.com>
+Cc: Eran Ben Elisha <eranbe@mellanox.com>
+Cc: Saeed Mahameed <saeedm@mellanox.com>
+Cc: Dimitris Michailidis <dmichail@google.com>
+Cc: Cong Wang <xiyou.wangcong@gmail.com>
+Cc: Paweł Staszewski <pstaszewski@itcare.pl>
+Reviewed-by: Eran Ben Elisha <eranbe@mellanox.com>
+Tested-By: Maria Pasechnik <mariap@mellanox.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT 3aa8029e1ac4faea2967e36281d93f5d099ed6a9
+2018-10-30	Eric Dumazet	net/mlx4_en: add a missing <net/ip.h> include
+55469bc6b577 ("drivers: net: remove <net/busy_poll.h> inclusion when not needed")
+Abdul Haleem reported a build error on ppc :
+
+drivers/net/ethernet/mellanox/mlx4/en_rx.c:582:18: warning: `struct
+iphdr` declared inside parameter list [enabled by default]
+           struct iphdr *iph)
+                  ^
+drivers/net/ethernet/mellanox/mlx4/en_rx.c:582:18: warning: its scope is
+only this definition or declaration, which is probably not what you want
+[enabled by default]
+drivers/net/ethernet/mellanox/mlx4/en_rx.c: In function
+get_fixed_ipv4_csum:
+drivers/net/ethernet/mellanox/mlx4/en_rx.c:586:20: error: dereferencing
+pointer to incomplete type
+  __u8 ipproto = iph->protocol;
+                    ^
+
+Fixes: 55469bc6b577 ("drivers: net: remove <net/busy_poll.h> inclusion when not needed")
+Signed-off-by: Eric Dumazet <edumazet@google.com>
+Reported-by: Abdul Haleem <abdhalee@linux.vnet.ibm.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT 55469bc6b5770ffdf0f87c38ce2573f8ddbaa33f
+2018-10-25	Eric Dumazet	drivers: net: remove <net/busy_poll.h> inclusion when not needed
+
+Drivers using generic NAPI interface no longer need to include
+<net/busy_poll.h>, since busy polling was moved to core networking
+stack long ago.
+
+See commit 79e7fff47b7b ("net: remove support for per driver
+ndo_busy_poll()") for reference.
+
+Signed-off-by: Eric Dumazet <edumazet@google.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT e44758b78ae81461a3269e7958653f1af0f78989
+2018-10-15	Michael Chan	bnxt_en: Use bnxt_cp_ring_info struct pointer as parameter for RX path.
+
+In the RX code path, we current use the bnxt_napi struct pointer to
+identify the associated RX/CP rings.  Change it to use the struct
+bnxt_cp_ring_info pointer instead since there are now up to 2
+CP rings per MSIX.
+
+Signed-off-by: Michael Chan <michael.chan@broadcom.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT 3e08b1841bc8debf6b3d722b9d355093a1537b1e
+2018-10-15	Michael Chan	bnxt_en: Allocate/Free CP rings for 57500 series chips.
+
+On the new 57500 chips, we allocate/free one CP ring for each RX ring or
+TX ring separately.  Using separate CP rings for RX/TX is an improvement
+as TX events will no longer be stuck behind RX events.
+
+Signed-off-by: Michael Chan <michael.chan@broadcom.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT 41e8d7983752f2a0ada01fac11cbac7413e7beec
+2018-10-15	Michael Chan	bnxt_en: Modify the ring reservation functions for 57500 series chips.
+
+The ring reservation functions have to be modified for P5 chips in the
+following ways:
+
+- bnxt_cp_ring_info structs map to internal NQs as well as CP rings.
+- Ring groups are not used.
+- 1 CP ring must be available for each RX or TX ring.
+- number of RSS contexts to reserve is multiples of 64 RX rings.
+- RFS currently not supported.
+
+Also, RX AGG rings are only used for jumbo frames, so we need to
+unconditionally call bnxt_reserve_rings() in __bnxt_open_nic()
+to see if we need to reserve AGG rings in case MTU has changed.
+
+Signed-off-by: Michael Chan <michael.chan@broadcom.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT 9c1fabdf424f27370790f1e0868b35cf63b70981
+2018-10-15	Michael Chan	bnxt_en: Adjust MSIX and ring groups for 57500 series chips.
+
+Store the maximum MSIX capability in PCIe config. space earlier.  When
+we call firmware to query capability, we need to compare the PCIe
+MSIX max count with the firmware count and use the smaller one as
+the MSIX count for 57500 (P5) chips.
+
+The new chips don't use ring groups.  But previous chips do and
+the existing logic limits the available rings based on resource
+calculations including ring groups.  Setting the max ring groups to
+the max rx rings will work on the new chips without changing the
+existing logic.
+
+Signed-off-by: Michael Chan <michael.chan@broadcom.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT e38287b72ec5455eb1e16b1de0ba4ed54e2a748c
+2018-10-15	Michael Chan	bnxt_en: Add 57500 new chip ID and basic structures.
+
+57500 series is a new chip class (P5) that requires some driver changes
+in the next several patches.  This adds basic chip ID, doorbells, and
+the notification queue (NQ) structures.  Each MSIX is associated with an
+NQ instead of a CP ring in legacy chips.  Each NQ has up to 2 associated
+CP rings for RX and TX.  The same bnxt_cp_ring_info struct will be used
+for the NQ.
+
+Signed-off-by: Michael Chan <michael.chan@broadcom.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT af7d6cce53694a88d6a1bb60c9a239a6a5144459
+2018-10-10	Sabrina Dubroca	net: ipv4: update fnhe_pmtu when first hop's MTU changes
+5aad1de5ea2c ("ipv4: use separate genid for next hop exceptions")
+Since commit 5aad1de5ea2c ("ipv4: use separate genid for next hop
+exceptions"), exceptions get deprecated separately from cached
+routes. In particular, administrative changes don't clear PMTU anymore.
+
+As Stefano described in commit e9fa1495d738 ("ipv6: Reflect MTU changes
+on PMTU of exceptions for MTU-less routes"), the PMTU discovered before
+the local MTU change can become stale:
+ - if the local MTU is now lower than the PMTU, that PMTU is now
+   incorrect
+ - if the local MTU was the lowest value in the path, and is increased,
+   we might discover a higher PMTU
+
+Similarly to what commit e9fa1495d738 did for IPv6, update PMTU in those
+cases.
+
+If the exception was locked, the discovered PMTU was smaller than the
+minimal accepted PMTU. In that case, if the new local MTU is smaller
+than the current PMTU, let PMTU discovery figure out if locking of the
+exception is still needed.
+
+To do this, we need to know the old link MTU in the NETDEV_CHANGEMTU
+notifier. By the time the notifier is called, dev->mtu has been
+changed. This patch adds the old MTU as additional information in the
+notifier structure, and a new call_netdevice_notifiers_u32() function.
+
+Fixes: 5aad1de5ea2c ("ipv4: use separate genid for next hop exceptions")
+Signed-off-by: Sabrina Dubroca <sd@queasysnail.net>
+Reviewed-by: Stefano Brivio <sbrivio@redhat.com>
+Reviewed-by: David Ahern <dsahern@gmail.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT 37fdffb217a45609edccbb8b407d031143f551c0
+2018-10-10	Tariq Toukan	net/mlx5: WQ, fixes for fragmented WQ buffers API
+3a2f70331226 ("net/mlx5: Use order-0 allocations for all WQ types")
+mlx5e netdevice used to calculate fragment edges by a call to
+mlx5_wq_cyc_get_frag_size(). This calculation did not give the correct
+indication for queues smaller than a PAGE_SIZE, (broken by default on
+PowerPC, where PAGE_SIZE == 64KB).  Here it is replaced by the correct new
+calls/API.
+
+Since (TX/RX) Work Queues buffers are fragmented, here we introduce
+changes to the API in core driver, so that it gets a stride index and
+returns the index of last stride on same fragment, and an additional
+wrapping function that returns the number of physically contiguous
+strides that can be written contiguously to the work queue.
+
+This obsoletes the following API functions, and their buggy
+usage in EN driver:
+* mlx5_wq_cyc_get_frag_size()
+* mlx5_wq_cyc_ctr2fragix()
+
+The new API improves modularity and hides the details of such
+calculation for mlx5e netdevice and mlx5_ib rdma drivers.
+
+New calculation is also more efficient, and improves performance
+as follows:
+
+Packet rate test: pktgen, UDP / IPv4, 64byte, single ring, 8K ring size.
+
+Before: 16,477,619 pps
+After:  17,085,793 pps
+
+3.7% improvement
+
+Fixes: 3a2f70331226 ("net/mlx5: Use order-0 allocations for all WQ types")
+Signed-off-by: Tariq Toukan <tariqt@mellanox.com>
+Reviewed-by: Eran Ben Elisha <eranbe@mellanox.com>
+Signed-off-by: Saeed Mahameed <saeedm@mellanox.com>
+
+@@@COMMIT 779d986d60de51aabc3bec385f92b832089c5c01
+2018-10-10	Feras Daoud	net/mlx5e: Do not ignore netdevice TX/RX queues number
+cd565b4b51e5 ("IB/IPoIB: Support acceleration options callbacks")
+The current design of mlx5e driver ignores the netdevice TX/RX queues
+number for netdevices that RDMA IPoIB ULP creates. Instead, the queue
+number is initialized to the maximum number that mlx5 thinks best for
+performance. As a result, ULP drivers that choose to create a netdevice
+with queue number that is less than the maximum channels mlx5 creates,
+will get a memory corruption.
+
+This fix changes the mlx5e netdev logic to respect ULP netdevices TX/RX
+queue number and use it when creating resources instead of the maximum
+channel number.
+
+Fixes: cd565b4b51e5 ("IB/IPoIB: Support acceleration options callbacks")
+Signed-off-by: Feras Daoud <ferasda@mellanox.com>
+Signed-off-by: Saeed Mahameed <saeedm@mellanox.com>
+
+@@@COMMIT 303211b44ce3faa4456f78ed725d80e0212aa842
+2018-10-10	Feras Daoud	net/mlx5e: Always initialize update stats delayed work
+cd565b4b51e5 ("IB/IPoIB: Support acceleration options callbacks")
+mlx5e_detach_netdev cancels update_stats work which was not initialized
+in ipoib netdevice profile, as a result, the following assert occurs:
+
+ODEBUG: assert_init not available (active state 0) object type:
+timer_list hint:(null)
+
+This change moves the update stats work to be initialized for all
+mlx5e netdevices.
+
+Fixes: cd565b4b51e5 ("IB/IPoIB: Support acceleration options callbacks")
+Signed-off-by: Feras Daoud <ferasda@mellanox.com>
+Signed-off-by: Saeed Mahameed <saeedm@mellanox.com>
+
+@@@COMMIT 2972495699320229b55b8e5065a310be5c81485b
+2018-10-09	Jesper Dangaard Brouer	net: fix generic XDP to handle if eth header was mangled
+d445516966dc ("net: xdp: support xdp generic on virtual devices")
+XDP can modify (and resize) the Ethernet header in the packet.
+
+There is a bug in generic-XDP, because skb->protocol and skb->pkt_type
+are setup before reaching (netif_receive_)generic_xdp.
+
+This bug was hit when XDP were popping VLAN headers (changing
+eth->h_proto), as skb->protocol still contains VLAN-indication
+(ETH_P_8021Q) causing invocation of skb_vlan_untag(skb), which corrupt
+the packet (basically popping the VLAN again).
+
+This patch catch if XDP changed eth header in such a way, that SKB
+fields needs to be updated.
+
+V2: on request from Song Liu, use ETH_HLEN instead of mac_len,
+in __skb_push() as eth_type_trans() use ETH_HLEN in paired skb_pull_inline().
+
+Fixes: d445516966dc ("net: xdp: support xdp generic on virtual devices")
+Signed-off-by: Jesper Dangaard Brouer <brouer@redhat.com>
+Signed-off-by: Alexei Starovoitov <ast@kernel.org>
+
+@@@COMMIT 46515fdb1adff1cc0ac3d0656a7c3492017dfe4f
+2018-10-03	Björn Töpel	ixgbe: move common Rx functions to ixgbe_txrx_common.h
+
+This patch prepares for the upcoming zero-copy Rx functionality, by
+moving/changing linkage of common functions, used both by the regular
+path and zero-copy path.
+
+Signed-off-by: Björn Töpel <bjorn.topel@intel.com>
+Tested-by: William Tu <u9012063@gmail.com>
+Tested-by: Andrew Bowers <andrewx.bowers@intel.com>
+Signed-off-by: Jeff Kirsher <jeffrey.t.kirsher@intel.com>
+
+@@@COMMIT 8d7179b1e2d64b3493c0114916486fe92e6109a9
+2018-10-03	Radoslaw Tyl	ixgbe: Fix ixgbe TX hangs with XDP_TX beyond queue limit
+
+We have Tx hang when number Tx and XDP queues are more than 64.
+In XDP always is MTQC == 0x0 (64TxQs). We need more space for Tx queues.
+
+Signed-off-by: Radoslaw Tyl <radoslawx.tyl@intel.com>
+Tested-by: Andrew Bowers <andrewx.bowers@intel.com>
+Signed-off-by: Jeff Kirsher <jeffrey.t.kirsher@intel.com>
+
+@@@COMMIT 62b36c3ea664b34004b9d29bf541b6c6ce30e33c
+2018-10-02	Oza Pawandeep	PCI/AER: Remove pci_cleanup_aer_uncorrect_error_status() calls
+
+After bfcb79fca19d ("PCI/ERR: Run error recovery callbacks for all affected
+devices"), AER errors are always cleared by the PCI core and drivers don't
+need to do it themselves.
+
+Remove calls to pci_cleanup_aer_uncorrect_error_status() from device
+driver error recovery functions.
+
+Signed-off-by: Oza Pawandeep <poza@codeaurora.org>
+[bhelgaas: changelog, remove PCI core changes, remove unused variables]
+Signed-off-by: Bjorn Helgaas <bhelgaas@google.com>
+@@@COMMIT 46dc933cee82c8fd18f5fb8dfa10aceb7a29d5ab
+2018-10-01	Or Gerlitz	net/mlx5e: Provide explicit directive if to create inner indirect tirs
+
+Change the driver functions that deal with creating indirect tirs
+to get a flag telling if inner ttc is desired.
+
+A pre-step for enabling rss on the vport representors, where
+inner ttc is not needed.
+
+Signed-off-by: Or Gerlitz <ogerlitz@mellanox.com>
+Reviewed-by: Or Gerlitz <ogerlitz@mellanox.com>
+Signed-off-by: Saeed Mahameed <saeedm@mellanox.com>
+
+@@@COMMIT 749359f4aae624ed8fe7aed80e6b011b6e3db2ef
+2018-10-01	Gavi Teitz	net/mlx5e: Change VF representors' RQ type
+
+The representors' RQ size was not large enough for them to achieve
+high enough performance, and therefore needed to be enlarged, while
+suffering a minimum hit to its memory usage. To achieve this the
+representors RQ size was increased, and its type was changed to be a
+striding RQ if it is supported.
+
+Towards that goal the following changes were made:
+
+* Extracted the sequence for setting the standard netdev's RQ parmas
+  into a function
+
+* Replaced the sequence for setting the representor's RQ params with
+  the standard sequence
+
+The impact of this change can be seen in the following measurements
+taken on a setup of a VM over a VF, connected to OVS via the VF
+representor, to an external host:
+
+Before current change:
+                     TCP Throughput [Gb/s]
+VM to external host         ~  7.2
+
+With the current change (measured with a striding RQ):
+                     TCP Throughput [Gb/s]
+VM to external host         ~ 23.5
+
+Each representor now consumes 2 [MB] of memory for its packet
+buffers.
+
+Signed-off-by: Gavi Teitz <gavi@mellanox.com>
+Reviewed-by: Or Gerlitz <ogerlitz@mellanox.com>
+Signed-off-by: Saeed Mahameed <saeedm@mellanox.com>
+
+@@@COMMIT 9dbb137045774f66d036ce3bcdd3f36b9401f8d4
+2018-09-25	Björn Töpel	i40e: clean zero-copy XDP Tx ring on shutdown/reset
+
+When the zero-copy enabled XDP Tx ring is torn down, due to
+configuration changes, outstanding frames on the hardware descriptor
+ring are queued on the completion ring.
+
+The completion ring has a back-pressure mechanism that will guarantee
+that there is sufficient space on the ring.
+
+Signed-off-by: Björn Töpel <bjorn.topel@intel.com>
+Tested-by: Andrew Bowers <andrewx.bowers@intel.com>
+Signed-off-by: Jeff Kirsher <jeffrey.t.kirsher@intel.com>
+
+@@@COMMIT 14d73416792afa84f6a7245ee474d2432069da56
+2018-09-18	Li RongQing	veth: rename pcpu_vstats as pcpu_lstats
+
+struct pcpu_vstats and pcpu_lstats have same members and
+usage, and pcpu_lstats is used in many files, so rename
+pcpu_vstats as pcpu_lstats to reduce duplicate definition
+
+Signed-off-by: Zhang Yu <zhangyu31@baidu.com>
+Signed-off-by: Li RongQing <lirongqing@baidu.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT 56184e01c00d6d23609f9f9e52cc731568e8088f
+2018-09-18	Jesse Brandeburg	iavf: rename most of i40e strings
+
+This is the big rename patch, it takes most of the i40e_
+and I40E_ strings and renames them to iavf_ and IAVF_.
+
+Some of the adminq code, as well as most of the client
+interface code used by RDMA is left unchanged in order
+to indicate that the driver is talking to non-internal to
+iavf code.
+
+Signed-off-by: Jesse Brandeburg <jesse.brandeburg@intel.com>
+Tested-by: Andrew Bowers <andrewx.bowers@intel.com>
+Signed-off-by: Jeff Kirsher <jeffrey.t.kirsher@intel.com>
+
+@@@COMMIT f1cad2ce06f28c439dc674893b0d9a8a720acdb8
+2018-09-18	Jesse Brandeburg	iavf: remove references to old names
+
+Remove the register name references to I40E_VF* and change to
+IAVF_VF. Update the descriptor names and defines to the IAVF
+name.
+
+Signed-off-by: Jesse Brandeburg <jesse.brandeburg@intel.com>
+Tested-by: Andrew Bowers <andrewx.bowers@intel.com>
+Signed-off-by: Jeff Kirsher <jeffrey.t.kirsher@intel.com>
+
+@@@COMMIT 52bb6677d530d37055092d86b4eab69dce6c166a
+2018-09-14	Li RongQing	net: move definition of pcpu_lstats to header file
+
+pcpu_lstats is defined in several files, so unify them as one
+and move to header file
+
+Signed-off-by: Zhang Yu <zhangyu31@baidu.com>
+Signed-off-by: Li RongQing <lirongqing@baidu.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT ad95c27bdb930105f3eea02621bda157caf2862d
+2018-09-03	Michael Chan	bnxt_en: Clean up unused functions.
+
+Remove unused bnxt_subtract_ulp_resources().  Change
+bnxt_get_max_func_irqs() to static since it is only locally used.
+
+Signed-off-by: Michael Chan <michael.chan@broadcom.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT 6b95c3e9697254dab0c8eafc6ab9d5e10d2eca4e
+2018-09-03	Michael Chan	bnxt_en: Fix firmware signaled resource change logic in open.
+25e1acd6b92b ("bnxt_en: Notify firmware about IF state changes.")
+When the driver detects that resources have changed during open, it
+should reset the rx and tx rings to 0.  This will properly setup the
+init sequence to initialize the default rings again.  We also need
+to signal the RDMA driver to stop and clear its interrupts.  We then
+call the RoCE driver to restart if a new set of default rings is
+successfully reserved.
+
+Fixes: 25e1acd6b92b ("bnxt_en: Notify firmware about IF state changes.")
+Signed-off-by: Michael Chan <michael.chan@broadcom.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT d28139c4e96713d52a300fb9036c5be2f45e0741
+2018-08-30	Paul E. McKenney	rcu: Apply RCU-bh QSes to RCU-sched and RCU-preempt when safe
+
+One necessary step towards consolidating the three flavors of RCU is to
+make sure that the resulting consolidated "one flavor to rule them all"
+correctly handles networking denial-of-service attacks.  One thing that
+allows RCU-bh to do so is that __do_softirq() invokes rcu_bh_qs() every
+so often, and so something similar has to happen for consolidated RCU.
+
+This must be done carefully.  For example, if a preemption-disabled
+region of code takes an interrupt which does softirq processing before
+returning, consolidated RCU must ignore the resulting rcu_bh_qs()
+invocations -- preemption is still disabled, and that means an RCU
+reader for the consolidated flavor.
+
+This commit therefore creates a new rcu_softirq_qs() that is called only
+from the ksoftirqd task, thus avoiding the interrupted-a-preempted-region
+problem.  This new rcu_softirq_qs() function invokes rcu_sched_qs(),
+rcu_preempt_qs(), and rcu_preempt_deferred_qs().  The latter call handles
+any deferred quiescent states.
+
+Note that __do_softirq() still invokes rcu_bh_qs().  It will continue to
+do so until a later stage of cleanup when the RCU-bh flavor is removed.
+
+Signed-off-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
+[ paulmck: Fix !SMP issue located by kbuild test robot. ]
+
+@@@COMMIT 20a739dbef28fb3c17de2789a3d7847efec6a3ff
+2018-08-29	Björn Töpel	i40e: move common Rx functions to i40e_txrx_common.h
+
+This patch prepares for the upcoming zero-copy Rx functionality, by
+moving/changing linkage of common functions, used both by the regular
+path and zero-copy path.
+
+Signed-off-by: Björn Töpel <bjorn.topel@intel.com>
+Signed-off-by: Alexei Starovoitov <ast@kernel.org>
+
+@@@COMMIT b3969fd727aa1f2ace4794f2a180f9769128027c
+2018-08-28	Sudheer Mogilappagari	ice: Add support for Tx hang, Tx timeout and malicious driver detection
+
+When a malicious operation is detected, the firmware triggers an
+interrupt, which is then picked up by the service task (specifically by
+ice_handle_mdd_event). A reset is scheduled if required.
+
+Tx hang detection works in a similar way, except the logic here monitors
+the VSI's Tx queues and tries to revive them if stalled. If the hang is
+not resolved, the kernel eventually calls ndo_tx_timeout, which is
+handled by ice_tx_timeout.
+
+Signed-off-by: Sudheer Mogilappagari <sudheer.mogilappagari@intel.com>
+Signed-off-by: Anirudh Venkataramanan <anirudh.venkataramanan@intel.com>
+Tested-by: Tony Brelinski <tonyx.brelinski@intel.com>
+Signed-off-by: Jeff Kirsher <jeffrey.t.kirsher@intel.com>
+
+@@@COMMIT fabf1bce103aa8e3db27ff2cc55f8e0fb0abcc30
+2018-08-24	Tony Nguyen	ixgbe: Prevent unsupported configurations with XDP
+
+These changes address comments by Jakub Kicinski on
+commit 38b7e7f8ae82 ("ixgbe: Do not allow LRO or MTU change with XDP").
+
+Change the MTU check with XDP to allow any supported value and only
+reject those outside of the range as opposed to rejecting any change
+when XDP is active. In situations where MTU size is not supported,
+return -EINVAL instead of -EPERM.
+
+Add checks when enabling SRIOV, DCB, or adding L2FW offloaded device
+as they are not supported with XDP.
+
+CC: Jakub Kicinski <jakub.kicinski@netronome.com>
+Signed-off-by: Tony Nguyen <anthony.l.nguyen@intel.com>
+Acked-by: Jakub Kicinski <jakub.kicinski@netronome.com>
+Tested-by: Andrew Bowers <andrewx.bowers@intel.com>
+Signed-off-by: Jeff Kirsher <jeffrey.t.kirsher@intel.com>
+
+@@@COMMIT 244cd96adb5f5ab39551081fb1f9009a54bb12ee
+2018-08-21	Cong Wang	net_sched: remove list_head from tc_action
+90b73b77d08e ("net: sched: change action API to use array of pointers to actions")
+After commit 90b73b77d08e, list_head is no longer needed.
+Now we just need to convert the list iteration to array
+iteration for drivers.
+
+Fixes: 90b73b77d08e ("net: sched: change action API to use array of pointers to actions")
+Cc: Jiri Pirko <jiri@mellanox.com>
+Cc: Vlad Buslov <vladbu@mellanox.com>
+Signed-off-by: Cong Wang <xiyou.wangcong@gmail.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT a6bcfc89694ed8cb482a82cdc8b93aae63a8b691
+2018-08-05	Li RongQing	net: check extack._msg before print
+7a4c53bee3324a ("net: report invalid mtu value via netlink extack")
+dev_set_mtu_ext is able to fail with a valid mtu value, at that
+condition, extack._msg is not set and random since it is in stack,
+then kernel will crash when print it.
+
+Fixes: 7a4c53bee3324a ("net: report invalid mtu value via netlink extack")
+Signed-off-by: Zhang Yu <zhangyu31@baidu.com>
+Signed-off-by: Li RongQing <lirongqing@baidu.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT 25e1acd6b92bde36c03273d883c44c4d0e8995e6
+2018-08-05	Michael Chan	bnxt_en: Notify firmware about IF state changes.
+
+Use latest firmware API to notify firmware about IF state changes.
+Firmware has the option to clean up resources during IF down and
+to require the driver to reserve resources again during IF up.
+
+Signed-off-by: Michael Chan <michael.chan@broadcom.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT 0a0e0829f990120cef165bbb804237f400953ec2
+2018-08-03	Frederic Weisbecker	nohz: Fix missing tick reprogram when interrupting an inline softirq
+
+The full nohz tick is reprogrammed in irq_exit() only if the exit is not in
+a nesting interrupt. This stands as an optimization: whether a hardirq or a
+softirq is interrupted, the tick is going to be reprogrammed when necessary
+at the end of the inner interrupt, with even potential new updates on the
+timer queue.
+
+When soft interrupts are interrupted, it's assumed that they are executing
+on the tail of an interrupt return. In that case tick_nohz_irq_exit() is
+called after softirq processing to take care of the tick reprogramming.
+
+But the assumption is wrong: softirqs can be processed inline as well, ie:
+outside of an interrupt, like in a call to local_bh_enable() or from
+ksoftirqd.
+
+Inline softirqs don't reprogram the tick once they are done, as opposed to
+interrupt tail softirq processing. So if a tick interrupts an inline
+softirq processing, the next timer will neither be reprogrammed from the
+interrupting tick's irq_exit() nor after the interrupted softirq
+processing. This situation may leave the tick unprogrammed while timers are
+armed.
+
+To fix this, simply keep reprogramming the tick even if a softirq has been
+interrupted. That can be optimized further, but for now correctness is more
+important.
+
+Note that new timers enqueued in nohz_full mode after a softirq gets
+interrupted will still be handled just fine through self-IPIs triggered by
+the timer code.
+
+Reported-by: Anna-Maria Gleixner <anna-maria@linutronix.de>
+Signed-off-by: Frederic Weisbecker <frederic@kernel.org>
+Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+Tested-by: Anna-Maria Gleixner <anna-maria@linutronix.de>
+Cc: stable@vger.kernel.org # 4.14+
+Link: https://lkml.kernel.org/r/1533303094-15855-1-git-send-email-frederic@kernel.org
+
+
+@@@COMMIT eacecf2760e321bf1c99b981d44a14bd05721f15
+2018-07-31	Adi Nissim	net/mlx5e: Fix null pointer access when setting MTU of vport representor
+250a42b6a764 ("net/mlx5e: Support configurable MTU for vport representors")
+MTU helper function is used by both conventional mlx5e
+instances (PF/VF) and the eswitch representors. The representor
+shouldn't change the nic vport context MTU, the VF is responsible for
+that. Therefore set_mtu_cb has a null value when changing the
+representor MTU.
+
+Fixes: 250a42b6a764 ("net/mlx5e: Support configurable MTU for vport representors")
+Signed-off-by: Adi Nissim <adin@mellanox.com>
+Reviewed-by: Yevgeny Kliteynik <kliteyn@mellanox.com>
+Signed-off-by: Saeed Mahameed <saeedm@mellanox.com>
+
+@@@COMMIT 84c6b86875e01a08a0daa6fdd4a01b36bf0bf0b2
+2018-07-31	Jakub Kicinski	xsk: don't allow umem replace at stack level
+
+Currently drivers have to check if they already have a umem
+installed for a given queue and return an error if so.  Make
+better use of XDP_QUERY_XSK_UMEM and move this functionality
+to the core.
+
+We need to keep rtnl across the calls now.
+
+Signed-off-by: Jakub Kicinski <jakub.kicinski@netronome.com>
+Reviewed-by: Quentin Monnet <quentin.monnet@netronome.com>
+Acked-by: Björn Töpel <bjorn.topel@gmail.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT a26a5bdf3ee2da419ba2c2baa54f467103dc8cc5
+2018-07-26	Tariq Toukan	net/mlx5e: Restrict the combination of large MTU and XDP
+
+Add checks in control path upon an MTU change or an XDP program set,
+to prevent reaching cases where large MTU and XDP are set simultaneously.
+
+This is to make sure we allow XDP only with the linear RX memory scheme,
+i.e. a received packet is not scattered to different pages.
+Change mlx5e_rx_get_linear_frag_sz() accordingly, so that we make sure
+the XDP configuration can really be set, instead of assuming that it is.
+
+Signed-off-by: Tariq Toukan <tariqt@mellanox.com>
+Signed-off-by: Saeed Mahameed <saeedm@mellanox.com>
+
+@@@COMMIT 7effaf06c3cdef6855e127886c7405b9ab62f90d
+2018-07-26	Tariq Toukan	net: rollback orig value on failure of dev_qdisc_change_tx_queue_len
+48bfd55e7e41 ("net_sched: plug in qdisc ops change_tx_queue_len")
+Fix dev_change_tx_queue_len so it rolls back original value
+upon a failure in dev_qdisc_change_tx_queue_len.
+This is already done for notifirers' failures, share the code.
+
+In case of failure in dev_qdisc_change_tx_queue_len, some tx queues
+would still be of the new length, while they should be reverted.
+Currently, the revert is not done, and is marked with a TODO label
+in dev_qdisc_change_tx_queue_len, and should find some nice solution
+to do it.
+Yet it is still better to not apply the newly requested value.
+
+Fixes: 48bfd55e7e41 ("net_sched: plug in qdisc ops change_tx_queue_len")
+Signed-off-by: Tariq Toukan <tariqt@mellanox.com>
+Reviewed-by: Eran Ben Elisha <eranbe@mellanox.com>
+Reported-by: Ran Rozenstein <ranro@mellanox.com>
+Cc: Cong Wang <xiyou.wangcong@gmail.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT 1918e937ca3b4270181e6f05734d5240306bd2cf
+2018-07-26	Alexander Duyck	ixgbe: Refactor queue disable logic to take completion time into account
+
+This change is meant to allow us to take completion time into account when
+disabling queues. Previously we were just working with hard coded values
+for how long we should wait. This worked fine for the standard case where
+completion timeout was operating in the 50us to 50ms range, however on
+platforms that have higher completion timeout times this was resulting in
+Rx queues disable messages being displayed as we weren't waiting long
+enough for outstanding Rx DMA completions.
+
+Signed-off-by: Alexander Duyck <alexander.h.duyck@intel.com>
+Tested-by: Don Buchholz <donald.buchholz@intel.com>
+Signed-off-by: Jeff Kirsher <jeffrey.t.kirsher@intel.com>
+
+@@@COMMIT 3b5f14b50ee2079190ae6cfe7477e74676651665
+2018-07-26	Alexander Duyck	ixgbe: Reorder Tx/Rx shutdown to reduce time needed to stop device
+
+This change is meant to help reduce the time needed to shutdown the
+transmit and receive paths for the device. Specifically what we now do
+after this patch is disable the transmit path first at the netdev level,
+and then work on disabling the Rx. This way while we are waiting on the Rx
+queues to be disabled the Tx queues have an opportunity to drain out.
+
+In addition I have dropped the 10ms timeout that was left in the ixgbe_down
+function that seems to have been carried through from back in e1000 as far
+as I can tell. We shouldn't need it since we don't actually disable the Tx
+until much later and we have additional logic in place for verifying the Tx
+queues have been disabled.
+
+Signed-off-by: Alexander Duyck <alexander.h.duyck@intel.com>
+Tested-by: Don Buchholz <donald.buchholz@intel.com>
+Signed-off-by: Jeff Kirsher <jeffrey.t.kirsher@intel.com>
+
+@@@COMMIT 38b7e7f8ae821bbed28a13b3ac7a7a58aa7cdb95
+2018-07-26	Tony Nguyen	ixgbe: Do not allow LRO or MTU change with XDP
+
+XDP does not support jumbo frames or LRO.  These checks are being made
+outside the driver when an XDP program is loaded, however, there is
+nothing preventing these from changing after an XDP program is loaded.
+Add the checks so that while an XDP program is loaded, do not allow MTU
+to be changed or LRO to be enabled.
+
+Signed-off-by: Tony Nguyen <anthony.l.nguyen@intel.com>
+Tested-by: Andrew Bowers <andrewx.bowers@intel.com>
+Signed-off-by: Jeff Kirsher <jeffrey.t.kirsher@intel.com>
+
+@@@COMMIT a0929a44c2065da33c17b1b8015a88401d71ca7b
+2018-07-25	Toshiaki Makita	virtio_net: Use temporary storage for accounting rx stats
+
+The purpose is to keep receive_buf arguments simple when more per-queue
+counter items are added later.
+Also XDP_TX related sq counters will be updated in the following changes
+so create a container struct virtnet_rx_stats which will includes both
+rq and sq statistics. For now it only covers rq stats.
+
+Signed-off-by: Toshiaki Makita <makita.toshiaki@lab.ntt.co.jp>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT 3c53776e29f81719efcf8f7a6e30cdf753bee94d
+2018-07-17	Linus Torvalds	Mark HI and TASKLET softirq synchronous
+
+Way back in 4.9, we committed 4cd13c21b207 ("softirq: Let ksoftirqd do
+its job"), and ever since we've had small nagging issues with it.  For
+example, we've had:
+
+  1ff688209e2e ("watchdog: core: make sure the watchdog_worker is not deferred")
+  8d5755b3f77b ("watchdog: softdog: fire watchdog even if softirqs do not get to run")
+  217f69743681 ("net: busy-poll: allow preemption in sk_busy_loop()")
+
+all of which worked around some of the effects of that commit.
+
+The DVB people have also complained that the commit causes excessive USB
+URB latencies, which seems to be due to the USB code using tasklets to
+schedule USB traffic.  This seems to be an issue mainly when already
+living on the edge, but waiting for ksoftirqd to handle it really does
+seem to cause excessive latencies.
+
+Now Hanna Hawa reports that this issue isn't just limited to USB URB and
+DVB, but also causes timeout problems for the Marvell SoC team:
+
+ "I'm facing kernel panic issue while running raid 5 on sata disks
+  connected to Macchiatobin (Marvell community board with Armada-8040
+  SoC with 4 ARMv8 cores of CA72) Raid 5 built with Marvell DMA engine
+  and async_tx mechanism (ASYNC_TX_DMA [=y]); the DMA driver (mv_xor_v2)
+  uses a tasklet to clean the done descriptors from the queue"
+
+The latency problem causes a panic:
+
+  mv_xor_v2 f0400000.xor: dma_sync_wait: timeout!
+  Kernel panic - not syncing: async_tx_quiesce: DMA error waiting for transaction
+
+We've discussed simply just reverting the original commit entirely, and
+also much more involved solutions (with per-softirq threads etc).  This
+patch is intentionally stupid and fairly limited, because the issue
+still remains, and the other solutions either got sidetracked or had
+other issues.
+
+We should probably also consider the timer softirqs to be synchronous
+and not be delayed to ksoftirqd (since they were the issue with the
+earlier watchdog problems), but that should be done as a separate patch.
+This does only the tasklet cases.
+
+Reported-and-tested-by: Hanna Hawa <hannah@marvell.com>
+Reported-and-tested-by: Josef Griebichler <griebichler.josef@gmx.at>
+Reported-by: Mauro Carvalho Chehab <mchehab@s-opensource.com>
+Cc: Alan Stern <stern@rowland.harvard.edu>
+Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Cc: Eric Dumazet <edumazet@google.com>
+Cc: Ingo Molnar <mingo@kernel.org>
+Signed-off-by: Linus Torvalds <torvalds@linux-foundation.org>
+

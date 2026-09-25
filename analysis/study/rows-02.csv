@@ -1,0 +1,8 @@
+commit,date,subsystem,symptom,trigger,sustaining_loop,recovers_when_load_drops,found_by,fix_type,introduced_by,lifetime_days,confidence
+e6d76268813dc64cc0b74ea9c274501f2de05344,2025-08-05,threaded,stall,config toggle,Y,N,unknown,other,2677010e7793,22,high
+1e20324b23f0afba27997434fb978f1e4a1dbcb6,2025-05-05,driver:virtio-net,stall,config toggle,Y,N,unknown,other,4bc12818b363,13,high
+4bc12818b363bd30f0f7348dd9ab077290a637ae,2025-04-22,driver:virtio-net,stall,race,Y,N,unknown,other,413f0271f396,97,high
+77e45145e3039a0fb212556ab3f8c87f54771757,2025-02-26,core-napi,lost-event,unknown,Y,N,production,reschedule,,,low
+ba0925c34e0fa6fe02d3d642bc02ab099ab312c7,2024-12-20,driver:gve,lost-event,config toggle,unknown,unknown,unknown,reschedule,fd8e40321a12,644,low
+cecc1555a8c2acd65f9d36182c28ae463db0ad7e,2024-12-03,core-napi,stall,race,Y,N,test,barrier,86e25f40aa1e,50,high
+49a17639508c3b35f90ca829e60dddeeeb750e74,2024-11-07,softirq,starvation,overload,Y,Y,unknown,reschedule,,,low

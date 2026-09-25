@@ -1,0 +1,4189 @@
+@@@COMMIT e6d76268813dc64cc0b74ea9c274501f2de05344
+2025-08-05	Samiullah Khawaja	net: Update threaded state in napi config in netif_set_threaded
+2677010e7793 ("Add support to set NAPI threaded for individual NAPI")
+Commit 2677010e7793 ("Add support to set NAPI threaded for individual
+NAPI") added support to enable/disable threaded napi using netlink. This
+also extended the napi config save/restore functionality to set the napi
+threaded state. This breaks netdev reset for drivers that use napi
+threaded at device level and also use napi config save/restore on
+napi_disable/napi_enable. Basically on netdev with napi threaded enabled
+at device level, a napi_enable call will get stuck trying to stop the
+napi kthread. This is because the napi->config->threaded is set to
+disabled when threaded is enabled at device level.
+
+The issue can be reproduced on virtio-net device using qemu. To
+reproduce the issue run following,
+
+  echo 1 > /sys/class/net/threaded
+  ethtool -L eth0 combined 1
+
+Update the threaded state in napi config in netif_set_threaded and add a
+new test that verifies this scenario.
+
+Tested on qemu with virtio-net:
+ NETIF=eth0 ./tools/testing/selftests/drivers/net/napi_threaded.py
+ TAP version 13
+ 1..2
+ ok 1 napi_threaded.change_num_queues
+ ok 2 napi_threaded.enable_dev_threaded_disable_napi_threaded
+ # Totals: pass:2 fail:0 xfail:0 xpass:0 skip:0 error:0
+
+Fixes: 2677010e7793 ("Add support to set NAPI threaded for individual NAPI")
+Signed-off-by: Samiullah Khawaja <skhawaja@google.com>
+Link: https://patch.msgid.link/20250804164457.2494390-1-skhawaja@google.com
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+
+@@@COMMIT 78afdadafe6fe0c74c08fda156e7be0a0b402b90
+2025-07-24	Samiullah Khawaja	net: Use netif_threaded_enable instead of netif_set_threaded in drivers
+
+Prepare for adding an enum type for NAPI threaded states by adding
+netif_threaded_enable API. De-export the existing netif_set_threaded API
+and only use it internally. Update existing drivers to use
+netif_threaded_enable instead of the de-exported netif_set_threaded.
+
+Note that dev_set_threaded used by mt76 debugfs file is unchanged.
+
+Signed-off-by: Samiullah Khawaja <skhawaja@google.com>
+Link: https://patch.msgid.link/20250723013031.2911384-3-skhawaja@google.com
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+
+@@@COMMIT 89ade7c7306508f46b811cd43960eaed88e0e1dd
+2025-07-23	Byungchul Park	netmem, mlx4: access ->pp_ref_count through netmem_desc instead of page
+
+To eliminate the use of struct page in page pool, the page pool users
+should use netmem descriptor and APIs instead.
+
+Make mlx4 access ->pp_ref_count through netmem_desc instead of page.
+
+While at it, add a helper, pp_page_to_nmdesc() and __pp_page_to_nmdesc(),
+that can be used to get netmem_desc from page only if it's a pp page.
+For now that netmem_desc overlays on page, it can be achieved by just
+casting, and use macro and _Generic to cover const casting as well.
+
+Plus, change page_pool_page_is_pp() to check for 'const struct page *'
+instead of 'struct page *' since it doesn't modify data and additionally
+covers const type.
+
+Signed-off-by: Byungchul Park <byungchul@sk.com>
+Link: https://patch.msgid.link/20250721021835.63939-4-byungchul@sk.com
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+
+@@@COMMIT 2236836eab2629978e9777dbde83161f9c7b450b
+2025-07-22	Joshua Washington	gve: implement DQO TX datapath for AF_XDP zero-copy
+
+In the descriptor clean path, a number of changes need to be made to
+accommodate out of order completions and double completions.
+
+The XSK stack can only handle completions being processed in order, as a
+single counter is incremented in xsk_tx_completed to sigify how many XSK
+descriptors have been completed. Because completions can come back out
+of order in DQ, a separate queue of XSK descriptors must be maintained.
+This queue keeps the pending packets in the order that they were written
+so that the descriptors can be counted in xsk_tx_completed in the same
+order.
+
+For double completions, a new pending packet state and type are
+introduced. The new type, GVE_TX_PENDING_PACKET_DQO_XSK, plays an
+anlogous role to pre-existing _SKB and _XDP_FRAME pending packet types
+for XSK descriptors. The new state, GVE_PACKET_STATE_XSK_COMPLETE,
+represents packets for which no more completions are expected. This
+includes packets which have received a packet completion or reinjection
+completion, as well as packets whose reinjection completion timer have
+timed out. At this point, such packets can be counted as part of
+xsk_tx_completed() and freed.
+
+Reviewed-by: Willem de Bruijn <willemb@google.com>
+Signed-off-by: Praveen Kaligineedi <pkaligineedi@google.com>
+Signed-off-by: Joshua Washington <joshwash@google.com>
+Signed-off-by: Jeroen de Borst <jeroendb@google.com>
+Link: https://patch.msgid.link/20250717152839.973004-5-jeroendb@google.com
+Signed-off-by: Paolo Abeni <pabeni@redhat.com>
+
+
+@@@COMMIT d57ae093c887180b72c575724c1779f5ca0f5b5b
+2025-07-22	Joshua Washington	gve: deduplicate xdp info and xsk pool registration logic
+
+The XDP registration path currently has a lot of reused logic, leading
+changes to the codepaths to be unnecessarily complex. gve_reg_xsk_pool
+extracts the logic of registering an XSK pool with a queue into a method
+that can be used by both XDP_SETUP_XSK_POOL and gve_reg_xdp_info.
+gve_unreg_xdp_info is used to undo XDP info registration in the error
+path instead of explicitly unregistering the XDP info, as it is more
+complete and idempotent.
+
+This patch will be followed by other changes to the XDP registration
+logic, and will simplify those changes due to the use of common methods.
+
+Reviewed-by: Willem de Bruijn <willemb@google.com>
+Signed-off-by: Joshua Washington <joshwash@google.com>
+Signed-off-by: Jeroen de Borst <jeroendb@google.com>
+Link: https://patch.msgid.link/20250717152839.973004-2-jeroendb@google.com
+Signed-off-by: Paolo Abeni <pabeni@redhat.com>
+
+
+@@@COMMIT b03f15c0192b184078206760c839054ae6eb4eaa
+2025-07-21	Praveen Kaligineedi	gve: Fix stuck TX queue for DQ queue format
+87a7f321bb6a ("gve: Recover from queue stall due to missed IRQ")
+gve_tx_timeout was calculating missed completions in a way that is only
+relevant in the GQ queue format. Additionally, it was attempting to
+disable device interrupts, which is not needed in either GQ or DQ queue
+formats.
+
+As a result, TX timeouts with the DQ queue format likely would have
+triggered early resets without kicking the queue at all.
+
+This patch drops the check for pending work altogether and always kicks
+the queue after validating the queue has not seen a TX timeout too
+recently.
+
+Cc: stable@vger.kernel.org
+Fixes: 87a7f321bb6a ("gve: Recover from queue stall due to missed IRQ")
+Co-developed-by: Tim Hostetler <thostet@google.com>
+Signed-off-by: Tim Hostetler <thostet@google.com>
+Signed-off-by: Praveen Kaligineedi <pkaligineedi@google.com>
+Signed-off-by: Harshitha Ramamurthy <hramamurthy@google.com>
+Link: https://patch.msgid.link/20250717192024.1820931-1-hramamurthy@google.com
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+
+@@@COMMIT 0413a34ef678c3e2f0fafb4e113e810a05197030
+2025-07-18	Stanislav Fomichev	net: s/dev_pre_changeaddr_notify/netif_pre_changeaddr_notify/
+
+Commit cc34acd577f1 ("docs: net: document new locking reality")
+introduced netif_ vs dev_ function semantics: the former expects locked
+netdev, the latter takes care of the locking. We don't strictly
+follow this semantics on either side, but there are more dev_xxx handlers
+now that don't fit. Rename them to netif_xxx where appropriate.
+
+netif_pre_changeaddr_notify is used only by ipvlan/bond, so move it into
+NETDEV_INTERNAL namespace.
+
+Signed-off-by: Stanislav Fomichev <sdf@fomichev.me>
+Link: https://patch.msgid.link/20250717172333.1288349-4-sdf@fomichev.me
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+
+@@@COMMIT be5dcaed694e4255dc02dd0acfe036708c535def
+2025-07-17	Zigit Zo	virtio-net: fix recursived rtnl_lock() during probe()
+df28de7b0050 ("virtio-net: synchronize operstate with admin state on up/down")
+The deadlock appears in a stack trace like:
+
+  virtnet_probe()
+    rtnl_lock()
+    virtio_config_changed_work()
+      netdev_notify_peers()
+        rtnl_lock()
+
+It happens if the VMM sends a VIRTIO_NET_S_ANNOUNCE request while the
+virtio-net driver is still probing.
+
+The config_work in probe() will get scheduled until virtnet_open() enables
+the config change notification via virtio_config_driver_enable().
+
+Fixes: df28de7b0050 ("virtio-net: synchronize operstate with admin state on up/down")
+Signed-off-by: Zigit Zo <zuozhijie@bytedance.com>
+Acked-by: Michael S. Tsirkin <mst@redhat.com>
+Acked-by: Jason Wang <jasowang@redhat.com>
+Link: https://patch.msgid.link/20250716115717.1472430-1-zuozhijie@bytedance.com
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+
+@@@COMMIT 2677010e7793451c20d895c477c4dc76f6e6a10e
+2025-07-14	Samiullah Khawaja	Add support to set NAPI threaded for individual NAPI
+
+A net device has a threaded sysctl that can be used to enable threaded
+NAPI polling on all of the NAPI contexts under that device. Allow
+enabling threaded NAPI polling at individual NAPI level using netlink.
+
+Extend the netlink operation `napi-set` and allow setting the threaded
+attribute of a NAPI. This will enable the threaded polling on a NAPI
+context.
+
+Add a test in `nl_netdev.py` that verifies various cases of threaded
+NAPI being set at NAPI and at device level.
+
+Tested
+ ./tools/testing/selftests/net/nl_netdev.py
+ TAP version 13
+ 1..7
+ ok 1 nl_netdev.empty_check
+ ok 2 nl_netdev.lo_check
+ ok 3 nl_netdev.page_pool_check
+ ok 4 nl_netdev.napi_list_check
+ ok 5 nl_netdev.dev_set_threaded
+ ok 6 nl_netdev.napi_set_threaded
+ ok 7 nl_netdev.nsim_rxq_reset_down
+ # Totals: pass:7 fail:0 xfail:0 xpass:0 skip:0 error:0
+
+Signed-off-by: Samiullah Khawaja <skhawaja@google.com>
+Reviewed-by: Willem de Bruijn <willemb@google.com>
+Link: https://patch.msgid.link/20250710211203.3979655-1-skhawaja@google.com
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+
+@@@COMMIT 2f82e99546626719816e881ebd468688447cac1f
+2025-07-11	Liming Wu	virtio_net: simplify tx queue wake condition check
+
+Consolidate the two nested if conditions for checking tx queue wake
+conditions into a single combined condition. This improves code
+readability without changing functionality. And move netif_tx_wake_queue
+into if condition to reduce unnecessary checks for queue stops.
+
+Signed-off-by: Liming Wu <liming.wu@jaguarmicro.com>
+Tested-by: Lei Yang <leiyang@redhat.com>
+Acked-by: Jason Wang <jasowang@redhat.com>
+Link: https://patch.msgid.link/20250710023208.846-1-liming.wu@jaguarmicro.com
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+
+@@@COMMIT d991666b7b699aebeb5ac3e8eb32434f4912a893
+2025-07-09	Bailey Forrest	gve: make IRQ handlers and page allocation NUMA aware
+
+All memory in GVE is currently allocated without regard for the NUMA
+node of the device. Because access to NUMA-local memory access is
+significantly cheaper than access to a remote node, this change attempts
+to ensure that page frags used in the RX path, including page pool
+frags, are allocated on the NUMA node local to the gVNIC device. Note
+that this attempt is best-effort. If necessary, the driver will still
+allocate non-local memory, as __GFP_THISNODE is not passed. Descriptor
+ring allocations are not updated, as dma_alloc_coherent handles that.
+
+This change also modifies the IRQ affinity setting to only select CPUs
+from the node local to the device, preserving the behavior that TX and
+RX queues of the same index share CPU affinity.
+
+Signed-off-by: Bailey Forrest <bcf@google.com>
+Signed-off-by: Joshua Washington <joshwash@google.com>
+Reviewed-by: Willem de Bruijn <willemb@google.com>
+Signed-off-by: Harshitha Ramamurthy <hramamurthy@google.com>
+Signed-off-by: Jeroen de Borst <jeroendb@google.com>
+Reviewed-by: Simon Horman <horms@kernel.org>
+Link: https://patch.msgid.link/20250707210107.2742029-1-jeroendb@google.com
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+
+@@@COMMIT f47e8f618c7d2e51b0ea5f22ad550e7f62ec45c1
+2025-07-09	Bui Quang Minh	virtio-net: xsk: rx: move the xdp->data adjustment to buf_to_xdp()
+
+This commit does not do any functional changes. It moves xdp->data
+adjustment for buffer other than first buffer to buf_to_xdp() helper so
+that the xdp_buff adjustment does not scatter over different functions.
+
+Signed-off-by: Bui Quang Minh <minhquangbui99@gmail.com>
+Link: https://patch.msgid.link/20250705075515.34260-1-minhquangbui99@gmail.com
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+
+@@@COMMIT b11aa9614df095ee6f15640873dfa6aaf51dd7ef
+2025-07-03	Slawomir Mrozowicz	ixgbe: add Tx hang detection unhandled MDD
+
+Add Tx Hang detection due to an unhandled MDD Event.
+
+Previously, a malicious VF could disable the entire port causing
+TX to hang on the E610 card.
+Those events that caused PF to freeze were not detected
+as an MDD event and usually required a Tx Hang watchdog timer
+to catch the suspension, and perform a physical function reset.
+
+Implement flows in the affected PF driver in such a way to check
+the cause of the hang, detect it as an MDD event and log an
+entry of the malicious VF that caused the Hang.
+
+The PF blocks the malicious VF, if it continues to be the source
+of several MDD events.
+
+Reviewed-by: Przemek Kitszel <przemyslaw.kitszel@intel.com>
+Reviewed-by: Marcin Szycik <marcin.szycik@linux.intel.com>
+Signed-off-by: Slawomir Mrozowicz <slawomirx.mrozowicz@intel.com>
+Co-developed-by: Michal Swiatkowski <michal.swiatkowski@linux.intel.com>
+Signed-off-by: Michal Swiatkowski <michal.swiatkowski@linux.intel.com>
+Reviewed-by: Simon Horman <horms@kernel.org>
+Tested-by: Rafal Romanowski <rafal.romanowski@intel.com>
+Signed-off-by: Tony Nguyen <anthony.l.nguyen@intel.com>
+
+@@@COMMIT bd2948d2581ebd31745c1b7094a470513789555f
+2025-07-03	Laurent Vivier	virtio_net: Cleanup '2+MAX_SKB_FRAGS'
+
+Improve consistency by using everywhere it is needed
+'MAX_SKB_FRAGS + 2' rather than '2+MAX_SKB_FRAGS' or
+'2 + MAX_SKB_FRAGS'.
+
+No functional change.
+
+Signed-off-by: Laurent Vivier <lvivier@redhat.com>
+Reviewed-by: Xuan Zhuo <xuanzhuo@linux.alibaba.com>
+Acked-by: Jason Wang <jasowang@redhat.com>
+Link: https://patch.msgid.link/20250521092236.661410-3-lvivier@redhat.com
+Tested-by: Lei Yang <leiyang@redhat.com>
+Acked-by: Michael S. Tsirkin <mst@redhat.com>
+Signed-off-by: Paolo Abeni <pabeni@redhat.com>
+
+@@@COMMIT 4be2193b3393dca33504793fe7586fed547abb5d
+2025-07-03	Bui Quang Minh	virtio-net: remove redundant truesize check with PAGE_SIZE
+
+The truesize is guaranteed not to exceed PAGE_SIZE in
+get_mergeable_buf_len(). It is saved in mergeable context, which is not
+changeable by the host side, so the check in receive path is quite
+redundant.
+
+Acked-by: Jason Wang <jasowang@redhat.com>
+Signed-off-by: Bui Quang Minh <minhquangbui99@gmail.com>
+Link: https://patch.msgid.link/20250630144212.48471-3-minhquangbui99@gmail.com
+Signed-off-by: Paolo Abeni <pabeni@redhat.com>
+
+
+@@@COMMIT 4922ca773d9d84cc4ad4e38ab10a92ddc6b3205f
+2025-06-21	Taehee Yoo	eth: bnxt: add netmem TX support
+
+Use netmem_dma_*() helpers and declare netmem_tx to support netmem TX.
+By this change, all bnxt devices will support the netmem TX.
+
+Unreadable skbs are not going to be handled by the TX push logic.
+So, it checks whether a skb is readable or not before the TX push logic.
+
+netmem TX can be tested with ncdevmem.c
+
+Acked-by: Mina Almasry <almasrymina@google.com>
+Acked-by: Stanislav Fomichev <sdf@fomichev.me>
+Signed-off-by: Taehee Yoo <ap420073@gmail.com>
+Reviewed-by: Michael Chan <michael.chan@broadcom.com>
+Link: https://patch.msgid.link/20250619144058.147051-1-ap420073@gmail.com
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+
+@@@COMMIT db3010bb5a0134644c45dc0df89e76e02553478c
+2025-06-17	Saeed Mahameed	net/mlx5e: Add support for UNREADABLE netmem page pools
+
+On netdev_rx_queue_restart, a special type of page pool maybe expected.
+
+In this patch declare support for UNREADABLE netmem iov pages in the
+pool params only when header data split shampo RQ mode is enabled, also
+set the queue index in the page pool params struct.
+
+Shampo mode requirement: Without header split rx needs to peek at the data,
+we can't do UNREADABLE_NETMEM.
+
+The patch also enables the use of a separate page pool for headers when
+a memory provider is installed for the queue, otherwise the same common
+page pool continues to be used.
+
+Signed-off-by: Saeed Mahameed <saeedm@nvidia.com>
+Reviewed-by: Dragos Tatulea <dtatulea@nvidia.com>
+Reviewed-by: Tariq Toukan <tariqt@nvidia.com>
+Reviewed-by: Mina Almasry <almasrymina@google.com>
+Signed-off-by: Mark Bloch <mbloch@nvidia.com>
+Link: https://patch.msgid.link/20250616141441.1243044-10-mbloch@nvidia.com
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+
+@@@COMMIT d2760abdedde635b055a214b3a45dce3e4ecbfce
+2025-06-17	Saeed Mahameed	net/mlx5e: SHAMPO: Improve hw gro capability checking
+
+Add missing HW capabilities, declare the feature in
+netdev->vlan_features, similar to other features in mlx5e_build_nic_netdev.
+No functional change here as all by default disabled features are
+explicitly disabled at the bottom of the function.
+
+Signed-off-by: Saeed Mahameed <saeedm@nvidia.com>
+Reviewed-by: Dragos Tatulea <dtatulea@nvidia.com>
+Signed-off-by: Cosmin Ratiu <cratiu@nvidia.com>
+Signed-off-by: Tariq Toukan <tariqt@nvidia.com>
+Signed-off-by: Mark Bloch <mbloch@nvidia.com>
+Link: https://patch.msgid.link/20250616141441.1243044-7-mbloch@nvidia.com
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+
+@@@COMMIT b52a93bbaa51a3f03561fd37221af29655db5c2a
+2025-06-17	Alok Tiwari	gve: Fix various typos and improve code comments
+
+- Correct spelling and improves the clarity of comments
+   "confiugration" -> "configuration"
+   "spilt" -> "split"
+   "It if is 0" -> "If it is 0"
+   "DQ" -> "DQO" (correct abbreviation)
+- Clarify BIT(0) flag usage in gve_get_priv_flags()
+- Replaced hardcoded array size with GVE_NUM_PTYPES
+  for clarity and maintainability.
+
+These changes are purely cosmetic and do not affect functionality.
+
+Signed-off-by: Alok Tiwari <alok.a.tiwari@oracle.com>
+Reviewed-by: Joe Damato <joe@dama.to>
+Reviewed-by: Mina Almasry <almasrymina@google.com>
+Link: https://patch.msgid.link/20250616054504.1644770-1-alok.a.tiwari@oracle.com
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+
+@@@COMMIT 10f3829a1309e6f6892811643e172633a6adf40a
+2025-06-17	Alok Tiwari	bnxt_en: Improve comment wording and error return code
+
+Improved wording and grammar in several comments for clarity.
+  "the must belongs" -> "it must belong"
+  "mininum" -> "minimum"
+  "fileds" -> "fields"
+
+Replaced return -1 with -EINVAL in hwrm_ring_alloc_send_msg()
+to return a proper error code.
+
+These changes enhance code readability and consistent error handling.
+
+Signed-off-by: Alok Tiwari <alok.a.tiwari@oracle.com>
+Reviewed-by: Michael Chan <michael.chan@broadcom.com>
+Link: https://patch.msgid.link/20250615154051.1365631-1-alok.a.tiwari@oracle.com
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+
+@@@COMMIT b2c7aeb4905648f0a36d27a008a6dfea37782a31
+2025-06-16	John Fraker	gve: Implement ndo_hwtstamp_get/set for RX timestamping
+
+Implement ndo_hwtstamp_get/set to enable hardware RX timestamping,
+providing support for SIOC[SG]HWTSTAMP IOCTLs. Included with this support
+is the small change necessary to read the rx timestamp out of the rx
+descriptor, now that timestamps start being enabled. The gve clock is
+only used for hardware timestamps, so started when timestamps are
+requested and stopped when not needed.
+
+This version only supports RX hardware timestamping with the rx filter
+HWTSTAMP_FILTER_ALL. If the user attempts to configure a more
+restrictive filter, the filter will be set to HWTSTAMP_FILTER_ALL in the
+returned structure.
+
+Signed-off-by: John Fraker <jfraker@google.com>
+Signed-off-by: Ziwei Xiao <ziweixiao@google.com>
+Reviewed-by: Willem de Bruijn <willemb@google.com>
+Signed-off-by: Harshitha Ramamurthy <hramamurthy@google.com>
+Link: https://patch.msgid.link/20250614000754.164827-8-hramamurthy@google.com
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+
+@@@COMMIT 689883de94dd8a43a0ea77311327effab240afda
+2025-06-10	Samiullah Khawaja	net: stop napi kthreads when THREADED napi is disabled
+
+Once the THREADED napi is disabled, the napi kthread should also be
+stopped. Keeping the kthread intact after disabling THREADED napi makes
+the PID of this kthread show up in the output of netlink 'napi-get' and
+ps -ef output.
+
+The is discussed in the patch below:
+https://lore.kernel.org/all/20250502191548.559cc416@kernel.org
+
+NAPI kthread should stop only if,
+
+- There are no pending napi poll scheduled for this thread.
+- There are no new napi poll scheduled for this thread while it has
+  stopped.
+- The ____napi_schedule can correctly fallback to the softirq for napi
+  polling.
+
+Since napi_schedule_prep provides mutual exclusion over STATE_SCHED bit,
+it is safe to unset the STATE_THREADED when SCHED_THREADED is set or the
+SCHED bit is not set. SCHED_THREADED being set means that SCHED is
+already set and the kthread owns this napi.
+
+To disable threaded napi, unset STATE_THREADED bit safely if
+SCHED_THREADED is set or SCHED is unset. Once STATE_THREADED is unset
+safely then wait for the kthread to unset the SCHED_THREADED bit so it
+safe to stop the kthread.
+
+Add a new test in nl_netdev to verify this behaviour.
+
+Tested:
+ ./tools/testing/selftests/net/nl_netdev.py
+ TAP version 13
+ 1..6
+ ok 1 nl_netdev.empty_check
+ ok 2 nl_netdev.lo_check
+ ok 3 nl_netdev.page_pool_check
+ ok 4 nl_netdev.napi_list_check
+ ok 5 nl_netdev.dev_set_threaded
+ ok 6 nl_netdev.nsim_rxq_reset_down
+ # Totals: pass:6 fail:0 xfail:0 xpass:0 skip:0 error:0
+
+Ran neper for 300 seconds and did enable/disable of thread napi in a
+loop continuously.
+
+Signed-off-by: Samiullah Khawaja <skhawaja@google.com>
+Link: https://patch.msgid.link/20250609173015.3851695-1-skhawaja@google.com
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+
+@@@COMMIT 3ec523304976648b45a3eef045e97d17122ff1b2
+2025-05-30	Saurabh Sengar	hv_netvsc: fix potential deadlock in netvsc_vf_setxdp()
+97246d6d21c2 ("net: hold netdev instance lock during ndo_bpf")
+The MANA driver's probe registers netdevice via the following call chain:
+
+mana_probe()
+  register_netdev()
+    register_netdevice()
+
+register_netdevice() calls notifier callback for netvsc driver,
+holding the netdev mutex via netdev_lock_ops().
+
+Further this netvsc notifier callback end up attempting to acquire the
+same lock again in dev_xdp_propagate() leading to deadlock.
+
+netvsc_netdev_event()
+  netvsc_vf_setxdp()
+    dev_xdp_propagate()
+
+This deadlock was not observed so far because net_shaper_ops was never set,
+and thus the lock was effectively a no-op in this case. Fix this by using
+netif_xdp_propagate() instead of dev_xdp_propagate() to avoid recursive
+locking in this path.
+
+And, since no deadlock is observed on the other path which is via
+netvsc_probe, add the lock exclusivly for that path.
+
+Also, clean up the unregistration path by removing the unnecessary call to
+netvsc_vf_setxdp(), since unregister_netdevice_many_notify() already
+performs this cleanup via dev_xdp_uninstall().
+
+Fixes: 97246d6d21c2 ("net: hold netdev instance lock during ndo_bpf")
+Cc: stable@vger.kernel.org
+Signed-off-by: Saurabh Sengar <ssengar@linux.microsoft.com>
+Tested-by: Erni Sri Satya Vennela <ernis@linux.microsoft.com>
+Reviewed-by: Haiyang Zhang <haiyangz@microsoft.com>
+Reviewed-by: Subbaraya Sundeep <sbhatta@marvell.com>
+Link: https://patch.msgid.link/1748513910-23963-1-git-send-email-ssengar@linux.microsoft.com
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+
+@@@COMMIT 161972650d6795ea00f8b72557cf3c3e593ed250
+2025-05-27	Kees Cook	net: core: Switch netif_set_mac_address() to struct sockaddr_storage
+
+In order to avoid passing around struct sockaddr that has a size the
+compiler cannot reason about (nor track at runtime), convert
+netif_set_mac_address() to take struct sockaddr_storage. This is just a
+cast conversion, so there is are no binary changes. Following patches
+will make actual allocation changes.
+
+Acked-by: Gustavo A. R. Silva <gustavoars@kernel.org>
+Signed-off-by: Kees Cook <kees@kernel.org>
+Link: https://patch.msgid.link/20250521204619.2301870-2-kees@kernel.org
+Signed-off-by: Paolo Abeni <pabeni@redhat.com>
+
+
+@@@COMMIT 945301db34f14eaa0be794458b67aead74ff79fa
+2025-05-21	Eric Dumazet	net: add debug checks in ____napi_schedule() and napi_poll()
+
+While tracking an IDPF bug, I found that idpf_vport_splitq_napi_poll()
+was not following NAPI rules.
+
+It can indeed return @budget after napi_complete() has been called.
+
+Add two debug conditions in networking core to hopefully catch
+this kind of bugs sooner.
+
+IDPF bug will be fixed in a separate patch.
+
+[   72.441242] repoll requested for device eth1 idpf_vport_splitq_napi_poll [idpf] but napi is not scheduled.
+[   72.446291] list_del corruption. next->prev should be ff31783d93b14040, but was ff31783d93b10080. (next=ff31783d93b10080)
+[   72.446659] kernel BUG at lib/list_debug.c:67!
+[   72.446816] Oops: invalid opcode: 0000 [#1] SMP DEBUG_PAGEALLOC NOPTI
+[   72.447031] CPU: 156 UID: 0 PID: 16258 Comm: ip Tainted: G        W           6.15.0-dbg-DEV #1944 NONE
+[   72.447340] Tainted: [W]=WARN
+[   72.447702] RIP: 0010:__list_del_entry_valid_or_report (lib/list_debug.c:65)
+[   72.450630] Call Trace:
+[   72.450720]  <IRQ>
+[   72.450797] net_rx_action (include/linux/list.h:215 include/linux/list.h:287 net/core/dev.c:7385 net/core/dev.c:7516)
+[   72.450928] ? lock_release (kernel/locking/lockdep.c:?)
+[   72.451059] ? clockevents_program_event (kernel/time/clockevents.c:?)
+[   72.451222] handle_softirqs (kernel/softirq.c:579)
+[   72.451356] ? do_softirq (kernel/softirq.c:480)
+[   72.451480] ? idpf_vc_xn_exec (drivers/net/ethernet/intel/idpf/idpf_virtchnl.c:462) idpf
+[   72.451635] do_softirq (kernel/softirq.c:480)
+[   72.451750]  </IRQ>
+[   72.451828]  <TASK>
+[   72.451905] __local_bh_enable_ip (kernel/softirq.c:?)
+[   72.452051] idpf_vc_xn_exec (drivers/net/ethernet/intel/idpf/idpf_virtchnl.c:462) idpf
+[   72.452210] idpf_send_delete_queues_msg (drivers/net/ethernet/intel/idpf/idpf_virtchnl.c:2083) idpf
+[   72.452390] idpf_vport_stop (drivers/net/ethernet/intel/idpf/idpf_lib.c:837 drivers/net/ethernet/intel/idpf/idpf_lib.c:868) idpf
+[   72.452541] ? idpf_vport_stop (include/linux/bottom_half.h:? include/linux/netdevice.h:4762 drivers/net/ethernet/intel/idpf/idpf_lib.c:855) idpf
+[   72.452695] idpf_initiate_soft_reset (drivers/net/ethernet/intel/idpf/idpf_lib.c:?) idpf
+[   72.452867] idpf_change_mtu (drivers/net/ethernet/intel/idpf/idpf_lib.c:2189) idpf
+[   72.453015] netif_set_mtu_ext (net/core/dev.c:9437)
+[   72.453157] ? packet_notifier (include/linux/rcupdate.h:331 include/linux/rcupdate.h:841 net/packet/af_packet.c:4240)
+[   72.453292] netif_set_mtu (net/core/dev.c:9515)
+[   72.453416] dev_set_mtu (net/core/dev_api.c:?)
+[   72.453534] bond_change_mtu (drivers/net/bonding/bond_main.c:4833)
+[   72.453666] netif_set_mtu_ext (net/core/dev.c:9437)
+[   72.453803] do_setlink (net/core/rtnetlink.c:3116)
+[   72.453925] ? rtnl_newlink (net/core/rtnetlink.c:3901)
+[   72.454055] ? rtnl_newlink (net/core/rtnetlink.c:3901)
+[   72.454185] ? rtnl_newlink (net/core/rtnetlink.c:3901)
+[   72.454314] ? trace_contention_end (include/trace/events/lock.h:122)
+[   72.454467] ? __mutex_lock (arch/x86/include/asm/preempt.h:85 kernel/locking/mutex.c:611 kernel/locking/mutex.c:746)
+[   72.454597] ? cap_capable (include/trace/events/capability.h:26)
+[   72.454721] ? security_capable (security/security.c:?)
+[   72.454857] rtnl_newlink (net/core/rtnetlink.c:?)
+[   72.454982] ? lock_is_held_type (kernel/locking/lockdep.c:5599 kernel/locking/lockdep.c:5938)
+[   72.455121] ? __lock_acquire (kernel/locking/lockdep.c:?)
+[   72.455256] ? __change_page_attr_set_clr (arch/x86/mm/pat/set_memory.c:685)
+[   72.455438] ? __lock_acquire (kernel/locking/lockdep.c:?)
+[   72.455582] ? rtnetlink_rcv_msg (include/linux/rcupdate.h:331 include/linux/rcupdate.h:841 net/core/rtnetlink.c:6885)
+[   72.455721] ? lock_acquire (kernel/locking/lockdep.c:5866)
+[   72.455848] ? rtnetlink_rcv_msg (include/linux/rcupdate.h:331 include/linux/rcupdate.h:841 net/core/rtnetlink.c:6885)
+[   72.455987] ? lock_release (kernel/locking/lockdep.c:?)
+[   72.456117] ? rcu_read_unlock (include/linux/rcupdate.h:341 include/linux/rcupdate.h:871)
+[   72.456249] ? __pfx_rtnl_newlink (net/core/rtnetlink.c:3956)
+[   72.456388] rtnetlink_rcv_msg (net/core/rtnetlink.c:6955)
+[   72.456526] ? rtnetlink_rcv_msg (include/linux/rcupdate.h:331 include/linux/rcupdate.h:841 net/core/rtnetlink.c:6885)
+[   72.456671] ? lock_acquire (kernel/locking/lockdep.c:5866)
+[   72.456802] ? net_generic (include/linux/rcupdate.h:331 include/linux/rcupdate.h:841 include/net/netns/generic.h:45)
+[   72.456929] ? __pfx_rtnetlink_rcv_msg (net/core/rtnetlink.c:6858)
+[   72.457082] netlink_rcv_skb (net/netlink/af_netlink.c:2534)
+[   72.457212] netlink_unicast (net/netlink/af_netlink.c:1313)
+[   72.457344] netlink_sendmsg (net/netlink/af_netlink.c:1883)
+[   72.457476] __sock_sendmsg (net/socket.c:712)
+[   72.457602] ____sys_sendmsg (net/socket.c:?)
+[   72.457735] ? _copy_from_user (arch/x86/include/asm/uaccess_64.h:126 arch/x86/include/asm/uaccess_64.h:134 arch/x86/include/asm/uaccess_64.h:141 include/linux/uaccess.h:178 lib/usercopy.c:18)
+[   72.457875] ___sys_sendmsg (net/socket.c:2620)
+[   72.458042] ? __call_rcu_common (arch/x86/include/asm/irqflags.h:42 arch/x86/include/asm/irqflags.h:119 arch/x86/include/asm/irqflags.h:159 kernel/rcu/tree.c:3107)
+[   72.458185] ? mntput_no_expire (include/linux/rcupdate.h:331 include/linux/rcupdate.h:841 fs/namespace.c:1457)
+[   72.458324] ? lock_acquire (kernel/locking/lockdep.c:5866)
+[   72.458451] ? mntput_no_expire (include/linux/rcupdate.h:331 include/linux/rcupdate.h:841 fs/namespace.c:1457)
+[   72.458588] ? lock_release (kernel/locking/lockdep.c:?)
+[   72.458718] ? mntput_no_expire (include/linux/rcupdate.h:331 include/linux/rcupdate.h:841 fs/namespace.c:1457)
+[   72.458856] __x64_sys_sendmsg (net/socket.c:2652)
+[   72.458997] ? do_syscall_64 (arch/x86/include/asm/irqflags.h:42 arch/x86/include/asm/irqflags.h:119 include/linux/entry-common.h:198 arch/x86/entry/syscall_64.c:90)
+[   72.459136] do_syscall_64 (arch/x86/entry/syscall_64.c:?)
+[   72.459259] ? exc_page_fault (arch/x86/mm/fault.c:1542)
+[   72.459387] entry_SYSCALL_64_after_hwframe (arch/x86/entry/entry_64.S:130)
+[   72.459555] RIP: 0033:0x7fd15f17cbd0
+
+Signed-off-by: Eric Dumazet <edumazet@google.com>
+Link: https://patch.msgid.link/20250520121908.1805732-1-edumazet@google.com
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+
+@@@COMMIT f792709e0baad67224180d73d51c2f090003adde
+2025-05-20	Stanislav Fomichev	selftests: net: validate team flags propagation
+
+Cover three recent cases:
+1. missing ops locking for the lowers during netdev_sync_lower_features
+2. missing locking for dev_set_promiscuity (plus netdev_ops_assert_locked
+   with a comment on why/when it's needed)
+3. rcu lock during team_change_rx_flags
+
+Verified that each one triggers when the respective fix is reverted.
+Not sure about the placement, but since it all relies on teaming,
+added to the teaming directory.
+
+One ugly bit is that I add NETIF_F_LRO to netdevsim; there is no way
+to trigger netdev_sync_lower_features without it.
+
+Signed-off-by: Stanislav Fomichev <stfomichev@gmail.com>
+Link: https://patch.msgid.link/20250516232205.539266-1-stfomichev@gmail.com
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+
+@@@COMMIT b66b76a82c8879d764ab89adc21ee855ffd292d5
+2025-05-16	Carolina Jubran	net/mlx5e: Reuse per-RQ XDP buffer to avoid stack zeroing overhead
+
+CONFIG_INIT_STACK_ALL_ZERO introduces a performance cost by
+zero-initializing all stack variables on function entry. The mlx5 XDP
+RX path previously allocated a struct mlx5e_xdp_buff on the stack per
+received CQE, resulting in measurable performance degradation under
+this config.
+
+This patch reuses a mlx5e_xdp_buff stored in the mlx5e_rq struct,
+avoiding per-CQE stack allocations and repeated zeroing.
+
+With this change, XDP_DROP and XDP_TX performance matches that of
+kernels built without CONFIG_INIT_STACK_ALL_ZERO.
+
+Performance was measured on a ConnectX-6Dx using a single RX channel
+(1 CPU at 100% usage) at ~50 Mpps. The baseline results were taken from
+net-next-6.15.
+
+Stack zeroing disabled:
+- XDP_DROP:
+    * baseline:                     31.47 Mpps
+    * baseline + per-RQ allocation: 32.31 Mpps (+2.68%)
+
+- XDP_TX:
+    * baseline:                     12.41 Mpps
+    * baseline + per-RQ allocation: 12.95 Mpps (+4.30%)
+
+Stack zeroing enabled:
+- XDP_DROP:
+    * baseline:                     24.32 Mpps
+    * baseline + per-RQ allocation: 32.27 Mpps (+32.7%)
+
+- XDP_TX:
+    * baseline:                     11.80 Mpps
+    * baseline + per-RQ allocation: 12.24 Mpps (+3.72%)
+
+Reported-by: Sebastiano Miano <mianosebastiano@gmail.com>
+Reported-by: Samuel Dobron <sdobron@redhat.com>
+Link: https://lore.kernel.org/all/CAMENy5pb8ea+piKLg5q5yRTMZacQqYWAoVLE1FE9WhQPq92E0g@mail.gmail.com/
+Signed-off-by: Carolina Jubran <cjubran@nvidia.com>
+Reviewed-by: Dragos Tatulea <dtatulea@nvidia.com>
+Signed-off-by: Tariq Toukan <tariqt@nvidia.com>
+Acked-by: Jesper Dangaard Brouer <hawk@kernel.org>
+Link: https://patch.msgid.link/1747253032-663457-1-git-send-email-tariqt@nvidia.com
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+
+@@@COMMIT 325eb217e41fa14f307c7cc702bd18d0bb38fe84
+2025-05-15	Michael Chan	bnxt_en: bring back rtnl_lock() in the bnxt_open() path
+004b5008016a ("eth: bnxt: remove most dependencies on RTNL")
+Error recovery, PCIe AER, resume, and TX timeout will invoke bnxt_open()
+with netdev_lock only.  This will cause RTNL assert failure in
+netif_set_real_num_tx_queues(), netif_set_real_num_tx_queues(),
+and netif_set_real_num_tx_queues().
+
+Example error recovery assert:
+
+RTNL: assertion failed at net/core/dev.c (3178)
+WARNING: CPU: 3 PID: 3392 at net/core/dev.c:3178 netif_set_real_num_tx_queues+0x1fd/0x210
+
+Call Trace:
+ <TASK>
+ ? __pfx_bnxt_msix+0x10/0x10 [bnxt_en]
+ __bnxt_open_nic+0x1ef/0xb20 [bnxt_en]
+ bnxt_open+0xda/0x130 [bnxt_en]
+ bnxt_fw_reset_task+0x21f/0x780 [bnxt_en]
+ process_scheduled_works+0x9d/0x400
+
+For now, bring back rtnl_lock() in all these code paths that can invoke
+bnxt_open().  In the bnxt_queue_start() error path, we don't have
+rtnl_lock held so we just change it to call netif_close() instead of
+bnxt_reset_task() for simplicity.  This error path is unlikely so it
+should be fine.
+
+Fixes: 004b5008016a ("eth: bnxt: remove most dependencies on RTNL")
+Reviewed-by: Kalesh AP <kalesh-anakkur.purayil@broadcom.com>
+Reviewed-by: Pavan Chebbi <pavan.chebbi@broadcom.com>
+Reviewed-by: Andy Gospodarek <andrew.gospodarek@broadcom.com>
+Signed-off-by: Michael Chan <michael.chan@broadcom.com>
+Link: https://patch.msgid.link/20250514062908.2766677-1-michael.chan@broadcom.com
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+
+@@@COMMIT b9eef3391de028fdd88fd7a2f81a4834fc98c9ac
+2025-05-15	Sebastian Andrzej Siewior	xdp: Use nested-BH locking for system_page_pool
+
+system_page_pool is a per-CPU variable and relies on disabled BH for its
+locking. Without per-CPU locking in local_bh_disable() on PREEMPT_RT
+this data structure requires explicit locking.
+
+Make a struct with a page_pool member (original system_page_pool) and a
+local_lock_t and use local_lock_nested_bh() for locking. This change
+adds only lockdep coverage and does not alter the functional behaviour
+for !PREEMPT_RT.
+
+Cc: Andrew Lunn <andrew+netdev@lunn.ch>
+Cc: Alexei Starovoitov <ast@kernel.org>
+Cc: Daniel Borkmann <daniel@iogearbox.net>
+Cc: Jesper Dangaard Brouer <hawk@kernel.org>
+Cc: John Fastabend <john.fastabend@gmail.com>
+Reviewed-by: Toke Høiland-Jørgensen <toke@redhat.com>
+Signed-off-by: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
+Link: https://patch.msgid.link/20250512092736.229935-6-bigeasy@linutronix.de
+Signed-off-by: Paolo Abeni <pabeni@redhat.com>
+
+
+@@@COMMIT c16608005ccb99fbde3a4cd96eab28e16f148abf
+2025-05-15	Shay Drory	net: Look for bonding slaves in the bond's network namespace
+
+Update the for_each_netdev_in_bond_rcu macro to iterate through network
+devices in the bond's network namespace instead of always using
+init_net. This change is safe because:
+
+1. **Bond-Slave Namespace Relationship**: A bond device and its slaves
+   must reside in the same network namespace. The bond device's
+   namespace is established at creation time and cannot change.
+
+2. **Slave Movement Implications**: Any attempt to move a slave device
+   to a different namespace automatically removes it from the bond, as
+   per kernel networking stack rules.
+   This maintains the invariant that slaves must exist in the same
+   namespace as their bond.
+
+This change is part of an effort to enable Link Aggregation (LAG) to
+work properly inside custom network namespaces. Previously, the macro
+would only find slave devices in the initial network namespace,
+preventing proper bonding functionality in custom namespaces.
+
+Signed-off-by: Shay Drory <shayd@nvidia.com>
+Signed-off-by: Mark Bloch <mbloch@nvidia.com>
+Link: https://patch.msgid.link/20250513081922.525716-1-mbloch@nvidia.com
+Signed-off-by: Paolo Abeni <pabeni@redhat.com>
+
+
+@@@COMMIT 08e9f2d584c4732180edee4cb2dbfa7586d7d5a3
+2025-05-06	Cosmin Ratiu	net: Lock netdevices during dev_shutdown
+a0527ee2df3f ("net: hold netdev instance lock during qdisc ndo_setup_tc")
+__qdisc_destroy() calls into various qdiscs .destroy() op, which in turn
+can call .ndo_setup_tc(), which requires the netdev instance lock.
+
+This commit extends the critical section in
+unregister_netdevice_many_notify() to cover dev_shutdown() (and
+dev_tcx_uninstall() as a side-effect) and acquires the netdev instance
+lock in __dev_change_net_namespace() for the other dev_shutdown() call.
+
+This should now guarantee that for all qdisc ops, the netdev instance
+lock is held during .ndo_setup_tc().
+
+Fixes: a0527ee2df3f ("net: hold netdev instance lock during qdisc ndo_setup_tc")
+Signed-off-by: Cosmin Ratiu <cratiu@nvidia.com>
+Acked-by: Stanislav Fomichev <sdf@fomichev.me>
+Link: https://patch.msgid.link/20250505194713.1723399-1-cratiu@nvidia.com
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+
+@@@COMMIT 1e20324b23f0afba27997434fb978f1e4a1dbcb6
+2025-05-05	Jakub Kicinski	virtio-net: don't re-enable refill work too early when NAPI is disabled
+4bc12818b363 ("virtio-net: disable delayed refill when pausing rx");413f0271f396 ("net: protect NAPI enablement with netdev_lock()")
+Commit 4bc12818b363 ("virtio-net: disable delayed refill when pausing rx")
+fixed a deadlock between reconfig paths and refill work trying to disable
+the same NAPI instance. The refill work can't run in parallel with reconfig
+because trying to double-disable a NAPI instance causes a stall under the
+instance lock, which the reconfig path needs to re-enable the NAPI and
+therefore unblock the stalled thread.
+
+There are two cases where we re-enable refill too early. One is in the
+virtnet_set_queues() handler. We call it when installing XDP:
+
+   virtnet_rx_pause_all(vi);
+   ...
+   virtnet_napi_tx_disable(..);
+   ...
+   virtnet_set_queues(..);
+   ...
+   virtnet_rx_resume_all(..);
+
+We want the work to be disabled until we call virtnet_rx_resume_all(),
+but virtnet_set_queues() kicks it before NAPIs were re-enabled.
+
+The other case is a more trivial case of mis-ordering in
+__virtnet_rx_resume() found by code inspection.
+
+Taking the spin lock in virtnet_set_queues() (requested during review)
+may be unnecessary as we are under rtnl_lock and so are all paths writing
+to ->refill_enabled.
+
+Acked-by: Michael S. Tsirkin <mst@redhat.com>
+Reviewed-by: Bui Quang Minh <minhquangbui99@gmail.com>
+Fixes: 4bc12818b363 ("virtio-net: disable delayed refill when pausing rx")
+Fixes: 413f0271f396 ("net: protect NAPI enablement with netdev_lock()")
+Link: https://patch.msgid.link/20250430163758.3029367-1-kuba@kernel.org
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+
+@@@COMMIT 927069d5c40c1cfa7b2d13cfc6d7d58bc6f85c50
+2025-05-01	Vadim Fedorenko	bnxt_en: fix module unload sequence
+8f7ae5a85137 ("bnxt_en: improve TX timestamping FIFO configuration")
+Recent updates to the PTP part of bnxt changed the way PTP FIFO is
+cleared, skbs waiting for TX timestamps are now cleared during
+ndo_close() call. To do clearing procedure, the ptp structure must
+exist and point to a valid address. Module destroy sequence had ptp
+clear code running before netdev close causing invalid memory access and
+kernel crash. Change the sequence to destroy ptp structure after device
+close.
+
+Fixes: 8f7ae5a85137 ("bnxt_en: improve TX timestamping FIFO configuration")
+Reported-by: Taehee Yoo <ap420073@gmail.com>
+Closes: https://lore.kernel.org/netdev/CAMArcTWDe2cd41=ub=zzvYifaYcYv-N-csxfqxUvejy_L0D6UQ@mail.gmail.com/
+Signed-off-by: Vadim Fedorenko <vadfed@meta.com>
+Reviewed-by: Jacob Keller <jacob.e.keller@intel.com>
+Reviewed-by: Michael Chan <michael.chan@broadcom.com>
+Tested-by: Taehee Yoo <ap420073@gmail.com>
+Link: https://patch.msgid.link/20250430170343.759126-1-vadfed@meta.com
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+
+@@@COMMIT c2d20a3814d1b57dea6db82229edd702bde9c878
+2025-04-30	Kashyap Desai	bnxt_en: delay pci_alloc_irq_vectors() in the AER path
+
+This patch is similar to the last patch to delay the
+pci_alloc_irq_vectors() call in the AER path until after calling
+bnxt_reserve_rings().  bnxt_reserve_rings() needs to properly map
+the MSIX table first before we call pci_alloc_irq_vectors() which
+may immediately write to the MSIX table in some architectures.
+
+Move the bnxt_init_int_mode() call from bnxt_io_slot_reset() to
+bnxt_io_resume() after calling bnxt_reserve_rings().
+
+With this change, the AER path may call bnxt_open() ->
+bnxt_hwrm_if_change() with bp->irq_tbl set to NULL.  bp->irq_tbl is
+cleared when we call bnxt_clear_int_mode() in bnxt_io_slot_reset().
+So we cannot use !bp->irq_tbl to detect aborted FW reset.  Add a
+new BNXT_FW_RESET_STATE_ABORT to detect aborted FW reset in
+bnxt_hwrm_if_change().
+
+Signed-off-by: Kashyap Desai <kashyap.desai@broadcom.com>
+Signed-off-by: Michael Chan <michael.chan@broadcom.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT 1ae04e489dd757e1e61999362f33e7c554c3b9e3
+2025-04-30	Kashyap Desai	bnxt_en: call pci_alloc_irq_vectors() after bnxt_reserve_rings()
+4343838ca5eb ("bnxt_en: Replace deprecated PCI MSIX APIs")
+On some architectures (e.g. ARM), calling pci_alloc_irq_vectors()
+will immediately cause the MSIX table to be written.  This will not
+work if we haven't called bnxt_reserve_rings() to properly map
+the MSIX table to the MSIX vectors reserved by FW.
+
+Fix the FW error recovery path to delay the bnxt_init_int_mode() ->
+pci_alloc_irq_vectors() call by removing it from bnxt_hwrm_if_change().
+bnxt_request_irq() later in the code path will call it and by then the
+MSIX table is properly mapped.
+
+Fixes: 4343838ca5eb ("bnxt_en: Replace deprecated PCI MSIX APIs")
+Suggested-by: Michael Chan <michael.chan@broadcom.com>
+Signed-off-by: Kashyap Desai <kashyap.desai@broadcom.com>
+Signed-off-by: Michael Chan <michael.chan@broadcom.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT a63db07e4ecd45b027718168faf7d798bb47bf58
+2025-04-30	Somnath Kotur	bnxt_en: Add missing skb_mark_for_recycle() in bnxt_rx_vlan()
+86b05508f775 ("bnxt_en: Use the unified RX page pool buffers for XDP and non-XDP")
+If bnxt_rx_vlan() fails because the VLAN protocol ID is invalid,
+the SKB is freed but we're missing the call to recycle it.  This
+may cause the warning:
+
+"page_pool_release_retry() stalled pool shutdown"
+
+Add the missing skb_mark_for_recycle() in bnxt_rx_vlan().
+
+Fixes: 86b05508f775 ("bnxt_en: Use the unified RX page pool buffers for XDP and non-XDP")
+Reviewed-by: Kalesh AP <kalesh-anakkur.purayil@broadcom.com>
+Reviewed-by: Pavan Chebbi <pavan.chebbi@broadcom.com>
+Signed-off-by: Somnath Kotur <somnath.kotur@broadcom.com>
+Signed-off-by: Michael Chan <michael.chan@broadcom.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT 462cc09ac37ddde5a01477613220f0271fe49291
+2025-04-29	Jedrzej Jagielski	ixgbe: create E610 specific ethtool_ops structure
+
+E610's implementation of various ethtool ops is different than
+the ones corresponding to ixgbe legacy products. Therefore create
+separate E610 ethtool_ops struct which will be filled out in the
+forthcoming patches.
+
+Add adequate ops struct basing on MAC type. This step requires
+changing a bit the flow of probing by placing ixgbe_set_ethtool_ops
+after hw.mac.type is assigned. So move the whole netdev assignment
+block after hw.mac.type is known. This step doesn't have any additional
+impact on probing sequence.
+
+Suggested-by: Aleksandr Loktionov <aleksandr.loktionov@intel.com>
+Reviewed-by: Aleksandr Loktionov <aleksandr.loktionov@intel.com>
+Signed-off-by: Jedrzej Jagielski <jedrzej.jagielski@intel.com>
+Reviewed-by: Simon Horman <horms@kernel.org>
+Tested-by: Bharath R <bharath.r@intel.com>
+Signed-off-by: Tony Nguyen <anthony.l.nguyen@intel.com>
+
+@@@COMMIT 8ff6175139967cd17b2a62bca4b2de2559942b7e
+2025-04-23	Arnd Bergmann	bnxt_en: hide CONFIG_DETECT_HUNG_TASK specific code
+0fcad44a86bd ("bnxt_en: Change FW message timeout warning")
+The CONFIG_DEFAULT_HUNG_TASK_TIMEOUT setting is only available when the
+hung task detection is enabled, otherwise the code now produces a build
+failure:
+
+drivers/net/ethernet/broadcom/bnxt/bnxt.c:10188:21: error: use of undeclared identifier 'CONFIG_DEFAULT_HUNG_TASK_TIMEOUT'
+ 10188 |             max_tmo_secs > CONFIG_DEFAULT_HUNG_TASK_TIMEOUT) {
+
+Enclose this warning logic in an #ifdef to ensure this builds.
+
+Fixes: 0fcad44a86bd ("bnxt_en: Change FW message timeout warning")
+Signed-off-by: Arnd Bergmann <arnd@arndb.de>
+Reviewed-by: Michael Chan <michael.chan@broadcom.com>
+Link: https://patch.msgid.link/20250423162827.2189658-1-arnd@kernel.org
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+
+@@@COMMIT 0e0a7e3719bc8cbe6d6e30b3e81f21472ecba5bc
+2025-04-22	Joshua Washington	xdp: create locked/unlocked instances of xdp redirect target setters
+03df156dd3a6 ("xdp: double protect netdev->xdp_flags with netdev->lock")
+Commit 03df156dd3a6 ("xdp: double protect netdev->xdp_flags with
+netdev->lock") introduces the netdev lock to xdp_set_features_flag().
+The change includes a _locked version of the method, as it is possible
+for a driver to have already acquired the netdev lock before calling
+this helper. However, the same applies to
+xdp_features_(set|clear)_redirect_flags(), which ends up calling the
+unlocked version of xdp_set_features_flags() leading to deadlocks in
+GVE, which grabs the netdev lock as part of its suspend, reset, and
+shutdown processes:
+
+[  833.265543] WARNING: possible recursive locking detected
+[  833.270949] 6.15.0-rc1 #6 Tainted: G            E
+[  833.276271] --------------------------------------------
+[  833.281681] systemd-shutdow/1 is trying to acquire lock:
+[  833.287090] ffff949d2b148c68 (&dev->lock){+.+.}-{4:4}, at: xdp_set_features_flag+0x29/0x90
+[  833.295470]
+[  833.295470] but task is already holding lock:
+[  833.301400] ffff949d2b148c68 (&dev->lock){+.+.}-{4:4}, at: gve_shutdown+0x44/0x90 [gve]
+[  833.309508]
+[  833.309508] other info that might help us debug this:
+[  833.316130]  Possible unsafe locking scenario:
+[  833.316130]
+[  833.322142]        CPU0
+[  833.324681]        ----
+[  833.327220]   lock(&dev->lock);
+[  833.330455]   lock(&dev->lock);
+[  833.333689]
+[  833.333689]  *** DEADLOCK ***
+[  833.333689]
+[  833.339701]  May be due to missing lock nesting notation
+[  833.339701]
+[  833.346582] 5 locks held by systemd-shutdow/1:
+[  833.351205]  #0: ffffffffa9c89130 (system_transition_mutex){+.+.}-{4:4}, at: __se_sys_reboot+0xe6/0x210
+[  833.360695]  #1: ffff93b399e5c1b8 (&dev->mutex){....}-{4:4}, at: device_shutdown+0xb4/0x1f0
+[  833.369144]  #2: ffff949d19a471b8 (&dev->mutex){....}-{4:4}, at: device_shutdown+0xc2/0x1f0
+[  833.377603]  #3: ffffffffa9eca050 (rtnl_mutex){+.+.}-{4:4}, at: gve_shutdown+0x33/0x90 [gve]
+[  833.386138]  #4: ffff949d2b148c68 (&dev->lock){+.+.}-{4:4}, at: gve_shutdown+0x44/0x90 [gve]
+
+Introduce xdp_features_(set|clear)_redirect_target_locked() versions
+which assume that the netdev lock has already been acquired before
+setting the XDP feature flag and update GVE to use the locked version.
+
+Fixes: 03df156dd3a6 ("xdp: double protect netdev->xdp_flags with netdev->lock")
+Tested-by: Mina Almasry <almasrymina@google.com>
+Reviewed-by: Willem de Bruijn <willemb@google.com>
+Reviewed-by: Harshitha Ramamurthy <hramamurthy@google.com>
+Signed-off-by: Joshua Washington <joshwash@google.com>
+Acked-by: Stanislav Fomichev <sdf@fomichev.me>
+Acked-by: Martin KaFai Lau <martin.lau@kernel.org>
+Link: https://patch.msgid.link/20250422011643.3509287-1-joshwash@google.com
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+
+@@@COMMIT 4bc12818b363bd30f0f7348dd9ab077290a637ae
+2025-04-22	Bui Quang Minh	virtio-net: disable delayed refill when pausing rx
+413f0271f396 ("net: protect NAPI enablement with netdev_lock()")
+When pausing rx (e.g. set up xdp, xsk pool, rx resize), we call
+napi_disable() on the receive queue's napi. In delayed refill_work, it
+also calls napi_disable() on the receive queue's napi.  When
+napi_disable() is called on an already disabled napi, it will sleep in
+napi_disable_locked while still holding the netdev_lock. As a result,
+later napi_enable gets stuck too as it cannot acquire the netdev_lock.
+This leads to refill_work and the pause-then-resume tx are stuck
+altogether.
+
+This scenario can be reproducible by binding a XDP socket to virtio-net
+interface without setting up the fill ring. As a result, try_fill_recv
+will fail until the fill ring is set up and refill_work is scheduled.
+
+This commit adds virtnet_rx_(pause/resume)_all helpers and fixes up the
+virtnet_rx_resume to disable future and cancel all inflights delayed
+refill_work before calling napi_disable() to pause the rx.
+
+Fixes: 413f0271f396 ("net: protect NAPI enablement with netdev_lock()")
+Acked-by: Michael S. Tsirkin <mst@redhat.com>
+Signed-off-by: Bui Quang Minh <minhquangbui99@gmail.com>
+Acked-by: Jason Wang <jasowang@redhat.com>
+Link: https://patch.msgid.link/20250417072806.18660-2-minhquangbui99@gmail.com
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+
+@@@COMMIT 0fcad44a86bdc2b5f202d91ba1eeeee6fceb7b25
+2025-04-21	Michael Chan	bnxt_en: Change FW message timeout warning
+
+The firmware advertises a "hwrm_cmd_max_timeout" value to the driver
+for NVRAM and coredump related functions that can take tens of seconds
+to complete.  The driver polls for the operation to complete under
+mutex and may trigger hung task watchdog warning if the wait is too long.
+To warn the user about this, the driver currently prints a warning if
+this advertised value exceeds 40 seconds:
+
+Device requests max timeout of %d seconds, may trigger hung task watchdog
+
+Initially, we chose 40 seconds, well below the kernel's default
+CONFIG_DEFAULT_HUNG_TASK_TIMEOUT (120 seconds) to avoid triggering
+the hung task watchdog.  But 60 seconds is the timeout on most
+production FW and cannot be reduced further.  Change the driver's warning
+threshold to 60 seconds to avoid triggering this warning on all
+production devices.  We also print the warning if the value exceeds
+CONFIG_DEFAULT_HUNG_TASK_TIMEOUT which may be set to architecture
+specific defaults as low as 10 seconds.
+
+Reviewed-by: Kalesh AP <kalesh-anakkur.purayil@broadcom.com>
+Reviewed-by: Pavan Chebbi <pavan.chebbi@broadcom.com>
+Reviewed-by: Andy Gospodarek <andrew.gospodarek@broadcom.com>
+Signed-off-by: Michael Chan <michael.chan@broadcom.com>
+Link: https://patch.msgid.link/20250417172448.1206107-2-michael.chan@broadcom.com
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+
+@@@COMMIT 22cbc1ee268b7ec0000848708944daa61c6e4909
+2025-04-17	Jakub Kicinski	netdev: fix the locking for netdev notifications
+99e44f39a8f7 ("netdev: depend on netdev->lock for xdp features")
+Kuniyuki reports that the assert for netdev lock fires when
+there are netdev event listeners (otherwise we skip the netlink
+event generation).
+
+Correct the locking when coming from the notifier.
+
+The NETDEV_XDP_FEAT_CHANGE notifier is already fully locked,
+it's the documentation that's incorrect.
+
+Fixes: 99e44f39a8f7 ("netdev: depend on netdev->lock for xdp features")
+Reported-by: syzkaller <syzkaller@googlegroups.com>
+Reported-by: Kuniyuki Iwashima <kuniyu@amazon.com>
+Link: https://lore.kernel.org/20250410171019.62128-1-kuniyu@amazon.com
+Acked-by: Stanislav Fomichev <sdf@fomichev.me>
+Link: https://patch.msgid.link/20250416030447.1077551-1-kuba@kernel.org
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+
+@@@COMMIT 4798cfa2097f0833d54d8f5ce20ef14631917839
+2025-04-16	Jakub Kicinski	net: don't try to ops lock uninitialized devs
+04efcee6ef8d ("net: hold instance lock during NETDEV_CHANGE")
+We need to be careful when operating on dev while in rtnl_create_link().
+Some devices (vxlan) initialize netdev_ops in ->newlink, so later on.
+Avoid using netdev_lock_ops(), the device isn't registered so we
+cannot legally call its ops or generate any notifications for it.
+
+netdev_ops_assert_locked_or_invisible() is safe to use, it checks
+registration status first.
+
+Reported-by: syzbot+de1c7d68a10e3f123bdd@syzkaller.appspotmail.com
+Fixes: 04efcee6ef8d ("net: hold instance lock during NETDEV_CHANGE")
+Acked-by: Stanislav Fomichev <sdf@fomichev.me>
+Reviewed-by: Kuniyuki Iwashima <kuniyu@amazon.com>
+Link: https://patch.msgid.link/20250415151552.768373-1-kuba@kernel.org
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+
+@@@COMMIT cd1fafe7da1f6f2aa25723e317f6e8e9d0c050a1
+2025-04-16	Taehee Yoo	eth: bnxt: add support rx side device memory TCP
+
+Currently, bnxt_en driver satisfies the requirements of the Device
+memory TCP, which is HDS.
+So, it implements rx-side Device memory TCP for bnxt_en driver.
+It requires only converting the page API to netmem API.
+`struct page` of agg rings are changed to `netmem_ref netmem` and
+corresponding functions are changed to a variant of netmem API.
+
+It also passes PP_FLAG_ALLOW_UNREADABLE_NETMEM flag to a parameter of
+page_pool.
+The netmem will be activated only when a user requests devmem TCP.
+
+When netmem is activated, received data is unreadable and netmem is
+disabled, received data is readable.
+But drivers don't need to handle both cases because netmem core API will
+handle it properly.
+So, using proper netmem API is enough for drivers.
+
+Device memory TCP can be tested with
+tools/testing/selftests/drivers/net/hw/ncdevmem.
+This is tested with BCM57504-N425G and firmware version 232.0.155.8/pkg
+232.1.132.8.
+
+Reviewed-by: Mina Almasry <almasrymina@google.com>
+Tested-by: David Wei <dw@davidwei.uk>
+Signed-off-by: Taehee Yoo <ap420073@gmail.com>
+Link: https://patch.msgid.link/20250415052458.1260575-1-ap420073@gmail.com
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+
+@@@COMMIT a0285236ab93fdfdd1008afaa04561d142d6c276
+2025-04-15	Jedrzej Jagielski	ixgbe: add initial devlink support
+
+Add an initial support for devlink interface to ixgbe driver.
+
+Similarly to i40e driver the implementation doesn't enable
+devlink to manage device-wide configuration. Devlink instance
+is created for each physical function of PCIe device.
+
+Create separate directory for devlink related ixgbe files
+and use naming scheme similar to the one used in the ice driver.
+
+Add a stub for Documentation, to be extended by further patches.
+
+Change struct ixgbe_adapter allocation to be done by devlink (Przemek),
+as suggested by Jiri.
+
+Reviewed-by: Mateusz Polchlopek <mateusz.polchlopek@intel.com>
+Co-developed-by: Przemek Kitszel <przemyslaw.kitszel@intel.com>
+Signed-off-by: Przemek Kitszel <przemyslaw.kitszel@intel.com>
+Tested-by: Bharath R <bharath.r@intel.com>
+Signed-off-by: Jedrzej Jagielski <jedrzej.jagielski@intel.com>
+Signed-off-by: Tony Nguyen <anthony.l.nguyen@intel.com>
+
+@@@COMMIT fd5ef5203ce645f72a37b02a89f2eb20827f7d52
+2025-04-15	Przemek Kitszel	ixgbe: wrap netdev_priv() usage
+
+Wrap use of netdev_priv() in order to change the allocator of the device
+private structure from alloc_etherdev_mq() to the devlink in next commit.
+
+All but one netdev_priv() calls in the whole driver are replaced, the
+remaining one is called on MACVLAN (so not ixgbe) device.
+
+Signed-off-by: Przemek Kitszel <przemyslaw.kitszel@intel.com>
+Tested-by: Bharath R <bharath.r@intel.com>
+Signed-off-by: Jedrzej Jagielski <jedrzej.jagielski@intel.com>
+Signed-off-by: Tony Nguyen <anthony.l.nguyen@intel.com>
+
+@@@COMMIT f0433eea468810aebd61d0b9d095e9acd6bea2ed
+2025-04-14	Jakub Kicinski	net: don't mix device locking in dev_close_many() calls
+7e4d784f5810 ("net: hold netdev instance lock during rtnetlink operations")
+Lockdep found the following dependency:
+
+  &dev_instance_lock_key#3 -->
+     &rdev->wiphy.mtx -->
+        &net->xdp.lock -->
+	   &xs->mutex -->
+	      &dev_instance_lock_key#3
+
+The first dependency is the problem. wiphy mutex should be outside
+the instance locks. The problem happens in notifiers (as always)
+for CLOSE. We only hold the instance lock for ops locked devices
+during CLOSE, and WiFi netdevs are not ops locked. Unfortunately,
+when we dev_close_many() during netns dismantle we may be holding
+the instance lock of _another_ netdev when issuing a CLOSE for
+a WiFi device.
+
+Lockdep's "Possible unsafe locking scenario" only prints 3 locks
+and we have 4, plus I think we'd need 3 CPUs, like this:
+
+       CPU0                 CPU1              CPU2
+       ----                 ----              ----
+  lock(&xs->mutex);
+                       lock(&dev_instance_lock_key#3);
+                                         lock(&rdev->wiphy.mtx);
+                                         lock(&net->xdp.lock);
+                                         lock(&xs->mutex);
+                       lock(&rdev->wiphy.mtx);
+  lock(&dev_instance_lock_key#3);
+
+Tho, I don't think that's possible as CPU1 and CPU2 would
+be under rtnl_lock. Even if we have per-netns rtnl_lock and
+wiphy can span network namespaces - CPU0 and CPU1 must be
+in the same netns to see dev_instance_lock, so CPU0 can't
+be installing a socket as CPU1 is tearing the netns down.
+
+Regardless, our expected lock ordering is that wiphy lock
+is taken before instance locks, so let's fix this.
+
+Go over the ops locked and non-locked devices separately.
+Note that calling dev_close_many() on an empty list is perfectly
+fine. All processing (including RCU syncs) are conditional
+on the list not being empty, already.
+
+Fixes: 7e4d784f5810 ("net: hold netdev instance lock during rtnetlink operations")
+Reported-by: syzbot+6f588c78bf765b62b450@syzkaller.appspotmail.com
+Acked-by: Stanislav Fomichev <sdf@fomichev.me>
+Link: https://patch.msgid.link/20250412233011.309762-1-kuba@kernel.org
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+
+@@@COMMIT 229671ac60e298b85c2644f52d7e487e9f487d06
+2025-04-09	Eric Dumazet	net: remove cpu stall in txq_trans_update()
+
+txq_trans_update() currently uses txq->xmit_lock_owner
+to conditionally update txq->trans_start.
+
+For regular devices, txq->xmit_lock_owner is updated
+from HARD_TX_LOCK() and HARD_TX_UNLOCK(), and this apparently
+causes cpu stalls.
+
+Using dev->lltx, which sits in a read-mostly cache-line,
+and already used in HARD_TX_LOCK() and HARD_TX_UNLOCK()
+helps cpu prediction.
+
+On an AMD EPYC 7B12 dual socket server, tcp_rr with 128 threads
+and 30,000 flows gets a 5 % increase in throughput.
+
+As explained in commit 95ecba62e2fd ("net: fix races in
+netdev_tx_sent_queue()/dev_watchdog()") I am planning
+to no longer update txq->trans_start in the fast path
+in a followup patch.
+
+Signed-off-by: Eric Dumazet <edumazet@google.com>
+Link: https://patch.msgid.link/20250408202742.2145516-1-edumazet@google.com
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+
+@@@COMMIT 03df156dd3a6d5992f17682cd5c3b11e5ffdae02
+2025-04-09	Jakub Kicinski	xdp: double protect netdev->xdp_flags with netdev->lock
+
+Protect xdp_features with netdev->lock. This way pure readers
+no longer have to take rtnl_lock to access the field.
+
+This includes calling NETDEV_XDP_FEAT_CHANGE under the lock.
+Looks like that's fine for bonding, the only "real" listener,
+it's the same as ethtool feature change.
+
+In terms of normal drivers - only GVE need special consideration
+(other drivers don't use instance lock or don't support XDP).
+It calls xdp_set_features_flag() helper from gve_init_priv() which
+in turn is called from gve_reset_recovery() (locked), or prior
+to netdev registration. So switch to _locked.
+
+Reviewed-by: Joe Damato <jdamato@fastly.com>
+Acked-by: Stanislav Fomichev <sdf@fomichev.me>
+Acked-by: Harshitha Ramamurthy <hramamurthy@google.com>
+Acked-by: Martin KaFai Lau <martin.lau@kernel.org>
+Link: https://patch.msgid.link/20250408195956.412733-6-kuba@kernel.org
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+
+@@@COMMIT 4ec9031cbeb73a66979560bbb6d355329be762de
+2025-04-09	Jakub Kicinski	netdev: add "ops compat locking" helpers
+
+Add helpers to "lock a netdev in a backward-compatible way",
+which for ops-locked netdevs will mean take the instance lock.
+For drivers which haven't opted into the ops locking we'll take
+rtnl_lock.
+
+The scoped foreach is dropping and re-taking the lock for each
+device, even if prev and next are both under rtnl_lock.
+I hope that's fine since we expect that netdev nl to be mostly
+supported by modern drivers, and modern drivers should also
+opt into the instance locking.
+
+Note that these helpers are mostly needed for queue related state,
+because drivers modify queue config in their ops in a non-atomic
+way. Or differently put, queue changes don't have a clear-cut API
+like NAPI configuration. Any state that can should just use the
+instance lock directly, not the "compat" hacks.
+
+Reviewed-by: Joe Damato <jdamato@fastly.com>
+Acked-by: Stanislav Fomichev <sdf@fomichev.me>
+Link: https://patch.msgid.link/20250408195956.412733-4-kuba@kernel.org
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+
+@@@COMMIT a82dc19db13649aa4232ce37cb6f4ceff851e2fe
+2025-04-09	Jakub Kicinski	net: avoid potential race between netdev_get_by_index_lock() and netns switch
+
+netdev_get_by_index_lock() performs following steps:
+
+  rcu_lock();
+  dev = lookup(netns, ifindex);
+  dev_get(dev);
+  rcu_unlock();
+  [... lock & validate the dev ...]
+  return dev
+
+Validation right now only checks if the device is registered but since
+the lookup is netns-aware we must also protect against the device
+switching netns right after we dropped the RCU lock. Otherwise
+the caller in netns1 may get a pointer to a device which has just
+switched to netns2.
+
+We can't hold the lock for the entire netns change process (because of
+the NETDEV_UNREGISTER notifier), and there's no existing marking to
+indicate that the netns is unlisted because of netns move, so add one.
+
+AFAIU none of the existing netdev_get_by_index_lock() callers can
+suffer from this problem (NAPI code double checks the netns membership
+and other callers are either under rtnl_lock or not ns-sensitive),
+so this patch does not have to be treated as a fix.
+
+Reviewed-by: Joe Damato <jdamato@fastly.com>
+Acked-by: Stanislav Fomichev <sdf@fomichev.me>
+Link: https://patch.msgid.link/20250408195956.412733-2-kuba@kernel.org
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+
+@@@COMMIT c3025e94daa9ce84ef0e53df983b5bf2fbd76ea6
+2025-04-08	Eric Dumazet	net: rps: change skb_flow_limit() hash function
+
+As explained in commit f3483c8e1da6 ("net: rfs: hash function change"),
+masking low order bits of skb_get_hash(skb) has low entropy.
+
+A NIC with 32 RX queues uses the 5 low order bits of rss key
+to select a queue. This means all packets landing to a given
+queue share the same 5 low order bits.
+
+Switch to hash_32() to reduce hash collisions.
+
+Signed-off-by: Eric Dumazet <edumazet@google.com>
+Reviewed-by: Willem de Bruijn <willemb@google.com>
+Link: https://patch.msgid.link/20250407163602.170356-2-edumazet@google.com
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+
+@@@COMMIT 04efcee6ef8d0f01eef495db047e7216d6e6e38f
+2025-04-07	Stanislav Fomichev	net: hold instance lock during NETDEV_CHANGE
+ad7c7b2172c3 ("net: hold netdev instance lock during sysfs operations")
+Cosmin reports an issue with ipv6_add_dev being called from
+NETDEV_CHANGE notifier:
+
+[ 3455.008776]  ? ipv6_add_dev+0x370/0x620
+[ 3455.010097]  ipv6_find_idev+0x96/0xe0
+[ 3455.010725]  addrconf_add_dev+0x1e/0xa0
+[ 3455.011382]  addrconf_init_auto_addrs+0xb0/0x720
+[ 3455.013537]  addrconf_notify+0x35f/0x8d0
+[ 3455.014214]  notifier_call_chain+0x38/0xf0
+[ 3455.014903]  netdev_state_change+0x65/0x90
+[ 3455.015586]  linkwatch_do_dev+0x5a/0x70
+[ 3455.016238]  rtnl_getlink+0x241/0x3e0
+[ 3455.019046]  rtnetlink_rcv_msg+0x177/0x5e0
+
+Similarly, linkwatch might get to ipv6_add_dev without ops lock:
+[ 3456.656261]  ? ipv6_add_dev+0x370/0x620
+[ 3456.660039]  ipv6_find_idev+0x96/0xe0
+[ 3456.660445]  addrconf_add_dev+0x1e/0xa0
+[ 3456.660861]  addrconf_init_auto_addrs+0xb0/0x720
+[ 3456.661803]  addrconf_notify+0x35f/0x8d0
+[ 3456.662236]  notifier_call_chain+0x38/0xf0
+[ 3456.662676]  netdev_state_change+0x65/0x90
+[ 3456.663112]  linkwatch_do_dev+0x5a/0x70
+[ 3456.663529]  __linkwatch_run_queue+0xeb/0x200
+[ 3456.663990]  linkwatch_event+0x21/0x30
+[ 3456.664399]  process_one_work+0x211/0x610
+[ 3456.664828]  worker_thread+0x1cc/0x380
+[ 3456.665691]  kthread+0xf4/0x210
+
+Reclassify NETDEV_CHANGE as a notifier that consistently runs under the
+instance lock.
+
+Link: https://lore.kernel.org/netdev/aac073de8beec3e531c86c101b274d434741c28e.camel@nvidia.com/
+Reported-by: Cosmin Ratiu <cratiu@nvidia.com>
+Tested-by: Cosmin Ratiu <cratiu@nvidia.com>
+Fixes: ad7c7b2172c3 ("net: hold netdev instance lock during sysfs operations")
+Signed-off-by: Stanislav Fomichev <sdf@fomichev.me>
+Link: https://patch.msgid.link/20250404161122.3907628-1-sdf@fomichev.me
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+
+@@@COMMIT 9e3267cf02c240065fddfbe1a58cdb99d0b00531
+2025-03-31	Jakub Kicinski	eth: gve: add missing netdev locks on reset and shutdown paths
+cae03e5bdd9e ("net: hold netdev instance lock during queue operations")
+All the misc entry points end up calling into either gve_open()
+or gve_close(), they take rtnl_lock today but since the recent
+instance locking changes should also take the instance lock.
+
+Found by code inspection and untested.
+
+Fixes: cae03e5bdd9e ("net: hold netdev instance lock during queue operations")
+Acked-by: Stanislav Fomichev <sdf@fomichev.me>
+Reviewed-by: Harshitha Ramamurthy <hramamurthy@google.com>
+Link: https://patch.msgid.link/20250328164742.1268069-1-kuba@kernel.org
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+
+@@@COMMIT 346fb86ddd862012bde63cf20c0ac8bc94000ef4
+2025-03-25	Joshua Washington	gve: update XDP allocation path support RX buffer posting
+
+In order to support installing an XDP program on DQ, RX buffers need to
+be reposted using 4K buffers, which is larger than the default packet
+buffer size of 2K. This is needed to accommodate the extra head and tail
+that accompanies the data portion of an XDP buffer. Continuing to use 2K
+buffers would mean that the packet buffer size for the NIC would have to
+be restricted to 2048 - 320 - 256 = 1472B. However, this is problematic
+for two reasons: first, 1472 is not a packet buffer size accepted by
+GVE; second, at least 1474B of buffer space is needed to accommodate an
+MTU of 1460, which is the default on GCP. As such, we allocate 4K
+buffers, and post a 2K section of those 4K buffers (offset relative to
+the XDP headroom) to the NIC for DMA to avoid a potential extra copy.
+Because the GQ-QPL datapath requires copies regardless, this change was
+not needed to support XDP in that case.
+
+To capture this subtlety, a new field, packet_buffer_truesize, has been
+added to the rx ring struct to represent size of the allocated buffer,
+while packet_buffer_size has been left to represent the portion of the
+buffer posted to the NIC.
+
+Reviewed-by: Willem de Bruijn <willemb@google.com>
+Signed-off-by: Praveen Kaligineedi <pkaligineedi@google.com>
+Signed-off-by: Joshua Washington <joshwash@google.com>
+Signed-off-by: Harshitha Ramamurthy <hramamurthy@google.com>
+Link: https://patch.msgid.link/20250321002910.1343422-6-hramamurthy@google.com
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+
+@@@COMMIT 904effd02df72501fc8fcd8c9573de221c58cb60
+2025-03-25	Joshua Washington	gve: merge packet buffer size fields
+
+The data_buffer_size_dqo field in gve_priv and the packet_buffer_size
+field in gve_rx_ring theoretically have the same meaning, but they are
+defined in two different places and used in two separate contexts. There
+is no good reason for this, so this change merges those fields into the
+packet_buffer_size field in the RX ring.
+
+This change also introduces a packet_buffer_size field to struct
+gve_rx_queue_config to account for cases where queues are not allocated,
+such as when the interface is down.
+
+Reviewed-by: Willem de Bruijn <willemb@google.com>
+Signed-off-by: Joshua Washington <joshwash@google.com>
+Signed-off-by: Harshitha Ramamurthy <hramamurthy@google.com>
+Link: https://patch.msgid.link/20250321002910.1343422-5-hramamurthy@google.com
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+
+@@@COMMIT 542a58f1b090cdcea951b7c9c48c3ba57d1e35b1
+2025-03-25	Joshua Washington	gve: introduce config-based allocation for XDP
+
+An earlier patch series[1] introduced RX/TX ring allocation configuration
+structs which contained metadata used to allocate and configure new RX
+and TX rings. This led to a much cleaner and safer allocation pattern
+wherein queue resources were not deallocated until new queue resources
+were successfully allocated.
+
+Migrate the XDP allocation path to use the same pattern to allow for the
+existence of a single allocation path instead of relying on XDP-specific
+allocation methods. These extra allocation methods result in the
+duplication of many existing behaviors while being prone to error when
+configuration changes unrelated to XDP occur.
+
+Link: https://lore.kernel.org/netdev/20240122182632.1102721-1-shailend@google.com/ [1]
+Reviewed-by: Praveen Kaligineedi <pkaligineedi@google.com>
+Reviewed-by: Willem de Bruijn <willemb@google.com>
+Signed-off-by: Joshua Washington <joshwash@google.com>
+Signed-off-by: Harshitha Ramamurthy <hramamurthy@google.com>
+Link: https://patch.msgid.link/20250321002910.1343422-3-hramamurthy@google.com
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+
+@@@COMMIT b52458652eca5a551ddb55605201b136f091b04d
+2025-03-25	Jakub Kicinski	net: protect rxq->mp_params with the instance lock
+
+Ensure that all accesses to mp_params are under the netdev
+instance lock. The only change we need is to move
+dev_memory_provider_uninstall() under the lock.
+
+Appropriately swap the asserts.
+
+Reviewed-by: Mina Almasry <almasrymina@google.com>
+Acked-by: Stanislav Fomichev <sdf@fomichev.me>
+Link: https://patch.msgid.link/20250324224537.248800-8-kuba@kernel.org
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+
+@@@COMMIT 310ae9eb2617c62deedef8f121d7ca1ae774fa76
+2025-03-25	Jakub Kicinski	net: designate queue -> napi linking as "ops protected"
+
+netdev netlink is the only reader of netdev_{,rx_}queue->napi,
+and it already holds netdev->lock. Switch protection of
+the writes to netdev->lock to "ops protected".
+
+The expectation will be now that accessing queue->napi
+will require netdev->lock for "ops locked" drivers, and
+rtnl_lock for all other drivers.
+
+Current "ops locked" drivers don't require any changes.
+gve and netdevsim use _locked() helpers right next to
+netif_queue_set_napi() so they must be holding the instance
+lock. iavf doesn't call it. bnxt is a bit messy but all paths
+seem locked.
+
+Acked-by: Stanislav Fomichev <sdf@fomichev.me>
+Link: https://patch.msgid.link/20250324224537.248800-7-kuba@kernel.org
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+
+@@@COMMIT f3483c8e1da62993fe0f57af23b925de7661adaa
+2025-03-25	Eric Dumazet	net: rfs: hash function change
+
+RFS is using two kinds of hash tables.
+
+First one is controlled by /proc/sys/net/core/rps_sock_flow_entries = 2^N
+and using the N low order bits of the l4 hash is good enough.
+
+Then each RX queue has its own hash table, controlled by
+/sys/class/net/eth1/queues/rx-$q/rps_flow_cnt = 2^X
+
+Current hash function, using the X low order bits is suboptimal,
+because RSS is usually using Func(hash) = (hash % power_of_two);
+
+For example, with 32 RX queues, 6 low order bits have no entropy
+for a given queue.
+
+Switch this hash function to hash_32(hash, log) to increase
+chances to use all possible slots and reduce collisions.
+
+Signed-off-by: Eric Dumazet <edumazet@google.com>
+Cc: Tom Herbert <tom@herbertland.com>
+Reviewed-by: Simon Horman <horms@kernel.org>
+Link: https://patch.msgid.link/20250321171309.634100-1-edumazet@google.com
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+
+@@@COMMIT cac48eb6d383ee4f037e320608efa5dec029e26a
+2025-03-24	Mark Zhang	net/mlx5e: Use right API to free bitmap memory
+
+Use bitmap_free() to free memory allocated with bitmap_zalloc_node().
+This fixes memtrack error:
+  mtl rsc inconsistency: memtrack_free: .../drivers/net/ethernet/mellanox/mlx5/core/en_main.c::466: kfree for unknown address=0xFFFF0000CA3619E8, device=0x0
+
+Signed-off-by: Mark Zhang <markzhang@nvidia.com>
+Reviewed-by: Maher Sanalla <msanalla@nvidia.com>
+Signed-off-by: Tariq Toukan <tariqt@nvidia.com>
+Reviewed-by: Kalesh AP <kalesh-anakkur.purayil@broadcom.com>
+Link: https://patch.msgid.link/1742412199-159596-3-git-send-email-tariqt@nvidia.com
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+
+@@@COMMIT 6dd132516f8e467f144f7871ff2708ce827417a1
+2025-03-19	Stanislav Fomichev	net: reorder dev_addr_sem lock
+df43d8bf1031 ("net: replace dev_addr_sem with netdev instance lock")
+Lockdep complains about circular lock in 1 -> 2 -> 3 (see below).
+
+Change the lock ordering to be:
+- rtnl_lock
+- dev_addr_sem
+- netdev_ops (only for lower devices!)
+- team_lock (or other per-upper device lock)
+
+1. rtnl_lock -> netdev_ops -> dev_addr_sem
+
+rtnl_setlink
+  rtnl_lock
+    do_setlink IFLA_ADDRESS on lower
+      netdev_ops
+        dev_addr_sem
+
+2. rtnl_lock -> team_lock -> netdev_ops
+
+rtnl_newlink
+  rtnl_lock
+    do_setlink IFLA_MASTER on lower
+      do_set_master
+        team_add_slave
+          team_lock
+            team_port_add
+	      dev_set_mtu
+	        netdev_ops
+
+3. rtnl_lock -> dev_addr_sem -> team_lock
+
+rtnl_newlink
+  rtnl_lock
+    do_setlink IFLA_ADDRESS on upper
+      dev_addr_sem
+        netif_set_mac_address
+          team_set_mac_address
+            team_lock
+
+4. rtnl_lock -> netdev_ops -> dev_addr_sem
+
+rtnl_lock
+  dev_ifsioc
+    dev_set_mac_address_user
+
+__tun_chr_ioctl
+  rtnl_lock
+    dev_set_mac_address_user
+
+tap_ioctl
+  rtnl_lock
+    dev_set_mac_address_user
+
+dev_set_mac_address_user
+  netdev_lock_ops
+    netif_set_mac_address_user
+      dev_addr_sem
+
+v2:
+- move lock reorder to happen after kmalloc (Kuniyuki)
+
+Cc: Kohei Enju <enjuk@amazon.com>
+Fixes: df43d8bf1031 ("net: replace dev_addr_sem with netdev instance lock")
+Signed-off-by: Stanislav Fomichev <sdf@fomichev.me>
+Reviewed-by: Kuniyuki Iwashima <kuniyu@amazon.com>
+Link: https://patch.msgid.link/20250312190513.1252045-3-sdf@fomichev.me
+Tested-by: Lei Yang <leiyang@redhat.com>
+Signed-off-by: Paolo Abeni <pabeni@redhat.com>
+
+@@@COMMIT a6c81e32aeacbfd530d576fa401edd506ec966ef
+2025-03-18	shantiprasad shettar	bnxt_en: Query FW parameters when the CAPS_CHANGE bit is set
+
+Newer FW can set the CAPS_CHANGE flag during ifup if some capabilities
+or configurations have changed.  For example, the CoS queue
+configurations may have changed.  Support this new flag by treating it
+almost like FW reset.  The driver will essentially rediscover all
+features and capabilities, reconfigure all backing store context memory,
+reset everything to default, and reserve all resources.
+
+Reviewed-by: Somnath Kotur <somnath.kotur@broadcom.com>
+Reviewed-by: Pavan Chebbi <pavan.chebbi@broadcom.com>
+Signed-off-by: shantiprasad shettar <shantiprasad.shettar@broadcom.com>
+Signed-off-by: Michael Chan <michael.chan@broadcom.com>
+Link: https://patch.msgid.link/20250310183129.3154117-5-michael.chan@broadcom.com
+Reviewed-by: Jacob Keller <jacob.e.keller@intel.com>
+Signed-off-by: Paolo Abeni <pabeni@redhat.com>
+
+@@@COMMIT 023af5a72ab161f2e661afb53e3b6a6901f6ba00
+2025-03-17	Ilpo Järvinen	gso: AccECN support
+
+Handling the CWR flag differs between RFC 3168 ECN and AccECN.
+With RFC 3168 ECN aware TSO (NETIF_F_TSO_ECN) CWR flag is cleared
+starting from 2nd segment which is incompatible how AccECN handles
+the CWR flag. Such super-segments are indicated by SKB_GSO_TCP_ECN.
+With AccECN, CWR flag (or more accurately, the ACE field that also
+includes ECE & AE flags) changes only when new packet(s) with CE
+mark arrives so the flag should not be changed within a super-skb.
+The new skb/feature flags are necessary to prevent such TSO engines
+corrupting AccECN ACE counters by clearing the CWR flag (if the
+CWR handling feature cannot be turned off).
+
+If NIC is completely unaware of RFC3168 ECN (doesn't support
+NETIF_F_TSO_ECN) or its TSO engine can be set to not touch CWR flag
+despite supporting also NETIF_F_TSO_ECN, TSO could be safely used
+with AccECN on such NIC. This should be evaluated per NIC basis
+(not done in this patch series for any NICs).
+
+For the cases, where TSO cannot keep its hands off the CWR flag,
+a GSO fallback is provided by this patch.
+
+Signed-off-by: Ilpo Järvinen <ij@kernel.org>
+Signed-off-by: Chia-Yu Chang <chia-yu.chang@nokia-bell-labs.com>
+Reviewed-by: Eric Dumazet <edumazet@google.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT d5d715207e2911b84b92f10420d4a8d7653aa98d
+2025-03-10	Joe Damato	virtio_net: Use persistent NAPI config
+
+Use persistent NAPI config so that NAPI IDs are not renumbered as queue
+counts change.
+
+$ sudo ethtool -l ens4  | tail -5 | egrep -i '(current|combined)'
+Current hardware settings:
+Combined:       4
+
+$ ./tools/net/ynl/pyynl/cli.py \
+    --spec Documentation/netlink/specs/netdev.yaml \
+    --dump queue-get --json='{"ifindex": 2}'
+[{'id': 0, 'ifindex': 2, 'napi-id': 8193, 'type': 'rx'},
+ {'id': 1, 'ifindex': 2, 'napi-id': 8194, 'type': 'rx'},
+ {'id': 2, 'ifindex': 2, 'napi-id': 8195, 'type': 'rx'},
+ {'id': 3, 'ifindex': 2, 'napi-id': 8196, 'type': 'rx'},
+ {'id': 0, 'ifindex': 2, 'type': 'tx'},
+ {'id': 1, 'ifindex': 2, 'type': 'tx'},
+ {'id': 2, 'ifindex': 2, 'type': 'tx'},
+ {'id': 3, 'ifindex': 2, 'type': 'tx'}]
+
+Now adjust the queue count, note that the NAPI IDs are not renumbered:
+
+$ sudo ethtool -L ens4 combined 1
+$ ./tools/net/ynl/pyynl/cli.py \
+    --spec Documentation/netlink/specs/netdev.yaml \
+    --dump queue-get --json='{"ifindex": 2}'
+[{'id': 0, 'ifindex': 2, 'napi-id': 8193, 'type': 'rx'},
+ {'id': 0, 'ifindex': 2, 'type': 'tx'}]
+
+$ sudo ethtool -L ens4 combined 8
+$ ./tools/net/ynl/pyynl/cli.py \
+    --spec Documentation/netlink/specs/netdev.yaml \
+    --dump queue-get --json='{"ifindex": 2}'
+[{'id': 0, 'ifindex': 2, 'napi-id': 8193, 'type': 'rx'},
+ {'id': 1, 'ifindex': 2, 'napi-id': 8194, 'type': 'rx'},
+ {'id': 2, 'ifindex': 2, 'napi-id': 8195, 'type': 'rx'},
+ {'id': 3, 'ifindex': 2, 'napi-id': 8196, 'type': 'rx'},
+ {'id': 4, 'ifindex': 2, 'napi-id': 8197, 'type': 'rx'},
+ {'id': 5, 'ifindex': 2, 'napi-id': 8198, 'type': 'rx'},
+ {'id': 6, 'ifindex': 2, 'napi-id': 8199, 'type': 'rx'},
+ {'id': 7, 'ifindex': 2, 'napi-id': 8200, 'type': 'rx'},
+ [...]
+
+Signed-off-by: Joe Damato <jdamato@fastly.com>
+Reviewed-by: Gerhard Engleder <gerhard@engleder-embedded.com>
+Acked-by: Jason Wang <jasowang@redhat.com>
+Acked-by: Michael S. Tsirkin <mst@redhat.com>
+Tested-by: Lei Yang <leiyang@redhat.com>
+Reviewed-by: Xuan Zhuo <xuanzhuo@linux.alibaba.com>
+Link: https://patch.msgid.link/20250307011215.266806-5-jdamato@fastly.com
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+
+@@@COMMIT e7231f49d526823975bbfe0abde5c50b7e8dfe3a
+2025-03-10	Joe Damato	virtio-net: Map NAPIs to queues
+
+Use netif_queue_set_napi to map NAPIs to queue IDs so that the mapping
+can be accessed by user apps. Note that the netif_queue_set_napi
+currently requires RTNL, so care must be taken to ensure RTNL is held on
+paths where this API might be reached.
+
+The paths in the driver where this API can be reached appear to be:
+
+  - ndo_open, ndo_close, which hold RTNL so no driver change is needed.
+  - rx_pause, rx_resume, tx_pause, tx_resume are reached either via
+    an ethtool ioctl or via XSK - neither path requires a driver change.
+  - power management paths (which call open and close), which have been
+    updated to hold/release RTNL.
+
+$ ethtool -i ens4 | grep driver
+driver: virtio_net
+
+$ sudo ethtool -L ens4 combined 4
+
+$ ./tools/net/ynl/pyynl/cli.py \
+       --spec Documentation/netlink/specs/netdev.yaml \
+       --dump queue-get --json='{"ifindex": 2}'
+[{'id': 0, 'ifindex': 2, 'napi-id': 8289, 'type': 'rx'},
+ {'id': 1, 'ifindex': 2, 'napi-id': 8290, 'type': 'rx'},
+ {'id': 2, 'ifindex': 2, 'napi-id': 8291, 'type': 'rx'},
+ {'id': 3, 'ifindex': 2, 'napi-id': 8292, 'type': 'rx'},
+ {'id': 0, 'ifindex': 2, 'type': 'tx'},
+ {'id': 1, 'ifindex': 2, 'type': 'tx'},
+ {'id': 2, 'ifindex': 2, 'type': 'tx'},
+ {'id': 3, 'ifindex': 2, 'type': 'tx'}]
+
+Note that virtio_net has TX-only NAPIs which do not have NAPI IDs, so
+the lack of 'napi-id' in the above output is expected.
+
+Signed-off-by: Joe Damato <jdamato@fastly.com>
+Acked-by: Jason Wang <jasowang@redhat.com>
+Reviewed-by: Xuan Zhuo <xuanzhuo@linux.alibaba.com>
+Link: https://patch.msgid.link/20250307011215.266806-4-jdamato@fastly.com
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+
+@@@COMMIT 7e4d784f5810bba76c4593791028e13cce4af547
+2025-03-06	Stanislav Fomichev	net: hold netdev instance lock during rtnetlink operations
+
+To preserve the atomicity, hold the lock while applying multiple
+attributes. The major issue with a full conversion to the instance
+lock are software nesting devices (bonding/team/vrf/etc). Those
+devices call into the core stack for their lower (potentially
+real hw) devices. To avoid explicitly wrapping all those places
+into instance lock/unlock, introduce new API boundaries:
+
+- (some) existing dev_xxx calls are now considered "external"
+  (to drivers) APIs and they transparently grab the instance
+  lock if needed (dev_api.c)
+- new netif_xxx calls are internal core stack API (naming is
+  sketchy, I've tried netdev_xxx_locked per Jakub's suggestion,
+  but it feels a bit verbose; but happy to get back to this
+  naming scheme if this is the preference)
+
+This avoids touching most of the existing ioctl/sysfs/drivers paths.
+
+Note the special handling of ndo_xxx_slave operations: I exploit
+the fact that none of the drivers that call these functions
+need/use instance lock. At the same time, they use dev_xxx
+APIs, so the lower device has to be unlocked.
+
+Changes in unregister_netdevice_many_notify (to protect dev->state
+with instance lock) trigger lockdep - the loop over close_list
+(mostly from cleanup_net) introduces spurious ordering issues.
+netdev_lock_cmp_fn has a justification on why it's ok to suppress
+for now.
+
+Cc: Saeed Mahameed <saeed@kernel.org>
+Signed-off-by: Stanislav Fomichev <sdf@fomichev.me>
+Link: https://patch.msgid.link/20250305163732.2766420-7-sdf@fomichev.me
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+
+@@@COMMIT d4c22ec680c8db832ffc0b964c6008e65436cba8
+2025-03-06	Stanislav Fomichev	net: hold netdev instance lock during ndo_open/ndo_stop
+
+For the drivers that use shaper API, switch to the mode where
+core stack holds the netdev lock. This affects two drivers:
+
+* iavf - already grabs netdev lock in ndo_open/ndo_stop, so mostly
+         remove these
+* netdevsim - switch to _locked APIs to avoid deadlock
+
+iavf_close diff is a bit confusing, the existing call looks like this:
+  iavf_close() {
+    netdev_lock()
+    ..
+    netdev_unlock()
+    wait_event_timeout(down_waitqueue)
+  }
+
+I change it to the following:
+  netdev_lock()
+  iavf_close() {
+    ..
+    netdev_unlock()
+    wait_event_timeout(down_waitqueue)
+    netdev_lock() // reusing this lock call
+  }
+  netdev_unlock()
+
+Since I'm reusing existing netdev_lock call, so it looks like I only
+add netdev_unlock.
+
+Cc: Saeed Mahameed <saeed@kernel.org>
+Signed-off-by: Stanislav Fomichev <sdf@fomichev.me>
+Link: https://patch.msgid.link/20250305163732.2766420-2-sdf@fomichev.me
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+
+@@@COMMIT 12b6f7069ba5aa160f3332916408b34ae8e0b0f6
+2025-03-04	Nicolas Dichtel	net: plumb extack in __dev_change_net_namespace()
+
+It could be hard to understand why the netlink command fails. For example,
+if dev->netns_immutable is set, the error is "Invalid argument".
+
+Signed-off-by: Nicolas Dichtel <nicolas.dichtel@6wind.com>
+Reviewed-by: Eric Dumazet <edumazet@google.com>
+Reviewed-by: Kuniyuki Iwashima <kuniyu@amazon.com>
+Signed-off-by: Paolo Abeni <pabeni@redhat.com>
+
+
+@@@COMMIT bf08fd32cc55961c720f6f48a0fe317f0c710f09
+2025-02-27	Gustavo A. R. Silva	net/mlx5e: Avoid a hundred -Wflex-array-member-not-at-end warnings
+
+-Wflex-array-member-not-at-end was introduced in GCC-14, and we are
+getting ready to enable it, globally.
+
+So, in this particular case, we create a new `struct mlx5e_umr_wqe_hdr`
+to enclose the header part of flexible structure `struct mlx5e_umr_wqe`.
+This is, all the members except the flexible arrays `inline_mtts`,
+`inline_klms` and `inline_ksms` in the anonymous union. We then replace
+the header part with `struct mlx5e_umr_wqe_hdr hdr;` in `struct
+mlx5e_umr_wqe`, and change the type of the object currently causing
+trouble `umr_wqe` from `struct mlx5e_umr_wqe` to `struct
+mlx5e_umr_wqe_hdr` --this last bit gets rid of the flex-array-in-the-middle
+part and avoid the warnings.
+
+Also, no new members should be added to `struct mlx5e_umr_wqe`, instead
+any new members must be included in the header structure `struct
+mlx5e_umr_wqe_hdr`. To enforce this, we use `static_assert()`, ensuring
+that the memory layout of both the flexible structure and the newly
+created header struct remain consistent.
+
+The next step is to refactor the rest of the related code accordingly,
+which means adding a bunch of `hdr.` wherever needed.
+
+Lastly, we use `container_of()` whenever we need to retrieve a pointer
+to the flexible structure `struct mlx5e_umr_wqe`.
+
+So, with these changes, fix 125 of the following warnings:
+
+drivers/net/ethernet/mellanox/mlx5/core/en.h:664:48: warning: structure containing a flexible array member is not at the end of another structure [-Wflex-array-member-not-at-end]
+
+Signed-off-by: Gustavo A. R. Silva <gustavoars@kernel.org>
+Reviewed-by: Saeed Mahameed <saeedm@nvidia.com>
+Link: https://patch.msgid.link/Z76HzPW1dFTLOSSy@kspp
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+
+@@@COMMIT 77e45145e3039a0fb212556ab3f8c87f54771757
+2025-02-26	Frederic Weisbecker	net: Handle napi_schedule() calls from non-interrupt
+
+napi_schedule() is expected to be called either:
+
+* From an interrupt, where raised softirqs are handled on IRQ exit
+
+* From a softirq disabled section, where raised softirqs are handled on
+  the next call to local_bh_enable().
+
+* From a softirq handler, where raised softirqs are handled on the next
+  round in do_softirq(), or further deferred to a dedicated kthread.
+
+Other bare tasks context may end up ignoring the raised NET_RX vector
+until the next random softirq handling opportunity, which may not
+happen before a while if the CPU goes idle afterwards with the tick
+stopped.
+
+Such "misuses" have been detected on several places thanks to messages
+of the kind:
+
+	"NOHZ tick-stop error: local softirq work is pending, handler #08!!!"
+
+For example:
+
+       __raise_softirq_irqoff
+        __napi_schedule
+        rtl8152_runtime_resume.isra.0
+        rtl8152_resume
+        usb_resume_interface.isra.0
+        usb_resume_both
+        __rpm_callback
+        rpm_callback
+        rpm_resume
+        __pm_runtime_resume
+        usb_autoresume_device
+        usb_remote_wakeup
+        hub_event
+        process_one_work
+        worker_thread
+        kthread
+        ret_from_fork
+        ret_from_fork_asm
+
+And also:
+
+* drivers/net/usb/r8152.c::rtl_work_func_t
+* drivers/net/netdevsim/netdev.c::nsim_start_xmit
+
+There is a long history of issues of this kind:
+
+	019edd01d174 ("ath10k: sdio: Add missing BH locking around napi_schdule()")
+	330068589389 ("idpf: disable local BH when scheduling napi for marker packets")
+	e3d5d70cb483 ("net: lan78xx: fix "softirq work is pending" error")
+	e55c27ed9ccf ("mt76: mt7615: add missing bh-disable around rx napi schedule")
+	c0182aa98570 ("mt76: mt7915: add missing bh-disable around tx napi enable/schedule")
+	970be1dff26d ("mt76: disable BH around napi_schedule() calls")
+	019edd01d174 ("ath10k: sdio: Add missing BH locking around napi_schdule()")
+	30bfec4fec59 ("can: rx-offload: can_rx_offload_threaded_irq_finish(): add new  function to be called from threaded interrupt")
+	e63052a5dd3c ("mlx5e: add add missing BH locking around napi_schdule()")
+	83a0c6e58901 ("i40e: Invoke softirqs after napi_reschedule")
+	bd4ce941c8d5 ("mlx4: Invoke softirqs after napi_reschedule")
+	8cf699ec849f ("mlx4: do not call napi_schedule() without care")
+	ec13ee80145c ("virtio_net: invoke softirqs after __napi_schedule")
+
+This shows that relying on the caller to arrange a proper context for
+the softirqs to be handled while calling napi_schedule() is very fragile
+and error prone. Also fixing them can also prove challenging if the
+caller may be called from different kinds of contexts.
+
+Therefore fix this from napi_schedule() itself with waking up ksoftirqd
+when softirqs are raised from task contexts.
+
+Reported-by: Paul Menzel <pmenzel@molgen.mpg.de>
+Reported-by: Jakub Kicinski <kuba@kernel.org>
+Reported-by: Francois Romieu <romieu@fr.zoreil.com>
+Closes: https://lore.kernel.org/lkml/354a2690-9bbf-4ccb-8769-fa94707a9340@molgen.mpg.de/
+Cc: Breno Leitao <leitao@debian.org>
+Signed-off-by: Frederic Weisbecker <frederic@kernel.org>
+Reviewed-by: Eric Dumazet <edumazet@google.com>
+Link: https://patch.msgid.link/20250223221708.27130-1-frederic@kernel.org
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+
+@@@COMMIT 4b9c7d8fa113c0b363d0ceee29d1b15cceb771ee
+2025-02-21	Ziwei Xiao	gve: Add RSS cache for non RSS device option scenario
+
+Not all the devices have the capability for the driver to query for the
+registered RSS configuration. The driver can discover this by checking
+the relevant device option during setup. If it cannot, the driver needs
+to store the RSS config cache and directly return such cache when
+queried by the ethtool. RSS config is inited when driver probes. Also the
+default RSS config will be adjusted when there is RX queue count change.
+
+At this point, only keys of GVE_RSS_KEY_SIZE and indirection tables of
+GVE_RSS_INDIR_SIZE are supported.
+
+Signed-off-by: Ziwei Xiao <ziweixiao@google.com>
+Reviewed-by: Harshitha Ramamurthy <hramamurthy@google.com>
+Reviewed-by: Willem de Bruijn <willemb@google.com>
+Signed-off-by: Praveen Kaligineedi <pkaligineedi@google.com>
+Signed-off-by: Jeroen de Borst <jeroendb@google.com>
+Link: https://patch.msgid.link/20250219200451.3348166-1-jeroendb@google.com
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+
+@@@COMMIT 6bc7e4eb0499562ccd291712fd7be0d1a5aad00a
+2025-02-20	Paolo Abeni	Revert "net: skb: introduce and use a single page frag cache"
+dbae2b062824 ("net: skb: introduce and use a single page frag cache")
+After the previous commit is finally safe to revert commit dbae2b062824
+("net: skb: introduce and use a single page frag cache"): do it here.
+
+The intended goal of such change was to counter a performance regression
+introduced by commit 3226b158e67c ("net: avoid 32 x truesize
+under-estimation for tiny skbs").
+
+Unfortunately, the blamed commit introduces another regression for the
+virtio_net driver. Such a driver calls napi_alloc_skb() with a tiny
+size, so that the whole head frag could fit a 512-byte block.
+
+The single page frag cache uses a 1K fragment for such allocation, and
+the additional overhead, under small UDP packets flood, makes the page
+allocator a bottleneck.
+
+Thanks to commit bf9f1baa279f ("net: add dedicated kmem_cache for
+typical/small skb->head"), this revert does not re-introduce the
+original regression. Actually, in the relevant test on top of this
+revert, I measure a small but noticeable positive delta, just above
+noise level.
+
+The revert itself required some additional mangling due to recent updates
+in the affected code.
+
+Suggested-by: Eric Dumazet <edumazet@google.com>
+Fixes: dbae2b062824 ("net: skb: introduce and use a single page frag cache")
+Reviewed-by: Eric Dumazet <edumazet@google.com>
+Signed-off-by: Paolo Abeni <pabeni@redhat.com>
+
+@@@COMMIT 4b5a28b38c4a0106c64416a1b2042405166b26ce
+2025-02-19	Breno Leitao	net: Add non-RCU dev_getbyhwaddr() helper
+
+Add dedicated helper for finding devices by hardware address when
+holding rtnl_lock, similar to existing dev_getbyhwaddr_rcu(). This prevents
+PROVE_LOCKING warnings when rtnl_lock is held but RCU read lock is not.
+
+Extract common address comparison logic into dev_addr_cmp().
+
+The context about this change could be found in the following
+discussion:
+
+Link: https://lore.kernel.org/all/20250206-scarlet-ermine-of-improvement-1fcac5@leitao/
+
+Cc: kuniyu@amazon.com
+Cc: ushankar@purestorage.com
+Suggested-by: Eric Dumazet <edumazet@google.com>
+Signed-off-by: Breno Leitao <leitao@debian.org>
+Reviewed-by: Kuniyuki Iwashima <kuniyu@amazon.com>
+Link: https://patch.msgid.link/20250218-arm_fix_selftest-v5-1-d3d6892db9e1@debian.org
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+
+@@@COMMIT d4c6bfc83936cb61fac99e9891c406fbdd40f964
+2025-02-18	Kuniyuki Iwashima	dev: Use rtnl_net_dev_lock() in unregister_netdev().
+00fb9823939e ("dev: Hold per-netns RTNL in (un)?register_netdev().")
+The following sequence is basically illegal when dev was fetched
+without lookup because dev_net(dev) might be different after holding
+rtnl_net_lock():
+
+  net = dev_net(dev);
+  rtnl_net_lock(net);
+
+Let's use rtnl_net_dev_lock() in unregister_netdev().
+
+Note that there is no real bug in unregister_netdev() for now
+because RTNL protects the scope even if dev_net(dev) is changed
+before/after RTNL.
+
+Fixes: 00fb9823939e ("dev: Hold per-netns RTNL in (un)?register_netdev().")
+Signed-off-by: Kuniyuki Iwashima <kuniyu@amazon.com>
+Reviewed-by: Eric Dumazet <edumazet@google.com>
+Link: https://patch.msgid.link/20250217191129.19967-4-kuniyu@amazon.com
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+
+@@@COMMIT 65161fb544aada499c912b6010a8f7d8e04f6130
+2025-02-18	Kuniyuki Iwashima	net: Fix dev_net(dev) race in unregister_netdevice_notifier_dev_net().
+7fb1073300a2 ("net: Hold rtnl_net_lock() in (un)?register_netdevice_notifier_dev_net().")
+After the cited commit, dev_net(dev) is fetched before holding RTNL
+and passed to __unregister_netdevice_notifier_net().
+
+However, dev_net(dev) might be different after holding RTNL.
+
+In the reported case [0], while removing a VF device, its netns was
+being dismantled and the VF was moved to init_net.
+
+So the following sequence is basically illegal when dev was fetched
+without lookup:
+
+  net = dev_net(dev);
+  rtnl_net_lock(net);
+
+Let's use a new helper rtnl_net_dev_lock() to fix the race.
+
+It fetches dev_net_rcu(dev), bumps its net->passive, and checks if
+dev_net_rcu(dev) is changed after rtnl_net_lock().
+
+[0]:
+BUG: KASAN: slab-use-after-free in notifier_call_chain (kernel/notifier.c:75 (discriminator 2))
+Read of size 8 at addr ffff88810cefb4c8 by task test-bridge-lag/21127
+Hardware name: QEMU Standard PC (Q35 + ICH9, 2009), BIOS rel-1.13.0-0-gf21b5a4aeb02-prebuilt.qemu.org 04/01/2014
+Call Trace:
+ <TASK>
+ dump_stack_lvl (lib/dump_stack.c:123)
+ print_report (mm/kasan/report.c:379 mm/kasan/report.c:489)
+ kasan_report (mm/kasan/report.c:604)
+ notifier_call_chain (kernel/notifier.c:75 (discriminator 2))
+ call_netdevice_notifiers_info (net/core/dev.c:2011)
+ unregister_netdevice_many_notify (net/core/dev.c:11551)
+ unregister_netdevice_queue (net/core/dev.c:11487)
+ unregister_netdev (net/core/dev.c:11635)
+ mlx5e_remove (drivers/net/ethernet/mellanox/mlx5/core/en_main.c:6552 drivers/net/ethernet/mellanox/mlx5/core/en_main.c:6579) mlx5_core
+ auxiliary_bus_remove (drivers/base/auxiliary.c:230)
+ device_release_driver_internal (drivers/base/dd.c:1275 drivers/base/dd.c:1296)
+ bus_remove_device (./include/linux/kobject.h:193 drivers/base/base.h:73 drivers/base/bus.c:583)
+ device_del (drivers/base/power/power.h:142 drivers/base/core.c:3855)
+ mlx5_rescan_drivers_locked (./include/linux/auxiliary_bus.h:241 drivers/net/ethernet/mellanox/mlx5/core/dev.c:333 drivers/net/ethernet/mellanox/mlx5/core/dev.c:535 drivers/net/ethernet/mellanox/mlx5/core/dev.c:549) mlx5_core
+ mlx5_unregister_device (drivers/net/ethernet/mellanox/mlx5/core/dev.c:468) mlx5_core
+ mlx5_uninit_one (./include/linux/instrumented.h:68 ./include/asm-generic/bitops/instrumented-non-atomic.h:141 drivers/net/ethernet/mellanox/mlx5/core/main.c:1563) mlx5_core
+ remove_one (drivers/net/ethernet/mellanox/mlx5/core/main.c:965 drivers/net/ethernet/mellanox/mlx5/core/main.c:2019) mlx5_core
+ pci_device_remove (./include/linux/pm_runtime.h:129 drivers/pci/pci-driver.c:475)
+ device_release_driver_internal (drivers/base/dd.c:1275 drivers/base/dd.c:1296)
+ unbind_store (drivers/base/bus.c:245)
+ kernfs_fop_write_iter (fs/kernfs/file.c:338)
+ vfs_write (fs/read_write.c:587 (discriminator 1) fs/read_write.c:679 (discriminator 1))
+ ksys_write (fs/read_write.c:732)
+ do_syscall_64 (arch/x86/entry/common.c:52 (discriminator 1) arch/x86/entry/common.c:83 (discriminator 1))
+ entry_SYSCALL_64_after_hwframe (arch/x86/entry/entry_64.S:130)
+RIP: 0033:0x7f6a4d5018b7
+
+Fixes: 7fb1073300a2 ("net: Hold rtnl_net_lock() in (un)?register_netdevice_notifier_dev_net().")
+Reported-by: Yael Chemla <ychemla@nvidia.com>
+Closes: https://lore.kernel.org/netdev/146eabfe-123c-4970-901e-e961b4c09bc3@nvidia.com/
+Signed-off-by: Kuniyuki Iwashima <kuniyu@amazon.com>
+Reviewed-by: Eric Dumazet <edumazet@google.com>
+Link: https://patch.msgid.link/20250217191129.19967-3-kuniyu@amazon.com
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+
+@@@COMMIT 8f02c48f8f623eedc3c0a26a64c7ef155c35bfb9
+2025-02-18	Breno Leitao	net: Remove redundant variable declaration in __dev_change_flags()
+
+The old_flags variable is declared twice in __dev_change_flags(),
+causing a shadow variable warning. This patch fixes the issue by
+removing the redundant declaration, reusing the existing old_flags
+variable instead.
+
+	net/core/dev.c:9225:16: warning: declaration shadows a local variable [-Wshadow]
+	9225 |                 unsigned int old_flags = dev->flags;
+	|                              ^
+	net/core/dev.c:9185:15: note: previous declaration is here
+	9185 |         unsigned int old_flags = dev->flags;
+	|                      ^
+	1 warning generated.
+
+Remove the redundant inner declaration and reuse the existing old_flags
+variable since its value is not needed outside the if block, and it is
+safe to reuse the variable. This eliminates the warning while
+maintaining the same functionality.
+
+Signed-off-by: Breno Leitao <leitao@debian.org>
+Reviewed-by: Mateusz Polchlopek <mateusz.polchlopek@intel.com>
+Reviewed-by: Kalesh AP <kalesh-anakkur.purayil@broadcom.com>
+Reviewed-by: Nicolas Dichtel <nicolas.dichtel@6wind.com>
+Reviewed-by: Andrew Lunn <andrew@lunn.ch>
+Link: https://patch.msgid.link/20250217-old_flags-v2-1-4cda3b43a35f@debian.org
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+
+@@@COMMIT c214410c47d6ec3128143370747d9e388bab21d7
+2025-02-14	Manoj Panicker	bnxt_en: Add TPH support in BNXT driver
+
+Add TPH support to the Broadcom BNXT device driver. This allows the
+driver to utilize TPH functions for retrieving and configuring Steering
+Tags when changing interrupt affinity. With compatible NIC firmware,
+network traffic will be tagged correctly with Steering Tags, resulting
+in significant memory bandwidth savings and other advantages as
+demonstrated by real network benchmarks on TPH-capable platforms.
+
+Co-developed-by: Somnath Kotur <somnath.kotur@broadcom.com>
+Signed-off-by: Somnath Kotur <somnath.kotur@broadcom.com>
+Co-developed-by: Wei Huang <wei.huang2@amd.com>
+Signed-off-by: Wei Huang <wei.huang2@amd.com>
+Signed-off-by: Manoj Panicker <manoj.panicker2@amd.com>
+Reviewed-by: Ajit Khaparde <ajit.khaparde@broadcom.com>
+Reviewed-by: Andy Gospodarek <andrew.gospodarek@broadcom.com>
+Signed-off-by: Michael Chan <michael.chan@broadcom.com>
+Link: https://patch.msgid.link/20250213011240.1640031-12-michael.chan@broadcom.com
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+
+@@@COMMIT fe96d717d38ecd8e6e8d710ebf88e82ac35a0032
+2025-02-14	Somnath Kotur	bnxt_en: Extend queue stop/start for TX rings
+
+In order to use queue_stop/queue_start to support the new Steering
+Tags, we need to free the TX ring and TX completion ring if it is a
+combined channel with TX/RX sharing the same NAPI.  Otherwise
+TX completions will not have the updated Steering Tag.  If TPH is
+not enabled, we just stop the TX ring without freeing the TX/TX cmpl
+rings.  With that we can now add napi_disable() and napi_enable()
+during queue_stop()/ queue_start().  This will guarantee that NAPI
+will stop processing the completion entries in case there are
+additional pending entries in the completion rings after queue_stop().
+
+There could be some NQEs sitting unprocessed while NAPI is disabled
+thereby leaving the NQ unarmed.  Explicitly re-arm the NQ after
+napi_enable() in queue start so that NAPI will resume properly.
+
+Error handling in bnxt_queue_start() requires a reset.  If a TX
+ring cannot be allocated or initialized properly, it will cause
+TX timeout.  The reset will also free any partially allocated
+rings.  We don't expect to hit this error path because re-allocating
+previously reserved and allocated rings with the same parameters
+should never fail.
+
+Reviewed-by: Ajit Khaparde <ajit.khaparde@broadcom.com>
+Reviewed-by: Michal Swiatkowski <michal.swiatkowski@linux.intel.com>
+Signed-off-by: Somnath Kotur <somnath.kotur@broadcom.com>
+Signed-off-by: Michael Chan <michael.chan@broadcom.com>
+Link: https://patch.msgid.link/20250213011240.1640031-11-michael.chan@broadcom.com
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+
+@@@COMMIT 6b6bf60fc95f908b5a3b45137436eb495af414cc
+2025-02-14	Somnath Kotur	bnxt_en: Reallocate RX completion ring for TPH support
+
+In order to program the correct Steering Tag during an IRQ affinity
+change, we need to free/re-allocate the RX completion ring during
+queue_restart.  If TPH is enabled, call FW to free the Rx completion
+ring and clear the ring entries in queue_stop().  Re-allocate it in
+queue_start() if TPH is enabled.  Note that TPH mode is not enabled
+in this patch and will be enabled later in the patch series.
+
+While modifying bnxt_queue_start(), remove the unnecessary zeroing of
+rxr->rx_next_cons.  It gets overwritten by the clone in
+bnxt_queue_start().  Remove the rx_reset counter increment since
+restart is not reset.  Add comment to clarify that the ring
+allocations in queue_start should never fail.
+
+Reviewed-by: Michal Swiatkowski <michal.swiatkowski@linux.intel.com>
+Signed-off-by: Somnath Kotur <somnath.kotur@broadcom.com>
+Signed-off-by: Michael Chan <michael.chan@broadcom.com>
+Link: https://patch.msgid.link/20250213011240.1640031-9-michael.chan@broadcom.com
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+
+@@@COMMIT 4c8e612c9a36721e873d7ba56019706b294fa860
+2025-02-14	Michael Chan	bnxt_en: Pass NQ ID to the FW when allocating RX/RX AGG rings
+
+Newer firmware can use the NQ ring ID associated with each RX/RX AGG
+ring to enable PCIe Steering Tags on P5_PLUS chips.  When allocating
+RX/RX AGG rings, pass along NQ ring ID for the firmware to use.  This
+information helps optimize DMA writes by directing them to the cache
+closer to the CPU consuming the data, potentially improving the
+processing speed.  This change is backward-compatible with older
+firmware, which will simply disregard the information.
+
+Reviewed-by: Hongguang Gao <hongguang.gao@broadcom.com>
+Reviewed-by: Ajit Khaparde <ajit.khaparde@broadcom.com>
+Reviewed-by: Michal Swiatkowski <michal.swiatkowski@linux.intel.com>
+Signed-off-by: Andy Gospodarek <andrew.gospodarek@broadcom.com>
+Signed-off-by: Michael Chan <michael.chan@broadcom.com>
+Link: https://patch.msgid.link/20250213011240.1640031-8-michael.chan@broadcom.com
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+
+@@@COMMIT 2dc8e7c36d805084756e170527423e64eb04aba8
+2025-02-14	Jacob Keller	iavf: refactor iavf_clean_rx_irq to support legacy and flex descriptors
+
+Using VIRTCHNL_VF_OFFLOAD_FLEX_DESC, the iAVF driver is capable of
+negotiating to enable the advanced flexible descriptor layout. Add the
+flexible NIC layout (RXDID=2) as a member of the Rx descriptor union.
+
+Also add bit position definitions for the status and error indications
+that are needed.
+
+The iavf_clean_rx_irq function needs to extract a few fields from the Rx
+descriptor, including the size, rx_ptype, and vlan_tag.
+Move the extraction to a separate function that decodes the fields into
+a structure. This will reduce the burden for handling multiple
+descriptor types by keeping the relevant extraction logic in one place.
+
+To support handling an additional descriptor format with minimal code
+duplication, refactor Rx checksum handling so that the general logic
+is separated from the bit calculations. Introduce an iavf_rx_desc_decoded
+structure which holds the relevant bits decoded from the Rx descriptor.
+This will enable implementing flexible descriptor handling without
+duplicating the general logic twice.
+
+Introduce an iavf_extract_flex_rx_fields, iavf_flex_rx_hash, and
+iavf_flex_rx_csum functions which operate on the flexible NIC descriptor
+format instead of the legacy 32 byte format. Based on the negotiated
+RXDID, select the correct function for processing the Rx descriptors.
+
+With this change, the Rx hot path should be functional when using either
+the default legacy 32byte format or when we switch to the flexible NIC
+layout.
+
+Modify the Rx hot path to add support for the flexible descriptor
+format and add request enabling Rx timestamps for all queues.
+
+As in ice, make sure we bump the checksum level if the hardware detected
+a packet type which could have an outer checksum. This is important
+because hardware only verifies the inner checksum.
+
+Signed-off-by: Jacob Keller <jacob.e.keller@intel.com>
+Tested-by: Rafal Romanowski <rafal.romanowski@intel.com>
+Co-developed-by: Mateusz Polchlopek <mateusz.polchlopek@intel.com>
+Signed-off-by: Mateusz Polchlopek <mateusz.polchlopek@intel.com>
+Signed-off-by: Tony Nguyen <anthony.l.nguyen@intel.com>
+
+@@@COMMIT e9f476d7b39ce1aecc4913eda1562e87113df185
+2025-02-14	Mateusz Polchlopek	iavf: define Rx descriptors as qwords
+
+The union iavf_32byte_rx_desc consists of two unnamed structs defined
+inside. One of them represents legacy 32 byte descriptor and second the
+16 byte descriptor (extended to 32 byte). Each of them consists of
+bunch of unions, structs and __le fields that represent specific fields
+in descriptor.
+
+This commit changes the representation of iavf_32byte_rx_desc union
+to store four __le64 fields (qw0, qw1, qw2, qw3) that represent
+quad-words. Those quad-words will be then accessed by calling
+leXY_get_bits macros in upcoming commits.
+
+Suggested-by: Alexander Lobakin <aleksander.lobakin@intel.com>
+Tested-by: Rafal Romanowski <rafal.romanowski@intel.com>
+Signed-off-by: Mateusz Polchlopek <mateusz.polchlopek@intel.com>
+Signed-off-by: Tony Nguyen <anthony.l.nguyen@intel.com>
+
+@@@COMMIT 0892b840318daa6ae739b7cdec5ecdfca4006689
+2025-02-13	Jakub Kicinski	Reapply "net: skb: introduce and use a single page frag cache"
+011b03359038 ("Revert "net: skb: introduce and use a single page frag cache"")
+This reverts commit 011b0335903832facca86cd8ed05d7d8d94c9c76.
+
+Sabrina reports that the revert may trigger warnings due to intervening
+changes, especially the ability to rise MAX_SKB_FRAGS. Let's drop it
+and revisit once that part is also ironed out.
+
+Fixes: 011b03359038 ("Revert "net: skb: introduce and use a single page frag cache"")
+Reported-by: Sabrina Dubroca <sd@queasysnail.net>
+Link: https://lore.kernel.org/6bf54579233038bc0e76056c5ea459872ce362ab.1739375933.git.pabeni@redhat.com
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+
+@@@COMMIT 011b0335903832facca86cd8ed05d7d8d94c9c76
+2025-02-07	Paolo Abeni	Revert "net: skb: introduce and use a single page frag cache"
+dbae2b062824 ("net: skb: introduce and use a single page frag cache")
+This reverts commit dbae2b062824 ("net: skb: introduce and use a single
+page frag cache"). The intended goal of such change was to counter a
+performance regression introduced by commit 3226b158e67c ("net: avoid
+32 x truesize under-estimation for tiny skbs").
+
+Unfortunately, the blamed commit introduces another regression for the
+virtio_net driver. Such a driver calls napi_alloc_skb() with a tiny
+size, so that the whole head frag could fit a 512-byte block.
+
+The single page frag cache uses a 1K fragment for such allocation, and
+the additional overhead, under small UDP packets flood, makes the page
+allocator a bottleneck.
+
+Thanks to commit bf9f1baa279f ("net: add dedicated kmem_cache for
+typical/small skb->head"), this revert does not re-introduce the
+original regression. Actually, in the relevant test on top of this
+revert, I measure a small but noticeable positive delta, just above
+noise level.
+
+The revert itself required some additional mangling due to the
+introduction of the SKB_HEAD_ALIGN() helper and local lock infra in the
+affected code.
+
+Suggested-by: Eric Dumazet <edumazet@google.com>
+Fixes: dbae2b062824 ("net: skb: introduce and use a single page frag cache")
+Signed-off-by: Paolo Abeni <pabeni@redhat.com>
+Link: https://patch.msgid.link/e649212fde9f0fdee23909ca0d14158d32bb7425.1738877290.git.pabeni@redhat.com
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+
+@@@COMMIT 482ad2a4ace2740ca0ff1cbc8f3c7f862f3ab507
+2025-02-06	Eric Dumazet	net: add dev_net_rcu() helper
+
+dev->nd_net can change, readers should either
+use rcu_read_lock() or RTNL.
+
+We currently use a generic helper, dev_net() with
+no debugging support. We probably have many hidden bugs.
+
+Add dev_net_rcu() helper for callers using rcu_read_lock()
+protection.
+
+Signed-off-by: Eric Dumazet <edumazet@google.com>
+Reviewed-by: Kuniyuki Iwashima <kuniyu@amazon.com>
+Link: https://patch.msgid.link/20250205155120.1676781-2-edumazet@google.com
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+
+@@@COMMIT f9beaf4fac64c84631ba9a2eb864cea6b52032a2
+2025-02-06	Jianbo Liu	net/mlx5: Change clock in mlx5_core_dev to mlx5_clock pointer
+
+Change clock member in mlx5_core_dev to a pointer, so it can point to
+a clock shared by multiple functions in later patch.
+
+For now, each function has its own clock, so mdev in mlx5_clock_priv
+is the back pointer to the function. Later it points to one (normally
+the first one) of the multiple functions sharing the same clock.
+
+Change mlx5_init_clock() to return error if mlx5_clock is not
+allocated. Besides, a null clock is defined and used when hardware
+clock is not supported. So, the clock pointer is always pointing to
+something valid.
+
+Signed-off-by: Jianbo Liu <jianbol@nvidia.com>
+Reviewed-by: Carolina Jubran <cjubran@nvidia.com>
+Reviewed-by: Dragos Tatulea <dtatulea@nvidia.com>
+Signed-off-by: Tariq Toukan <tariqt@nvidia.com>
+Signed-off-by: Paolo Abeni <pabeni@redhat.com>
+
+
+@@@COMMIT cbe08724c18078564abefbf6591078a7c98e5e0f
+2025-02-05	Eric Dumazet	net: flush_backlog() small changes
+
+Add READ_ONCE() around reads of skb->dev->reg_state, because
+this field can be changed from other threads/cpus.
+
+Instead of calling dev_kfree_skb_irq() and kfree_skb()
+while interrupts are masked and locks held,
+use a temporary list and use __skb_queue_purge_reason()
+
+Use SKB_DROP_REASON_DEV_READY drop reason to better
+describe why these skbs are dropped.
+
+Signed-off-by: Eric Dumazet <edumazet@google.com>
+Reviewed-by: Jason Xing <kerneljasonxing@gmail.com>
+Link: https://patch.msgid.link/20250204144825.316785-1-edumazet@google.com
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+
+@@@COMMIT 9dd05df8403bda5b68178b795c554b3940628bb6
+2025-02-04	Jakub Kicinski	net: warn if NAPI instance wasn't shut down
+
+Drivers should always disable a NAPI instance before removing it.
+If they don't the instance may be queued for polling.
+Since commit 86e25f40aa1e ("net: napi: Add napi_config")
+we also remove the NAPI from the busy polling hash table
+in napi_disable(), so not disabling would leave a stale
+entry there.
+
+Use of busy polling is relatively uncommon so bugs may be lurking
+in the drivers. Add an explicit warning.
+
+Reviewed-by: Joe Damato <jdamato@fastly.com>
+Reviewed-by: Eric Dumazet <edumazet@google.com>
+Link: https://patch.msgid.link/20250203215816.1294081-1-kuba@kernel.org
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+
+@@@COMMIT 11c4aa074d547d825b19cd8d9f288254d89d805c
+2025-01-31	Maciej Fijalkowski	ice: gather page_count()'s of each frag right before XDP prog call
+ac0753391195 ("ice: Store page count inside ice_rx_buf")
+If we store the pgcnt on few fragments while being in the middle of
+gathering the whole frame and we stumbled upon DD bit not being set, we
+terminate the NAPI Rx processing loop and come back later on. Then on
+next NAPI execution we work on previously stored pgcnt.
+
+Imagine that second half of page was used actively by networking stack
+and by the time we came back, stack is not busy with this page anymore
+and decremented the refcnt. The page reuse algorithm in this case should
+be good to reuse the page but given the old refcnt it will not do so and
+attempt to release the page via page_frag_cache_drain() with
+pagecnt_bias used as an arg. This in turn will result in negative refcnt
+on struct page, which was initially observed by Xu Du.
+
+Therefore, move the page count storage from ice_get_rx_buf() to a place
+where we are sure that whole frame has been collected, but before
+calling XDP program as it internally can also change the page count of
+fragments belonging to xdp_buff.
+
+Fixes: ac0753391195 ("ice: Store page count inside ice_rx_buf")
+Reported-and-tested-by: Xu Du <xudu@redhat.com>
+Reviewed-by: Przemek Kitszel <przemyslaw.kitszel@intel.com>
+Reviewed-by: Simon Horman <horms@kernel.org>
+Co-developed-by: Jacob Keller <jacob.e.keller@intel.com>
+Signed-off-by: Jacob Keller <jacob.e.keller@intel.com>
+Signed-off-by: Maciej Fijalkowski <maciej.fijalkowski@intel.com>
+Tested-by: Chandan Kumar Rout <chandanx.rout@intel.com> (A Contingent Worker at Intel)
+Signed-off-by: Tony Nguyen <anthony.l.nguyen@intel.com>
+
+@@@COMMIT e759e1e4a4bd2926d082afe56046a90224433a31
+2025-01-30	Eric Dumazet	net: revert RTNL changes in unregister_netdevice_many_notify()
+cfa579f66656 ("net: no longer hold RTNL while calling flush_all_backlogs()");ae646f1a0bb9 ("net: reduce RTNL hold duration in unregister_netdevice_many_notify() (part 1)");83419b61d187 ("net: reduce RTNL hold duration in unregister_netdevice_many_notify() (part 2)")
+This patch reverts following changes:
+
+83419b61d187 net: reduce RTNL hold duration in unregister_netdevice_many_notify() (part 2)
+ae646f1a0bb9 net: reduce RTNL hold duration in unregister_netdevice_many_notify() (part 1)
+cfa579f66656 net: no longer hold RTNL while calling flush_all_backlogs()
+
+This caused issues in layers holding a private mutex:
+
+cleanup_net()
+  rtnl_lock();
+	mutex_lock(subsystem_mutex);
+
+	unregister_netdevice();
+
+	   rtnl_unlock();		// LOCKDEP violation
+	   rtnl_lock();
+
+I will revisit this in next cycle, opt-in for the new behavior
+from safe contexts only.
+
+Fixes: cfa579f66656 ("net: no longer hold RTNL while calling flush_all_backlogs()")
+Fixes: ae646f1a0bb9 ("net: reduce RTNL hold duration in unregister_netdevice_many_notify() (part 1)")
+Fixes: 83419b61d187 ("net: reduce RTNL hold duration in unregister_netdevice_many_notify() (part 2)")
+Reported-by: syzbot+5b9196ecf74447172a9a@syzkaller.appspotmail.com
+Closes: https://lore.kernel.org/netdev/6789d55f.050a0220.20d369.004e.GAE@google.com/
+Signed-off-by: Eric Dumazet <edumazet@google.com>
+Reviewed-by: Kuniyuki Iwashima <kuniyu@amazon.com>
+Link: https://patch.msgid.link/20250129142726.747726-1-edumazet@google.com
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+
+@@@COMMIT 979284535aaf12a287a2f43d9d5dfcbdc1dc4cac
+2025-01-27	Stanislav Fomichev	net/mlx5e: add missing cpu_to_node to kvzalloc_node in mlx5e_open_xdpredirect_sq
+bb135e40129d ("net/mlx5e: move XDP_REDIRECT sq to dynamic allocation")
+kvzalloc_node is not doing a runtime check on the node argument
+(__alloc_pages_node_noprof does have a VM_BUG_ON, but it expands to
+nothing on !CONFIG_DEBUG_VM builds), so doing any ethtool/netlink
+operation that calls mlx5e_open on a CPU that's larger that MAX_NUMNODES
+triggers OOB access and panic (see the trace below).
+
+Add missing cpu_to_node call to convert cpu id to node id.
+
+[  165.427394] mlx5_core 0000:5c:00.0 beth1: Link up
+[  166.479327] BUG: unable to handle page fault for address: 0000000800000010
+[  166.494592] #PF: supervisor read access in kernel mode
+[  166.505995] #PF: error_code(0x0000) - not-present page
+...
+[  166.816958] Call Trace:
+[  166.822380]  <TASK>
+[  166.827034]  ? __die_body+0x64/0xb0
+[  166.834774]  ? page_fault_oops+0x2cd/0x3f0
+[  166.843862]  ? exc_page_fault+0x63/0x130
+[  166.852564]  ? asm_exc_page_fault+0x22/0x30
+[  166.861843]  ? __kvmalloc_node_noprof+0x43/0xd0
+[  166.871897]  ? get_partial_node+0x1c/0x320
+[  166.880983]  ? deactivate_slab+0x269/0x2b0
+[  166.890069]  ___slab_alloc+0x521/0xa90
+[  166.898389]  ? __kvmalloc_node_noprof+0x43/0xd0
+[  166.908442]  __kmalloc_node_noprof+0x216/0x3f0
+[  166.918302]  ? __kvmalloc_node_noprof+0x43/0xd0
+[  166.928354]  __kvmalloc_node_noprof+0x43/0xd0
+[  166.938021]  mlx5e_open_channels+0x5e2/0xc00
+[  166.947496]  mlx5e_open_locked+0x3e/0xf0
+[  166.956201]  mlx5e_open+0x23/0x50
+[  166.963551]  __dev_open+0x114/0x1c0
+[  166.971292]  __dev_change_flags+0xa2/0x1b0
+[  166.980378]  dev_change_flags+0x21/0x60
+[  166.988887]  do_setlink+0x38d/0xf20
+[  166.996628]  ? ep_poll_callback+0x1b9/0x240
+[  167.005910]  ? __nla_validate_parse.llvm.10713395753544950386+0x80/0xd70
+[  167.020782]  ? __wake_up_sync_key+0x52/0x80
+[  167.030066]  ? __mutex_lock+0xff/0x550
+[  167.038382]  ? security_capable+0x50/0x90
+[  167.047279]  rtnl_setlink+0x1c9/0x210
+[  167.055403]  ? ep_poll_callback+0x1b9/0x240
+[  167.064684]  ? security_capable+0x50/0x90
+[  167.073579]  rtnetlink_rcv_msg+0x2f9/0x310
+[  167.082667]  ? rtnetlink_bind+0x30/0x30
+[  167.091173]  netlink_rcv_skb+0xb1/0xe0
+[  167.099492]  netlink_unicast+0x20f/0x2e0
+[  167.108191]  netlink_sendmsg+0x389/0x420
+[  167.116896]  __sys_sendto+0x158/0x1c0
+[  167.125024]  __x64_sys_sendto+0x22/0x30
+[  167.133534]  do_syscall_64+0x63/0x130
+[  167.141657]  ? __irq_exit_rcu.llvm.17843942359718260576+0x52/0xd0
+[  167.155181]  entry_SYSCALL_64_after_hwframe+0x4b/0x53
+
+Fixes: bb135e40129d ("net/mlx5e: move XDP_REDIRECT sq to dynamic allocation")
+Signed-off-by: Stanislav Fomichev <sdf@fomichev.me>
+Reviewed-by: Joe Damato <jdamato@fastly.com>
+Reviewed-by: Tariq Toukan <tariqt@nvidia.com>
+Link: https://patch.msgid.link/20250123000407.3464715-1-sdf@fomichev.me
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+
+@@@COMMIT 99d028c63457773152964ba3abc0d8fb8cf220bf
+2025-01-20	Jakub Kicinski	eth: bnxt: update header sizing defaults
+
+300-400B RPC requests are fairly common. With the current default
+of 256B HDS threshold bnxt ends up splitting those, lowering PCIe
+bandwidth efficiency and increasing the number of memory allocation.
+
+Increase the HDS threshold to fit 4 buffers in a 4k page.
+This works out to 640B as the threshold on a typical kernel confing.
+This change increases the performance for a microbenchmark which
+receives 400B RPCs and sends empty responses by 4.5%.
+Admittedly this is just a single benchmark, but 256B works out to
+just 6 (so 2 more) packets per head page, because shinfo size
+dominates the headers.
+
+Now that we use page pool for the header pages I was also tempted
+to default rx_copybreak to 0, but in synthetic testing the copybreak
+size doesn't seem to make much difference.
+
+Reviewed-by: Michael Chan <michael.chan@broadcom.com>
+Link: https://patch.msgid.link/20250119020518.1962249-8-kuba@kernel.org
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+
+@@@COMMIT e58263e9111733c4bfbbf07517d1f98f21134c52
+2025-01-20	Jakub Kicinski	eth: bnxt: apply hds_thrs settings correctly
+6b43673a25c3 ("bnxt_en: add support for hds-thresh ethtool command")
+Use the pending config for hds_thrs. Core will only update the "current"
+one after we return success. Without this change 2 reconfigs would be
+required for the setting to reach the device.
+
+Fixes: 6b43673a25c3 ("bnxt_en: add support for hds-thresh ethtool command")
+Reviewed-by: Michael Chan <michael.chan@broadcom.com>
+Link: https://patch.msgid.link/20250119020518.1962249-5-kuba@kernel.org
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+
+@@@COMMIT a12c76a03386e32413ae8eaaefa337e491880632
+2025-01-20	Xin Long	net: sched: refine software bypass handling in tc_run
+047f340b36fc ("net: sched: make skip_sw actually skip software")
+This patch addresses issues with filter counting in block (tcf_block),
+particularly for software bypass scenarios, by introducing a more
+accurate mechanism using useswcnt.
+
+Previously, filtercnt and skipswcnt were introduced by:
+
+  Commit 2081fd3445fe ("net: sched: cls_api: add filter counter") and
+  Commit f631ef39d819 ("net: sched: cls_api: add skip_sw counter")
+
+  filtercnt tracked all tp (tcf_proto) objects added to a block, and
+  skipswcnt counted tp objects with the skipsw attribute set.
+
+The problem is: a single tp can contain multiple filters, some with skipsw
+and others without. The current implementation fails in the case:
+
+  When the first filter in a tp has skipsw, both skipswcnt and filtercnt
+  are incremented, then adding a second filter without skipsw to the same
+  tp does not modify these counters because tp->counted is already set.
+
+  This results in bypass software behavior based solely on skipswcnt
+  equaling filtercnt, even when the block includes filters without
+  skipsw. Consequently, filters without skipsw are inadvertently bypassed.
+
+To address this, the patch introduces useswcnt in block to explicitly count
+tp objects containing at least one filter without skipsw. Key changes
+include:
+
+  Whenever a filter without skipsw is added, its tp is marked with usesw
+  and counted in useswcnt. tc_run() now uses useswcnt to determine software
+  bypass, eliminating reliance on filtercnt and skipswcnt.
+
+  This refined approach prevents software bypass for blocks containing
+  mixed filters, ensuring correct behavior in tc_run().
+
+Additionally, as atomic operations on useswcnt ensure thread safety and
+tp->lock guards access to tp->usesw and tp->counted, the broader lock
+down_write(&block->cb_lock) is no longer required in tc_new_tfilter(),
+and this resolves a performance regression caused by the filter counting
+mechanism during parallel filter insertions.
+
+  The improvement can be demonstrated using the following script:
+
+  # cat insert_tc_rules.sh
+
+    tc qdisc add dev ens1f0np0 ingress
+    for i in $(seq 16); do
+        taskset -c $i tc -b rules_$i.txt &
+    done
+    wait
+
+  Each of rules_$i.txt files above includes 100000 tc filter rules to a
+  mlx5 driver NIC ens1f0np0.
+
+  Without this patch:
+
+  # time sh insert_tc_rules.sh
+
+    real    0m50.780s
+    user    0m23.556s
+    sys	    4m13.032s
+
+  With this patch:
+
+  # time sh insert_tc_rules.sh
+
+    real    0m17.718s
+    user    0m7.807s
+    sys     3m45.050s
+
+Fixes: 047f340b36fc ("net: sched: make skip_sw actually skip software")
+Reported-by: Shuang Li <shuali@redhat.com>
+Signed-off-by: Xin Long <lucien.xin@gmail.com>
+Acked-by: Marcelo Ricardo Leitner <marcelo.leitner@gmail.com>
+Reviewed-by: Asbjørn Sloth Tønnesen <ast@fiberby.net>
+Tested-by: Asbjørn Sloth Tønnesen <ast@fiberby.net>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT be94cfdb993ff091ce3b98a16b45795198957f95
+2025-01-16	Kuniyuki Iwashima	dev: Hold rtnl_net_lock() for dev_ifsioc().
+
+Basically, dev_ifsioc() operates on the passed single netns (except
+for netdev notifier chains with lower/upper devices for which we will
+need more changes).
+
+Let's hold rtnl_net_lock() for dev_ifsioc().
+
+Now that NETDEV_CHANGENAME is always triggered under rtnl_net_lock()
+of the device's netns. (do_setlink() and dev_ifsioc())
+
+Signed-off-by: Kuniyuki Iwashima <kuniyu@amazon.com>
+Reviewed-by: Eric Dumazet <edumazet@google.com>
+Link: https://patch.msgid.link/20250115095545.52709-4-kuniyu@amazon.com
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+
+@@@COMMIT 2f1bb1e2cc0068b6f5fe992ed3108d89b9b29cf9
+2025-01-16	Kuniyuki Iwashima	dev: Remove devnet_rename_sem.
+
+devnet_rename_sem is no longer used since commit
+0840556e5a3a ("net: Protect dev->name by seqlock.").
+
+Also, RTNL serialises dev_change_name().
+
+Let's remove devnet_rename_sem.
+
+Signed-off-by: Kuniyuki Iwashima <kuniyu@amazon.com>
+Reviewed-by: Eric Dumazet <edumazet@google.com>
+Link: https://patch.msgid.link/20250115095545.52709-3-kuniyu@amazon.com
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+
+@@@COMMIT e361560a7912958ba3059f51e7dd21612d119169
+2025-01-16	Kuniyuki Iwashima	dev: Acquire netdev_rename_lock before restoring dev->name in dev_change_name().
+0840556e5a3a ("net: Protect dev->name by seqlock.")
+The cited commit forgot to add netdev_rename_lock in one of the
+error paths in dev_change_name().
+
+Let's hold netdev_rename_lock before restoring the old dev->name.
+
+Fixes: 0840556e5a3a ("net: Protect dev->name by seqlock.")
+Signed-off-by: Kuniyuki Iwashima <kuniyu@amazon.com>
+Reviewed-by: Eric Dumazet <edumazet@google.com>
+Link: https://patch.msgid.link/20250115095545.52709-2-kuniyu@amazon.com
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+
+@@@COMMIT 87c8f8496a05de71dc42f5f2ed2b1ea64ea8b77d
+2025-01-15	Taehee Yoo	bnxt_en: add support for tcp-data-split ethtool command
+
+NICs that uses bnxt_en driver supports tcp-data-split feature by the
+name of HDS(header-data-split).
+But there is no implementation for the HDS to enable by ethtool.
+Only getting the current HDS status is implemented and The HDS is just
+automatically enabled only when either LRO, HW-GRO, or JUMBO is enabled.
+The hds_threshold follows rx-copybreak value. and it was unchangeable.
+
+This implements `ethtool -G <interface name> tcp-data-split <value>`
+command option.
+The value can be <on> and <auto>.
+The value is <auto> and one of LRO/GRO/JUMBO is enabled, HDS is
+automatically enabled and all LRO/GRO/JUMBO are disabled, HDS is
+automatically disabled.
+
+HDS feature relies on the aggregation ring.
+So, if HDS is enabled, the bnxt_en driver initializes the aggregation ring.
+This is the reason why BNXT_FLAG_AGG_RINGS contains HDS condition.
+
+Acked-by: Jakub Kicinski <kuba@kernel.org>
+Tested-by: Stanislav Fomichev <sdf@fomichev.me>
+Tested-by: Andy Gospodarek <gospo@broadcom.com>
+Signed-off-by: Taehee Yoo <ap420073@gmail.com>
+Reviewed-by: Michael Chan <michael.chan@broadcom.com>
+Link: https://patch.msgid.link/20250114142852.3364986-8-ap420073@gmail.com
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+
+@@@COMMIT 04508d20b017326e116c6e8ef953839507c73b6d
+2025-01-14	MD Danish Anwar	net: ti: icssg-prueth: Add Multicast Filtering support for VLAN in MAC mode
+
+Add multicast filtering support for VLAN interfaces in dual EMAC mode
+for ICSSG driver.
+
+The driver uses vlan_for_each() API to get the list of available
+vlans. The driver then sync mc addr of vlan interface with a locally
+mainatined list emac->vlan_mcast_list[vid] using __hw_addr_sync_multiple()
+API.
+
+__hw_addr_sync_multiple() is used instead of __hw_addr_sync() to sync
+vdev->mc with local list because the sync_cnt for addresses in vdev->mc
+will already be set by the vlan_dev_set_rx_mode() [net/8021q/vlan_dev.c]
+and __hw_addr_sync() only syncs when the sync_cnt == 0. Whereas
+__hw_addr_sync_multiple() can sync addresses even if sync_cnt is not 0.
+Export __hw_addr_sync_multiple() so that driver can use it.
+
+Once the local list is synced, driver calls __hw_addr_sync_dev() with
+the local list, vdev, sync and unsync callbacks.
+
+__hw_addr_sync_dev() is used with the local maintained list as the list
+to synchronize instead of using __dev_mc_sync() on vdev because
+__dev_mc_sync() on vdev will call __hw_addr_sync_dev() on vdev->mc and
+sync_cnt for addresses in vdev->mc will already be set by the
+vlan_dev_set_rx_mode() [net/8021q/vlan_dev.c] and __hw_addr_sync_dev()
+only syncs if the sync_cnt of addresses in the list (vdev->mc in this case)
+is 0. Whereas __hw_addr_sync_dev() on local list will work fine as the
+sync_cnt for addresses in the local list will still be 0.
+
+Based on change in addresses in the local list, sync / unsync callbacks
+are invoked. In the sync / unsync API in driver, based on whether the ndev
+is vlan or not, driver passes appropriate vid to FDB helper functions.
+
+Signed-off-by: MD Danish Anwar <danishanwar@ti.com>
+Signed-off-by: Paolo Abeni <pabeni@redhat.com>
+
+
+@@@COMMIT f0aa6a37a3dbb40b272df5fc6db93c114688adcd
+2025-01-10	Jakub Kicinski	eth: bnxt: always recalculate features after XDP clearing, fix null-deref
+1054aee82321 ("bnxt_en: Use NETIF_F_GRO_HW.");98ba1d931f61 ("bnxt_en: Fix RSS logic in __bnxt_reserve_rings()")
+Recalculate features when XDP is detached.
+
+Before:
+  # ip li set dev eth0 xdp obj xdp_dummy.bpf.o sec xdp
+  # ip li set dev eth0 xdp off
+  # ethtool -k eth0 | grep gro
+  rx-gro-hw: off [requested on]
+
+After:
+  # ip li set dev eth0 xdp obj xdp_dummy.bpf.o sec xdp
+  # ip li set dev eth0 xdp off
+  # ethtool -k eth0 | grep gro
+  rx-gro-hw: on
+
+The fact that HW-GRO doesn't get re-enabled automatically is just
+a minor annoyance. The real issue is that the features will randomly
+come back during another reconfiguration which just happens to invoke
+netdev_update_features(). The driver doesn't handle reconfiguring
+two things at a time very robustly.
+
+Starting with commit 98ba1d931f61 ("bnxt_en: Fix RSS logic in
+__bnxt_reserve_rings()") we only reconfigure the RSS hash table
+if the "effective" number of Rx rings has changed. If HW-GRO is
+enabled "effective" number of rings is 2x what user sees.
+So if we are in the bad state, with HW-GRO re-enablement "pending"
+after XDP off, and we lower the rings by / 2 - the HW-GRO rings
+doing 2x and the ethtool -L doing / 2 may cancel each other out,
+and the:
+
+  if (old_rx_rings != bp->hw_resc.resv_rx_rings &&
+
+condition in __bnxt_reserve_rings() will be false.
+The RSS map won't get updated, and we'll crash with:
+
+  BUG: kernel NULL pointer dereference, address: 0000000000000168
+  RIP: 0010:__bnxt_hwrm_vnic_set_rss+0x13a/0x1a0
+    bnxt_hwrm_vnic_rss_cfg_p5+0x47/0x180
+    __bnxt_setup_vnic_p5+0x58/0x110
+    bnxt_init_nic+0xb72/0xf50
+    __bnxt_open_nic+0x40d/0xab0
+    bnxt_open_nic+0x2b/0x60
+    ethtool_set_channels+0x18c/0x1d0
+
+As we try to access a freed ring.
+
+The issue is present since XDP support was added, really, but
+prior to commit 98ba1d931f61 ("bnxt_en: Fix RSS logic in
+__bnxt_reserve_rings()") it wasn't causing major issues.
+
+Fixes: 1054aee82321 ("bnxt_en: Use NETIF_F_GRO_HW.")
+Fixes: 98ba1d931f61 ("bnxt_en: Fix RSS logic in __bnxt_reserve_rings()")
+Reviewed-by: Michael Chan <michael.chan@broadcom.com>
+Reviewed-by: Somnath Kotur <somnath.kotur@broadcom.com>
+Link: https://patch.msgid.link/20250109043057.2888953-1-kuba@kernel.org
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+
+@@@COMMIT db78475ba0d3c66d430f7ded2388cc041078a542
+2025-01-07	Jakub Kicinski	eth: gve: use appropriate helper to set xdp_features
+75eaae158b1b ("gve: Add XDP DROP and TX support for GQI-QPL format")
+Commit f85949f98206 ("xdp: add xdp_set_features_flag utility routine")
+added routines to inform the core about XDP flag changes.
+GVE support was added around the same time and missed using them.
+
+GVE only changes the flags on error recover or resume.
+Presumably the flags may change during resume if VM migrated.
+User would not get the notification and upper devices would
+not get a chance to recalculate their flags.
+
+Fixes: 75eaae158b1b ("gve: Add XDP DROP and TX support for GQI-QPL format")
+Reviewed-By: Jeroen de Borst <jeroendb@google.com>
+Reviewed-by: Willem de Bruijn <willemb@google.com>
+Link: https://patch.msgid.link/20250106180210.1861784-1-kuba@kernel.org
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+
+@@@COMMIT 7fb1073300a2ea8bd03b2fc7d5a591192e48ea24
+2025-01-07	Kuniyuki Iwashima	net: Hold rtnl_net_lock() in (un)?register_netdevice_notifier_dev_net().
+
+(un)?register_netdevice_notifier_dev_net() hold RTNL before triggering
+the notifier for all netdev in the netns.
+
+Let's convert the RTNL to rtnl_net_lock().
+
+Note that move_netdevice_notifiers_dev_net() is assumed to be (but not
+yet) protected by per-netns RTNL of both src and dst netns; we need to
+convert wireless and hyperv drivers that call dev_change_net_namespace().
+
+Signed-off-by: Kuniyuki Iwashima <kuniyu@amazon.com>
+Link: https://patch.msgid.link/20250106070751.63146-4-kuniyu@amazon.com
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+
+@@@COMMIT 95fc45d1dea8e1253f8ec58abc5befb71553d666
+2025-01-06	Eric Dumazet	ax25: rcu protect dev->ax25_ptr
+c433570458e4 ("ax25: fix a use-after-free in ax25_fillin_cb()")
+syzbot found a lockdep issue [1].
+
+We should remove ax25 RTNL dependency in ax25_setsockopt()
+
+This should also fix a variety of possible UAF in ax25.
+
+[1]
+
+WARNING: possible circular locking dependency detected
+6.13.0-rc3-syzkaller-00762-g9268abe611b0 #0 Not tainted
+------------------------------------------------------
+syz.5.1818/12806 is trying to acquire lock:
+ ffffffff8fcb3988 (rtnl_mutex){+.+.}-{4:4}, at: ax25_setsockopt+0xa55/0xe90 net/ax25/af_ax25.c:680
+
+but task is already holding lock:
+ ffff8880617ac258 (sk_lock-AF_AX25){+.+.}-{0:0}, at: lock_sock include/net/sock.h:1618 [inline]
+ ffff8880617ac258 (sk_lock-AF_AX25){+.+.}-{0:0}, at: ax25_setsockopt+0x209/0xe90 net/ax25/af_ax25.c:574
+
+which lock already depends on the new lock.
+
+the existing dependency chain (in reverse order) is:
+
+-> #1 (sk_lock-AF_AX25){+.+.}-{0:0}:
+        lock_acquire+0x1ed/0x550 kernel/locking/lockdep.c:5849
+        lock_sock_nested+0x48/0x100 net/core/sock.c:3642
+        lock_sock include/net/sock.h:1618 [inline]
+        ax25_kill_by_device net/ax25/af_ax25.c:101 [inline]
+        ax25_device_event+0x24d/0x580 net/ax25/af_ax25.c:146
+        notifier_call_chain+0x1a5/0x3f0 kernel/notifier.c:85
+       __dev_notify_flags+0x207/0x400
+        dev_change_flags+0xf0/0x1a0 net/core/dev.c:9026
+        dev_ifsioc+0x7c8/0xe70 net/core/dev_ioctl.c:563
+        dev_ioctl+0x719/0x1340 net/core/dev_ioctl.c:820
+        sock_do_ioctl+0x240/0x460 net/socket.c:1234
+        sock_ioctl+0x626/0x8e0 net/socket.c:1339
+        vfs_ioctl fs/ioctl.c:51 [inline]
+        __do_sys_ioctl fs/ioctl.c:906 [inline]
+        __se_sys_ioctl+0xf5/0x170 fs/ioctl.c:892
+        do_syscall_x64 arch/x86/entry/common.c:52 [inline]
+        do_syscall_64+0xf3/0x230 arch/x86/entry/common.c:83
+       entry_SYSCALL_64_after_hwframe+0x77/0x7f
+
+-> #0 (rtnl_mutex){+.+.}-{4:4}:
+        check_prev_add kernel/locking/lockdep.c:3161 [inline]
+        check_prevs_add kernel/locking/lockdep.c:3280 [inline]
+        validate_chain+0x18ef/0x5920 kernel/locking/lockdep.c:3904
+        __lock_acquire+0x1397/0x2100 kernel/locking/lockdep.c:5226
+        lock_acquire+0x1ed/0x550 kernel/locking/lockdep.c:5849
+        __mutex_lock_common kernel/locking/mutex.c:585 [inline]
+        __mutex_lock+0x1ac/0xee0 kernel/locking/mutex.c:735
+        ax25_setsockopt+0xa55/0xe90 net/ax25/af_ax25.c:680
+        do_sock_setsockopt+0x3af/0x720 net/socket.c:2324
+        __sys_setsockopt net/socket.c:2349 [inline]
+        __do_sys_setsockopt net/socket.c:2355 [inline]
+        __se_sys_setsockopt net/socket.c:2352 [inline]
+        __x64_sys_setsockopt+0x1ee/0x280 net/socket.c:2352
+        do_syscall_x64 arch/x86/entry/common.c:52 [inline]
+        do_syscall_64+0xf3/0x230 arch/x86/entry/common.c:83
+       entry_SYSCALL_64_after_hwframe+0x77/0x7f
+
+other info that might help us debug this:
+
+ Possible unsafe locking scenario:
+
+       CPU0                    CPU1
+       ----                    ----
+  lock(sk_lock-AF_AX25);
+                               lock(rtnl_mutex);
+                               lock(sk_lock-AF_AX25);
+  lock(rtnl_mutex);
+
+ *** DEADLOCK ***
+
+1 lock held by syz.5.1818/12806:
+  #0: ffff8880617ac258 (sk_lock-AF_AX25){+.+.}-{0:0}, at: lock_sock include/net/sock.h:1618 [inline]
+  #0: ffff8880617ac258 (sk_lock-AF_AX25){+.+.}-{0:0}, at: ax25_setsockopt+0x209/0xe90 net/ax25/af_ax25.c:574
+
+stack backtrace:
+CPU: 1 UID: 0 PID: 12806 Comm: syz.5.1818 Not tainted 6.13.0-rc3-syzkaller-00762-g9268abe611b0 #0
+Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 09/13/2024
+Call Trace:
+ <TASK>
+  __dump_stack lib/dump_stack.c:94 [inline]
+  dump_stack_lvl+0x241/0x360 lib/dump_stack.c:120
+  print_circular_bug+0x13a/0x1b0 kernel/locking/lockdep.c:2074
+  check_noncircular+0x36a/0x4a0 kernel/locking/lockdep.c:2206
+  check_prev_add kernel/locking/lockdep.c:3161 [inline]
+  check_prevs_add kernel/locking/lockdep.c:3280 [inline]
+  validate_chain+0x18ef/0x5920 kernel/locking/lockdep.c:3904
+  __lock_acquire+0x1397/0x2100 kernel/locking/lockdep.c:5226
+  lock_acquire+0x1ed/0x550 kernel/locking/lockdep.c:5849
+  __mutex_lock_common kernel/locking/mutex.c:585 [inline]
+  __mutex_lock+0x1ac/0xee0 kernel/locking/mutex.c:735
+  ax25_setsockopt+0xa55/0xe90 net/ax25/af_ax25.c:680
+  do_sock_setsockopt+0x3af/0x720 net/socket.c:2324
+  __sys_setsockopt net/socket.c:2349 [inline]
+  __do_sys_setsockopt net/socket.c:2355 [inline]
+  __se_sys_setsockopt net/socket.c:2352 [inline]
+  __x64_sys_setsockopt+0x1ee/0x280 net/socket.c:2352
+  do_syscall_x64 arch/x86/entry/common.c:52 [inline]
+  do_syscall_64+0xf3/0x230 arch/x86/entry/common.c:83
+ entry_SYSCALL_64_after_hwframe+0x77/0x7f
+RIP: 0033:0x7f7b62385d29
+
+Fixes: c433570458e4 ("ax25: fix a use-after-free in ax25_fillin_cb()")
+Reported-by: syzbot <syzkaller@googlegroups.com>
+Signed-off-by: Eric Dumazet <edumazet@google.com>
+Reviewed-by: Kuniyuki Iwashima <kuniyu@amazon.com>
+Link: https://patch.msgid.link/20250103210514.87290-1-edumazet@google.com
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+
+@@@COMMIT 68e068cabd2c6c533ef934c2e5151609cf6ecc6d
+2025-01-02	Willem de Bruijn	net: reenable NETIF_F_IPV6_CSUM offload for BIG TCP packets
+04c20a9356f2 ("net: skip offload for NETIF_F_IPV6_CSUM if ipv6 header contains extension")
+The blamed commit disabled hardware offoad of IPv6 packets with
+extension headers on devices that advertise NETIF_F_IPV6_CSUM,
+based on the definition of that feature in skbuff.h:
+
+ *   * - %NETIF_F_IPV6_CSUM
+ *     - Driver (device) is only able to checksum plain
+ *       TCP or UDP packets over IPv6. These are specifically
+ *       unencapsulated packets of the form IPv6|TCP or
+ *       IPv6|UDP where the Next Header field in the IPv6
+ *       header is either TCP or UDP. IPv6 extension headers
+ *       are not supported with this feature. This feature
+ *       cannot be set in features for a device with
+ *       NETIF_F_HW_CSUM also set. This feature is being
+ *       DEPRECATED (see below).
+
+The change causes skb_warn_bad_offload to fire for BIG TCP
+packets.
+
+[  496.310233] WARNING: CPU: 13 PID: 23472 at net/core/dev.c:3129 skb_warn_bad_offload+0xc4/0xe0
+
+[  496.310297]  ? skb_warn_bad_offload+0xc4/0xe0
+[  496.310300]  skb_checksum_help+0x129/0x1f0
+[  496.310303]  skb_csum_hwoffload_help+0x150/0x1b0
+[  496.310306]  validate_xmit_skb+0x159/0x270
+[  496.310309]  validate_xmit_skb_list+0x41/0x70
+[  496.310312]  sch_direct_xmit+0x5c/0x250
+[  496.310317]  __qdisc_run+0x388/0x620
+
+BIG TCP introduced an IPV6_TLV_JUMBO IPv6 extension header to
+communicate packet length, as this is an IPv6 jumbogram. But, the
+feature is only enabled on devices that support BIG TCP TSO. The
+header is only present for PF_PACKET taps like tcpdump, and not
+transmitted by physical devices.
+
+For this specific case of extension headers that are not
+transmitted, return to the situation before the blamed commit
+and support hardware offload.
+
+ipv6_has_hopopt_jumbo() tests not only whether this header is present,
+but also that it is the only extension header before a terminal (L4)
+header.
+
+Fixes: 04c20a9356f2 ("net: skip offload for NETIF_F_IPV6_CSUM if ipv6 header contains extension")
+Reported-by: syzbot <syzkaller@googlegroups.com>
+Reported-by: Eric Dumazet <edumazet@google.com>
+Closes: https://lore.kernel.org/netdev/CANn89iK1hdC3Nt8KPhOtTF8vCPc1AHDCtse_BTNki1pWxAByTQ@mail.gmail.com/
+Signed-off-by: Willem de Bruijn <willemb@google.com>
+Reviewed-by: Eric Dumazet <edumazet@google.com>
+Link: https://patch.msgid.link/20250101164909.1331680-1-willemdebruijn.kernel@gmail.com
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+
+@@@COMMIT 2a4f56fbcc473d8faeb29b73082df39efbe5893c
+2024-12-23	Jianbo Liu	net/mlx5e: Keep netdev when leave switchdev for devlink set legacy only
+7a9fb35e8c3a ("net/mlx5e: Do not reload ethernet ports when changing eswitch mode")
+In the cited commit, when changing from switchdev to legacy mode,
+uplink representor's netdev is kept, and its profile is replaced with
+nic profile, so netdev is detached from old profile, then attach to
+new profile.
+
+During profile change, the hardware resources allocated by the old
+profile will be cleaned up. However, the cleanup is relying on the
+related kernel modules. And they may need to flush themselves first,
+which is triggered by netdev events, for example, NETDEV_UNREGISTER.
+However, netdev is kept, or netdev_register is called after the
+cleanup, which may cause troubles because the resources are still
+referred by kernel modules.
+
+The same process applies to all the caes when uplink is leaving
+switchdev mode, including devlink eswitch mode set legacy, driver
+unload and devlink reload. For the first one, it can be blocked and
+returns failure to users, whenever possible. But it's hard for the
+others. Besides, the attachment to nic profile is unnecessary as the
+netdev will be unregistered anyway for such cases.
+
+So in this patch, the original behavior is kept only for devlink
+eswitch set mode legacy. For the others, moves netdev unregistration
+before the profile change.
+
+Fixes: 7a9fb35e8c3a ("net/mlx5e: Do not reload ethernet ports when changing eswitch mode")
+Signed-off-by: Jianbo Liu <jianbol@nvidia.com>
+Signed-off-by: Tariq Toukan <tariqt@nvidia.com>
+Link: https://patch.msgid.link/20241220081505.1286093-5-tariqt@nvidia.com
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+
+@@@COMMIT de63ac44a527b2c5067551dbd70d939fe151325a
+2024-12-20	Joshua Washington	gve: fix XDP allocation path in edge cases
+5f08cd3d6423 ("gve: Alloc before freeing when adjusting queues")
+This patch fixes a number of consistency issues in the queue allocation
+path related to XDP.
+
+As it stands, the number of allocated XDP queues changes in three
+different scenarios.
+1) Adding an XDP program while the interface is up via
+   gve_add_xdp_queues
+2) Removing an XDP program while the interface is up via
+   gve_remove_xdp_queues
+3) After queues have been allocated and the old queue memory has been
+   removed in gve_queues_start.
+
+However, the requirement for the interface to be up for
+gve_(add|remove)_xdp_queues to be called, in conjunction with the fact
+that the number of queues stored in priv isn't updated until _after_ XDP
+queues have been allocated in the normal queue allocation path means
+that if an XDP program is added while the interface is down, XDP queues
+won't be added until the _second_ if_up, not the first.
+
+Given the expectation that the number of XDP queues is equal to the
+number of RX queues, scenario (3) has another problematic implication.
+When changing the number of queues while an XDP program is loaded, the
+number of XDP queues must be updated as well, as there is logic in the
+driver (gve_xdp_tx_queue_id()) which relies on every RX queue having a
+corresponding XDP TX queue. However, the number of XDP queues stored in
+priv would not be updated until _after_ a close/open leading to a
+mismatch in the number of XDP queues reported vs the number of XDP
+queues which actually exist after the queue count update completes.
+
+This patch remedies these issues by doing the following:
+1) The allocation config getter function is set up to retrieve the
+   _expected_ number of XDP queues to allocate instead of relying
+   on the value stored in `priv` which is only updated once the queues
+   have been allocated.
+2) When adjusting queues, XDP queues are adjusted to match the number of
+   RX queues when XDP is enabled. This only works in the case when
+   queues are live, so part (1) of the fix must still be available in
+   the case that queues are adjusted when there is an XDP program and
+   the interface is down.
+
+Fixes: 5f08cd3d6423 ("gve: Alloc before freeing when adjusting queues")
+Cc: stable@vger.kernel.org
+Signed-off-by: Joshua Washington <joshwash@google.com>
+Signed-off-by: Praveen Kaligineedi <pkaligineedi@google.com>
+Reviewed-by: Praveen Kaligineedi <pkaligineedi@google.com>
+Reviewed-by: Shailend Chand <shailend@google.com>
+Reviewed-by: Willem de Bruijn <willemb@google.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT ba0925c34e0fa6fe02d3d642bc02ab099ab312c7
+2024-12-20	Joshua Washington	gve: process XSK TX descriptors as part of RX NAPI
+fd8e40321a12 ("gve: Add AF_XDP zero-copy support for GQI-QPL format")
+When busy polling is enabled, xsk_sendmsg for AF_XDP zero copy marks
+the NAPI ID corresponding to the memory pool allocated for the socket.
+In GVE, this NAPI ID will never correspond to a NAPI ID of one of the
+dedicated XDP TX queues registered with the umem because XDP TX is not
+set up to share a NAPI with a corresponding RX queue.
+
+This patch moves XSK TX descriptor processing from the TX NAPI to the RX
+NAPI, and the gve_xsk_wakeup callback is updated to use the RX NAPI
+instead of the TX NAPI, accordingly. The branch on if the wakeup is for
+TX is removed, as the NAPI poll should be invoked whether the wakeup is
+for TX or for RX.
+
+Fixes: fd8e40321a12 ("gve: Add AF_XDP zero-copy support for GQI-QPL format")
+Cc: stable@vger.kernel.org
+Signed-off-by: Praveen Kaligineedi <pkaligineedi@google.com>
+Signed-off-by: Joshua Washington <joshwash@google.com>
+Reviewed-by: Willem de Bruijn <willemb@google.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT ff7c2dea9dd1a436fc79d6273adffdcc4a7ffea3
+2024-12-20	Joshua Washington	gve: guard XDP xmit NDO on existence of xdp queues
+39a7f4aa3e4a ("gve: Add XDP REDIRECT support for GQI-QPL format")
+In GVE, dedicated XDP queues only exist when an XDP program is installed
+and the interface is up. As such, the NDO XDP XMIT callback should
+return early if either of these conditions are false.
+
+In the case of no loaded XDP program, priv->num_xdp_queues=0 which can
+cause a divide-by-zero error, and in the case of interface down,
+num_xdp_queues remains untouched to persist XDP queue count for the next
+interface up, but the TX pointer itself would be NULL.
+
+The XDP xmit callback also needs to synchronize with a device
+transitioning from open to close. This synchronization will happen via
+the GVE_PRIV_FLAGS_NAPI_ENABLED bit along with a synchronize_net() call,
+which waits for any RCU critical sections at call-time to complete.
+
+Fixes: 39a7f4aa3e4a ("gve: Add XDP REDIRECT support for GQI-QPL format")
+Cc: stable@vger.kernel.org
+Signed-off-by: Joshua Washington <joshwash@google.com>
+Signed-off-by: Praveen Kaligineedi <pkaligineedi@google.com>
+Reviewed-by: Praveen Kaligineedi <pkaligineedi@google.com>
+Reviewed-by: Shailend Chand <shailend@google.com>
+Reviewed-by: Willem de Bruijn <willemb@google.com>
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+@@@COMMIT 3ddccbefebdbe0c4c72a248676e4d39ac66a8e26
+2024-12-10	Koichiro Den	virtio_net: correct netdev_tx_reset_queue() invocation point
+c8bd1f7f3e61 ("virtio_net: add support for Byte Queue Limits")
+When virtnet_close is followed by virtnet_open, some TX completions can
+possibly remain unconsumed, until they are finally processed during the
+first NAPI poll after the netdev_tx_reset_queue(), resulting in a crash
+[1]. Commit b96ed2c97c79 ("virtio_net: move netdev_tx_reset_queue() call
+before RX napi enable") was not sufficient to eliminate all BQL crash
+cases for virtio-net.
+
+This issue can be reproduced with the latest net-next master by running:
+`while :; do ip l set DEV down; ip l set DEV up; done` under heavy network
+TX load from inside the machine.
+
+netdev_tx_reset_queue() can actually be dropped from virtnet_open path;
+the device is not stopped in any case. For BQL core part, it's just like
+traffic nearly ceases to exist for some period. For stall detector added
+to BQL, even if virtnet_close could somehow lead to some TX completions
+delayed for long, followed by virtnet_open, we can just take it as stall
+as mentioned in commit 6025b9135f7a ("net: dqs: add NIC stall detector
+based on BQL"). Note also that users can still reset stall_max via sysfs.
+
+So, drop netdev_tx_reset_queue() from virtnet_enable_queue_pair(). This
+eliminates the BQL crashes. As a result, netdev_tx_reset_queue() is now
+explicitly required in freeze/restore path. This patch adds it to
+immediately after free_unused_bufs(), following the rule of thumb:
+netdev_tx_reset_queue() should follow any SKB freeing not followed by
+netdev_tx_completed_queue(). This seems the most consistent and
+streamlined approach, and now netdev_tx_reset_queue() runs whenever
+free_unused_bufs() is done.
+
+[1]:
+------------[ cut here ]------------
+kernel BUG at lib/dynamic_queue_limits.c:99!
+Oops: invalid opcode: 0000 [#1] PREEMPT SMP NOPTI
+CPU: 7 UID: 0 PID: 1598 Comm: ip Tainted: G    N 6.12.0net-next_main+ #2
+Tainted: [N]=TEST
+Hardware name: QEMU Standard PC (Q35 + ICH9, 2009), \
+BIOS rel-1.16.3-0-ga6ed6b701f0a-prebuilt.qemu.org 04/01/2014
+RIP: 0010:dql_completed+0x26b/0x290
+Code: b7 c2 49 89 e9 44 89 da 89 c6 4c 89 d7 e8 ed 17 47 00 58 65 ff 0d
+4d 27 90 7e 0f 85 fd fe ff ff e8 ea 53 8d ff e9 f3 fe ff ff <0f> 0b 01
+d2 44 89 d1 29 d1 ba 00 00 00 00 0f 48 ca e9 28 ff ff ff
+RSP: 0018:ffffc900002b0d08 EFLAGS: 00010297
+RAX: 0000000000000000 RBX: ffff888102398c80 RCX: 0000000080190009
+RDX: 0000000000000000 RSI: 000000000000006a RDI: 0000000000000000
+RBP: ffff888102398c00 R08: 0000000000000000 R09: 0000000000000000
+R10: 00000000000000ca R11: 0000000000015681 R12: 0000000000000001
+R13: ffffc900002b0d68 R14: ffff88811115e000 R15: ffff8881107aca40
+FS:  00007f41ded69500(0000) GS:ffff888667dc0000(0000)
+knlGS:0000000000000000
+CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+CR2: 0000556ccc2dc1a0 CR3: 0000000104fd8003 CR4: 0000000000772ef0
+PKRU: 55555554
+Call Trace:
+ <IRQ>
+ ? die+0x32/0x80
+ ? do_trap+0xd9/0x100
+ ? dql_completed+0x26b/0x290
+ ? dql_completed+0x26b/0x290
+ ? do_error_trap+0x6d/0xb0
+ ? dql_completed+0x26b/0x290
+ ? exc_invalid_op+0x4c/0x60
+ ? dql_completed+0x26b/0x290
+ ? asm_exc_invalid_op+0x16/0x20
+ ? dql_completed+0x26b/0x290
+ __free_old_xmit+0xff/0x170 [virtio_net]
+ free_old_xmit+0x54/0xc0 [virtio_net]
+ virtnet_poll+0xf4/0xe30 [virtio_net]
+ ? __update_load_avg_cfs_rq+0x264/0x2d0
+ ? update_curr+0x35/0x260
+ ? reweight_entity+0x1be/0x260
+ __napi_poll.constprop.0+0x28/0x1c0
+ net_rx_action+0x329/0x420
+ ? enqueue_hrtimer+0x35/0x90
+ ? trace_hardirqs_on+0x1d/0x80
+ ? kvm_sched_clock_read+0xd/0x20
+ ? sched_clock+0xc/0x30
+ ? kvm_sched_clock_read+0xd/0x20
+ ? sched_clock+0xc/0x30
+ ? sched_clock_cpu+0xd/0x1a0
+ handle_softirqs+0x138/0x3e0
+ do_softirq.part.0+0x89/0xc0
+ </IRQ>
+ <TASK>
+ __local_bh_enable_ip+0xa7/0xb0
+ virtnet_open+0xc8/0x310 [virtio_net]
+ __dev_open+0xfa/0x1b0
+ __dev_change_flags+0x1de/0x250
+ dev_change_flags+0x22/0x60
+ do_setlink.isra.0+0x2df/0x10b0
+ ? rtnetlink_rcv_msg+0x34f/0x3f0
+ ? netlink_rcv_skb+0x54/0x100
+ ? netlink_unicast+0x23e/0x390
+ ? netlink_sendmsg+0x21e/0x490
+ ? ____sys_sendmsg+0x31b/0x350
+ ? avc_has_perm_noaudit+0x67/0xf0
+ ? cred_has_capability.isra.0+0x75/0x110
+ ? __nla_validate_parse+0x5f/0xee0
+ ? __pfx___probestub_irq_enable+0x3/0x10
+ ? __create_object+0x5e/0x90
+ ? security_capable+0x3b/0x70
+ rtnl_newlink+0x784/0xaf0
+ ? avc_has_perm_noaudit+0x67/0xf0
+ ? cred_has_capability.isra.0+0x75/0x110
+ ? stack_depot_save_flags+0x24/0x6d0
+ ? __pfx_rtnl_newlink+0x10/0x10
+ rtnetlink_rcv_msg+0x34f/0x3f0
+ ? do_syscall_64+0x6c/0x180
+ ? entry_SYSCALL_64_after_hwframe+0x76/0x7e
+ ? __pfx_rtnetlink_rcv_msg+0x10/0x10
+ netlink_rcv_skb+0x54/0x100
+ netlink_unicast+0x23e/0x390
+ netlink_sendmsg+0x21e/0x490
+ ____sys_sendmsg+0x31b/0x350
+ ? copy_msghdr_from_user+0x6d/0xa0
+ ___sys_sendmsg+0x86/0xd0
+ ? __pte_offset_map+0x17/0x160
+ ? preempt_count_add+0x69/0xa0
+ ? __call_rcu_common.constprop.0+0x147/0x610
+ ? preempt_count_add+0x69/0xa0
+ ? preempt_count_add+0x69/0xa0
+ ? _raw_spin_trylock+0x13/0x60
+ ? trace_hardirqs_on+0x1d/0x80
+ __sys_sendmsg+0x66/0xc0
+ do_syscall_64+0x6c/0x180
+ entry_SYSCALL_64_after_hwframe+0x76/0x7e
+RIP: 0033:0x7f41defe5b34
+Code: 15 e1 12 0f 00 f7 d8 64 89 02 b8 ff ff ff ff eb bf 0f 1f 44 00 00
+f3 0f 1e fa 80 3d 35 95 0f 00 00 74 13 b8 2e 00 00 00 0f 05 <48> 3d 00
+f0 ff ff 77 4c c3 0f 1f 00 55 48 89 e5 48 83 ec 20 89 55
+RSP: 002b:00007ffe5336ecc8 EFLAGS: 00000202 ORIG_RAX: 000000000000002e
+RAX: ffffffffffffffda RBX: 0000000000000003 RCX: 00007f41defe5b34
+RDX: 0000000000000000 RSI: 00007ffe5336ed30 RDI: 0000000000000003
+RBP: 00007ffe5336eda0 R08: 0000000000000010 R09: 0000000000000001
+R10: 00007ffe5336f6f9 R11: 0000000000000202 R12: 0000000000000003
+R13: 0000000067452259 R14: 0000556ccc28b040 R15: 0000000000000000
+ </TASK>
+[...]
+
+Fixes: c8bd1f7f3e61 ("virtio_net: add support for Byte Queue Limits")
+Cc: <stable@vger.kernel.org> # v6.11+
+Signed-off-by: Koichiro Den <koichiro.den@canonical.com>
+Acked-by: Jason Wang <jasowang@redhat.com>
+Reviewed-by: Xuan Zhuo <xuanzhuo@linux.alibaba.com>
+[ pabeni: trimmed possibly troublesome separator ]
+Signed-off-by: Paolo Abeni <pabeni@redhat.com>
+
+@@@COMMIT 7cd1107f48e2a246c6a628c2381e1b8aafa4675a
+2024-12-05	Alexander Lobakin	bpf, xdp: constify some bpf_prog * function arguments
+
+In lots of places, bpf_prog pointer is used only for tracing or other
+stuff that doesn't modify the structure itself. Same for net_device.
+Address at least some of them and add `const` attributes there. The
+object code didn't change, but that may prevent unwanted data
+modifications and also allow more helpers to have const arguments.
+
+Reviewed-by: Toke Høiland-Jørgensen <toke@redhat.com>
+Signed-off-by: Alexander Lobakin <aleksander.lobakin@intel.com>
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+
+@@@COMMIT 31f114c3d158dacbeda33f2afb0ca41f4ec6c9f9
+2024-12-04	Tariq Toukan	net/mlx5e: SD, Use correct mdev to build channel param
+e4f9686bdee7 ("net/mlx5e: Let channels be SD-aware")
+In a multi-PF netdev, each traffic channel creates its own resources
+against a specific PF.
+In the cited commit, where this support was added, the channel_param
+logic was mistakenly kept unchanged, so it always used the primary PF
+which is found at priv->mdev.
+In this patch we fix this by moving the logic to be per-channel, and
+passing the correct mdev instance.
+
+This bug happened to be usually harmless, as the resulting cparam
+structures would be the same for all channels, due to identical FW logic
+and decisions.
+However, in some use cases, like fwreset, this gets broken.
+
+This could lead to different symptoms. Example:
+Error cqe on cqn 0x428, ci 0x0, qn 0x10a9, opcode 0xe, syndrome 0x4,
+vendor syndrome 0x32
+
+Fixes: e4f9686bdee7 ("net/mlx5e: Let channels be SD-aware")
+Signed-off-by: Tariq Toukan <tariqt@nvidia.com>
+Reviewed-by: Lama Kayal <lkayal@nvidia.com>
+Reviewed-by: Gal Pressman <gal@nvidia.com>
+Link: https://patch.msgid.link/20241203204920.232744-6-tariqt@nvidia.com
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+
+@@@COMMIT bd649c5cc958169b8a8a3e77ea926d92d472b02a
+2024-12-04	David Wei	bnxt_en: handle tpa_info in queue API implementation
+
+Commit 7ed816be35ab ("eth: bnxt: use page pool for head frags") added a
+page pool for header frags, which may be distinct from the existing pool
+for the aggregation ring. Prior to this change, frags used in the TPA
+ring rx_tpa were allocated from system memory e.g. napi_alloc_frag()
+meaning their lifetimes were not associated with a page pool. They can
+be returned at any time and so the queue API did not alloc or free
+rx_tpa.
+
+But now frags come from a separate head_pool which may be different to
+page_pool. Without allocating and freeing rx_tpa, frags allocated from
+the old head_pool may be returned to a different new head_pool which
+causes a mismatch between the pp hold/release count.
+
+Fix this problem by properly freeing and allocating rx_tpa in the queue
+API implementation.
+
+Signed-off-by: David Wei <dw@davidwei.uk>
+Reviewed-by: Michael Chan <michael.chan@broadcom.com>
+Link: https://patch.msgid.link/20241204041022.56512-4-dw@davidwei.uk
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+
+@@@COMMIT cecc1555a8c2acd65f9d36182c28ae463db0ad7e
+2024-12-03	Joe Damato	net: Make napi_hash_lock irq safe
+86e25f40aa1e ("net: napi: Add napi_config")
+Make napi_hash_lock IRQ safe. It is used during the control path, and is
+taken and released in napi_hash_add and napi_hash_del, which will
+typically be called by calls to napi_enable and napi_disable.
+
+This change avoids a deadlock in pcnet32 (and other any other drivers
+which follow the same pattern):
+
+ CPU 0:
+ pcnet32_open
+    spin_lock_irqsave(&lp->lock, ...)
+      napi_enable
+        napi_hash_add <- before this executes, CPU 1 proceeds
+          spin_lock(napi_hash_lock)
+       [...]
+    spin_unlock_irqrestore(&lp->lock, flags);
+
+ CPU 1:
+   pcnet32_close
+     napi_disable
+       napi_hash_del
+         spin_lock(napi_hash_lock)
+          < INTERRUPT >
+            pcnet32_interrupt
+              spin_lock(lp->lock) <- DEADLOCK
+
+Changing the napi_hash_lock to be IRQ safe prevents the IRQ from firing
+on CPU 1 until napi_hash_lock is released, preventing the deadlock.
+
+Cc: stable@vger.kernel.org
+Fixes: 86e25f40aa1e ("net: napi: Add napi_config")
+Reported-by: Guenter Roeck <linux@roeck-us.net>
+Closes: https://lore.kernel.org/netdev/85dd4590-ea6b-427d-876a-1d8559c7ad82@roeck-us.net/
+Suggested-by: Jakub Kicinski <kuba@kernel.org>
+Signed-off-by: Joe Damato <jdamato@fastly.com>
+Tested-by: Guenter Roeck <linux@roeck-us.net>
+Reviewed-by: Eric Dumazet <edumazet@google.com>
+Link: https://patch.msgid.link/20241202182103.363038-1-jdamato@fastly.com
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+
+@@@COMMIT 3051a77a09dfe3022aa012071346937fdf059033
+2024-11-26	Shravya KN	bnxt_en: Fix receive ring space parameters when XDP is active
+08450ea98ae9 ("bnxt_en: Fix max_mtu setting for multi-buf XDP")
+The MTU setting at the time an XDP multi-buffer is attached
+determines whether the aggregation ring will be used and the
+rx_skb_func handler.  This is done in bnxt_set_rx_skb_mode().
+
+If the MTU is later changed, the aggregation ring setting may need
+to be changed and it may become out-of-sync with the settings
+initially done in bnxt_set_rx_skb_mode().  This may result in
+random memory corruption and crashes as the HW may DMA data larger
+than the allocated buffer size, such as:
+
+BUG: kernel NULL pointer dereference, address: 00000000000003c0
+PGD 0 P4D 0
+Oops: 0000 [#1] PREEMPT SMP NOPTI
+CPU: 17 PID: 0 Comm: swapper/17 Kdump: loaded Tainted: G S         OE      6.1.0-226bf9805506 #1
+Hardware name: Wiwynn Delta Lake PVT BZA.02601.0150/Delta Lake-Class1, BIOS F0E_3A12 08/26/2021
+RIP: 0010:bnxt_rx_pkt+0xe97/0x1ae0 [bnxt_en]
+Code: 8b 95 70 ff ff ff 4c 8b 9d 48 ff ff ff 66 41 89 87 b4 00 00 00 e9 0b f7 ff ff 0f b7 43 0a 49 8b 95 a8 04 00 00 25 ff 0f 00 00 <0f> b7 14 42 48 c1 e2 06 49 03 95 a0 04 00 00 0f b6 42 33f
+RSP: 0018:ffffa19f40cc0d18 EFLAGS: 00010202
+RAX: 00000000000001e0 RBX: ffff8e2c805c6100 RCX: 00000000000007ff
+RDX: 0000000000000000 RSI: ffff8e2c271ab990 RDI: ffff8e2c84f12380
+RBP: ffffa19f40cc0e48 R08: 000000000001000d R09: 974ea2fcddfa4cbf
+R10: 0000000000000000 R11: ffffa19f40cc0ff8 R12: ffff8e2c94b58980
+R13: ffff8e2c952d6600 R14: 0000000000000016 R15: ffff8e2c271ab990
+FS:  0000000000000000(0000) GS:ffff8e3b3f840000(0000) knlGS:0000000000000000
+CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+CR2: 00000000000003c0 CR3: 0000000e8580a004 CR4: 00000000007706e0
+DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
+DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
+PKRU: 55555554
+Call Trace:
+ <IRQ>
+ __bnxt_poll_work+0x1c2/0x3e0 [bnxt_en]
+
+To address the issue, we now call bnxt_set_rx_skb_mode() within
+bnxt_change_mtu() to properly set the AGG rings configuration and
+update rx_skb_func based on the new MTU value.
+Additionally, BNXT_FLAG_NO_AGG_RINGS is cleared at the beginning of
+bnxt_set_rx_skb_mode() to make sure it gets set or cleared based on
+the current MTU.
+
+Fixes: 08450ea98ae9 ("bnxt_en: Fix max_mtu setting for multi-buf XDP")
+Co-developed-by: Somnath Kotur <somnath.kotur@broadcom.com>
+Signed-off-by: Somnath Kotur <somnath.kotur@broadcom.com>
+Signed-off-by: Shravya KN <shravya.k-n@broadcom.com>
+Signed-off-by: Michael Chan <michael.chan@broadcom.com>
+Signed-off-by: Paolo Abeni <pabeni@redhat.com>
+
+
+@@@COMMIT 46010d43ab7b18fbc8a3a0bf4d65c775f8d2adbd
+2024-11-18	Hongguang Gao	bnxt_en: Add a 'force' parameter to bnxt_free_ctx_mem()
+
+If 'force' is false, it will keep the memory pages and all data
+structures for the context memory type if the memory is valid.
+
+This patch always passes true for the 'force' parameter so there is
+no change in behavior.  Later patches will adjust the 'force' parameter
+for the FW log context memory types so that the logs will not be reset
+after FW reset.
+
+Signed-off-by: Hongguang Gao <hongguang.gao@broadcom.com>
+Signed-off-by: Michael Chan <michael.chan@broadcom.com>
+Link: https://patch.msgid.link/20241115151438.550106-5-michael.chan@broadcom.com
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+
+@@@COMMIT 968d2cc07c2fc9a508a53bd2de61200f50206fbc
+2024-11-18	Hongguang Gao	bnxt_en: Refactor bnxt_free_ctx_mem()
+
+Add a new function bnxt_free_one_ctx_mem() to free one context
+memory type.  bnxt_free_ctx_mem() now calls the new function in
+the loop to free each context memory type.  There is no change in
+behavior.  Later patches will further make use of the new function.
+
+Signed-off-by: Hongguang Gao <hongguang.gao@broadcom.com>
+Signed-off-by: Michael Chan <michael.chan@broadcom.com>
+Link: https://patch.msgid.link/20241115151438.550106-4-michael.chan@broadcom.com
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+
+@@@COMMIT ab4219db89da1d019ef45675e4cd56a6841bbc1e
+2024-11-11	Dragos Tatulea	net/mlx5e: SHAMPO, Rework header allocation loop
+
+The current loop code was based on the assumption
+that there can be page leftovers from previous function calls.
+
+This patch changes the allocation loop to make it clearer how
+pages get allocated every MLX5E_SHAMPO_WQ_HEADER_PER_PAGE headers.
+This change has no functional implications.
+
+Signed-off-by: Dragos Tatulea <dtatulea@nvidia.com>
+Signed-off-by: Tariq Toukan <tariqt@nvidia.com>
+Link: https://patch.msgid.link/20241107194357.683732-13-tariqt@nvidia.com
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+
+@@@COMMIT 4f56868b7132bb3c7e5a2c1930b6402718248a35
+2024-11-11	Dragos Tatulea	net/mlx5e: SHAMPO, Change frag page setup order during allocation
+
+Now that the UMR allocation has been simplified, it is no longer
+possible to have a leftover page from a previous call to
+mlx5e_build_shampo_hd_umr().
+
+This patch simplifies the code by switching the order of operations:
+first take the frag page and then increment the index. This is more
+straightforward and it also paves the way for dropping the info
+array.
+
+Signed-off-by: Dragos Tatulea <dtatulea@nvidia.com>
+Signed-off-by: Tariq Toukan <tariqt@nvidia.com>
+Link: https://patch.msgid.link/20241107194357.683732-11-tariqt@nvidia.com
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+
+@@@COMMIT 5dc51ec86df6e2214d8398079c1e31736593ab53
+2024-11-11	Martin Karsten	net: Add napi_struct parameter irq_suspend_timeout
+
+Add a per-NAPI IRQ suspension parameter, which can be get/set with
+netdev-genl.
+
+This patch doesn't change any behavior but prepares the code for other
+changes in the following commits which use irq_suspend_timeout as a
+timeout for IRQ suspension.
+
+Signed-off-by: Martin Karsten <mkarsten@uwaterloo.ca>
+Co-developed-by: Joe Damato <jdamato@fastly.com>
+Signed-off-by: Joe Damato <jdamato@fastly.com>
+Tested-by: Joe Damato <jdamato@fastly.com>
+Tested-by: Martin Karsten <mkarsten@uwaterloo.ca>
+Acked-by: Stanislav Fomichev <sdf@fomichev.me>
+Reviewed-by: Sridhar Samudrala <sridhar.samudrala@intel.com>
+Link: https://patch.msgid.link/20241109050245.191288-2-jdamato@fastly.com
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+
+@@@COMMIT 49a17639508c3b35f90ca829e60dddeeeb750e74
+2024-11-07	Sebastian Andrzej Siewior	softirq: Use a dedicated thread for timer wakeups on PREEMPT_RT.
+
+The timer and hrtimer soft interrupts are raised in hard interrupt
+context. With threaded interrupts force enabled or on PREEMPT_RT this leads
+to waking the ksoftirqd for the processing of the soft interrupt.
+
+ksoftirqd runs as SCHED_OTHER task which means it will compete with other
+tasks for CPU resources.  This can introduce long delays for timer
+processing on heavy loaded systems and is not desired.
+
+Split the TIMER_SOFTIRQ and HRTIMER_SOFTIRQ processing into a dedicated
+timers thread and let it run at the lowest SCHED_FIFO priority.
+Wake-ups for RT tasks happen from hardirq context so only timer_list timers
+and hrtimers for "regular" tasks are processed here. The higher priority
+ensures that wakeups are performed before scheduling SCHED_OTHER tasks.
+
+Using a dedicated variable to store the pending softirq bits values ensure
+that the timer are not accidentally picked up by ksoftirqd and other
+threaded interrupts.
+
+It shouldn't be picked up by ksoftirqd since it runs at lower priority.
+However if ksoftirqd is already running while a timer fires, then ksoftird
+will be PI-boosted due to the BH-lock to ktimer's priority.
+
+The timer thread can pick up pending softirqs from ksoftirqd but only
+if the softirq load is high. It is not be desired that the picked up
+softirqs are processed at SCHED_FIFO priority under high softirq load
+but this can already happen by a PI-boost by a force-threaded interrupt.
+
+[ frederic@kernel.org: rcutorture.c fixes, storm fix by introduction of
+  local_timers_pending() for tick_nohz_next_event() ]
+
+[ junxiao.chang@intel.com: Ensure ktimersd gets woken up even if a
+  softirq is currently served. ]
+
+Signed-off-by: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
+Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+Reviewed-by: Paul E. McKenney <paulmck@kernel.org> [rcutorture]
+Reviewed-by: Frederic Weisbecker <frederic@kernel.org>
+Link: https://lore.kernel.org/all/20241106150419.2593080-4-bigeasy@linutronix.de
+
+
+@@@COMMIT bb135e40129ddd254cfb474b58981313be79a631
+2024-11-03	William Tu	net/mlx5e: move XDP_REDIRECT sq to dynamic allocation
+
+Dynamically allocating xdpsq, used by egress side XDP_REDIRECT.
+mlx5 has multiple XDP sqs. Under struct mlx5e_channel:
+1. rx_xdpsq: used for XDP_TX, an XDP prog handles the rx packet and
+transmits using the same queue as rx.
+2. xdpsq: used by egress side XDP_REDIRECT. This is for another interface
+to redirect packet to the mlx5 interface, using ndo_xdp_xmit .
+3. xsksq: used by XSK. XSK has its own dedicated channel, and it also
+has resources of 1 and 2.
+
+The patch changes only the 2. xdpsq.
+
+Signed-off-by: William Tu <witu@nvidia.com>
+Reviewed-by: Parav Pandit <parav@nvidia.com>
+Signed-off-by: Tariq Toukan <tariqt@nvidia.com>
+Link: https://patch.msgid.link/20241031125856.530927-5-tariqt@nvidia.com
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+
+@@@COMMIT 7999da12a6706f10ef47f2a4d34ebd5bc99a26de
+2024-10-29	Dragos Tatulea	net/mlx5e: Update features on MTU change
+
+When the MTU changes successfully, trigger netdev_update_features() to
+enable features in wanted state if applicable.
+
+An example of such scenario:
+$ ip link set dev eth1 up
+$ ethtool --set-ring eth1 rx 8192
+$ ip link set dev eth1 mtu 9000
+$ ethtool --features eth1 rx-gro-hw on --> fails
+$ ip link set dev eth1 mtu 7000
+
+With this patch, HW GRO will be turned on automatically because
+it is set in the device's wanted_features.
+
+Signed-off-by: Dragos Tatulea <dtatulea@nvidia.com>
+Reviewed-by: Gal Pressman <gal@nvidia.com>
+Signed-off-by: Tariq Toukan <tariqt@nvidia.com>
+Reviewed-by: Simon Horman <horms@kernel.org>
+Link: https://patch.msgid.link/20241024164134.299646-2-tariqt@nvidia.com
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+
+@@@COMMIT 7cfc1b1fa8673fe386304194d4cc2c8fe555bbf9
+2024-10-23	Eric Dumazet	net: netdev_tx_sent_queue() small optimization
+
+Change smp_mb() imediately following a set_bit()
+with smp_mb__after_atomic().
+
+Signed-off-by: Eric Dumazet <edumazet@google.com>
+Link: https://patch.msgid.link/20241018052310.2612084-1-edumazet@google.com
+Signed-off-by: Paolo Abeni <pabeni@redhat.com>
+
+
+@@@COMMIT 95ecba62e2fd201bcdcca636f5d774f1cd4f1458
+2024-10-21	Eric Dumazet	net: fix races in netdev_tx_sent_queue()/dev_watchdog()
+bec251bc8b6a ("net: no longer stop all TX queues in dev_watchdog()")
+Some workloads hit the infamous dev_watchdog() message:
+
+"NETDEV WATCHDOG: eth0 (xxxx): transmit queue XX timed out"
+
+It seems possible to hit this even for perfectly normal
+BQL enabled drivers:
+
+1) Assume a TX queue was idle for more than dev->watchdog_timeo
+   (5 seconds unless changed by the driver)
+
+2) Assume a big packet is sent, exceeding current BQL limit.
+
+3) Driver ndo_start_xmit() puts the packet in TX ring,
+   and netdev_tx_sent_queue() is called.
+
+4) QUEUE_STATE_STACK_XOFF could be set from netdev_tx_sent_queue()
+   before txq->trans_start has been written.
+
+5) txq->trans_start is written later, from netdev_start_xmit()
+
+    if (rc == NETDEV_TX_OK)
+          txq_trans_update(txq)
+
+dev_watchdog() running on another cpu could read the old
+txq->trans_start, and then see QUEUE_STATE_STACK_XOFF, because 5)
+did not happen yet.
+
+To solve the issue, write txq->trans_start right before one XOFF bit
+is set :
+
+- _QUEUE_STATE_DRV_XOFF from netif_tx_stop_queue()
+- __QUEUE_STATE_STACK_XOFF from netdev_tx_sent_queue()
+
+From dev_watchdog(), we have to read txq->state before txq->trans_start.
+
+Add memory barriers to enforce correct ordering.
+
+In the future, we could avoid writing over txq->trans_start for normal
+operations, and rename this field to txq->xoff_start_time.
+
+Fixes: bec251bc8b6a ("net: no longer stop all TX queues in dev_watchdog()")
+Signed-off-by: Eric Dumazet <edumazet@google.com>
+Reviewed-by: Willem de Bruijn <willemb@google.com>
+Reviewed-by: Toke Høiland-Jørgensen <toke@redhat.com>
+Link: https://patch.msgid.link/20241015194118.3951657-1-edumazet@google.com
+Signed-off-by: Paolo Abeni <pabeni@redhat.com>
+
+
+@@@COMMIT 4dbc1d1a9f39c3711ad2a40addca04d07d9ab5d0
+2024-10-17	Cosmin Ratiu	net/mlx5e: Don't call cleanup on profile rollback failure
+3ef14e463f6e ("net/mlx5e: Separate between netdev objects and mlx5e profiles initialization")
+When profile rollback fails in mlx5e_netdev_change_profile, the netdev
+profile var is left set to NULL. Avoid a crash when unloading the driver
+by not calling profile->cleanup in such a case.
+
+This was encountered while testing, with the original trigger that
+the wq rescuer thread creation got interrupted (presumably due to
+Ctrl+C-ing modprobe), which gets converted to ENOMEM (-12) by
+mlx5e_priv_init, the profile rollback also fails for the same reason
+(signal still active) so the profile is left as NULL, leading to a crash
+later in _mlx5e_remove.
+
+ [  732.473932] mlx5_core 0000:08:00.1: E-Switch: Unload vfs: mode(OFFLOADS), nvfs(2), necvfs(0), active vports(2)
+ [  734.525513] workqueue: Failed to create a rescuer kthread for wq "mlx5e": -EINTR
+ [  734.557372] mlx5_core 0000:08:00.1: mlx5e_netdev_init_profile:6235:(pid 6086): mlx5e_priv_init failed, err=-12
+ [  734.559187] mlx5_core 0000:08:00.1 eth3: mlx5e_netdev_change_profile: new profile init failed, -12
+ [  734.560153] workqueue: Failed to create a rescuer kthread for wq "mlx5e": -EINTR
+ [  734.589378] mlx5_core 0000:08:00.1: mlx5e_netdev_init_profile:6235:(pid 6086): mlx5e_priv_init failed, err=-12
+ [  734.591136] mlx5_core 0000:08:00.1 eth3: mlx5e_netdev_change_profile: failed to rollback to orig profile, -12
+ [  745.537492] BUG: kernel NULL pointer dereference, address: 0000000000000008
+ [  745.538222] #PF: supervisor read access in kernel mode
+<snipped>
+ [  745.551290] Call Trace:
+ [  745.551590]  <TASK>
+ [  745.551866]  ? __die+0x20/0x60
+ [  745.552218]  ? page_fault_oops+0x150/0x400
+ [  745.555307]  ? exc_page_fault+0x79/0x240
+ [  745.555729]  ? asm_exc_page_fault+0x22/0x30
+ [  745.556166]  ? mlx5e_remove+0x6b/0xb0 [mlx5_core]
+ [  745.556698]  auxiliary_bus_remove+0x18/0x30
+ [  745.557134]  device_release_driver_internal+0x1df/0x240
+ [  745.557654]  bus_remove_device+0xd7/0x140
+ [  745.558075]  device_del+0x15b/0x3c0
+ [  745.558456]  mlx5_rescan_drivers_locked.part.0+0xb1/0x2f0 [mlx5_core]
+ [  745.559112]  mlx5_unregister_device+0x34/0x50 [mlx5_core]
+ [  745.559686]  mlx5_uninit_one+0x46/0xf0 [mlx5_core]
+ [  745.560203]  remove_one+0x4e/0xd0 [mlx5_core]
+ [  745.560694]  pci_device_remove+0x39/0xa0
+ [  745.561112]  device_release_driver_internal+0x1df/0x240
+ [  745.561631]  driver_detach+0x47/0x90
+ [  745.562022]  bus_remove_driver+0x84/0x100
+ [  745.562444]  pci_unregister_driver+0x3b/0x90
+ [  745.562890]  mlx5_cleanup+0xc/0x1b [mlx5_core]
+ [  745.563415]  __x64_sys_delete_module+0x14d/0x2f0
+ [  745.563886]  ? kmem_cache_free+0x1b0/0x460
+ [  745.564313]  ? lockdep_hardirqs_on_prepare+0xe2/0x190
+ [  745.564825]  do_syscall_64+0x6d/0x140
+ [  745.565223]  entry_SYSCALL_64_after_hwframe+0x4b/0x53
+ [  745.565725] RIP: 0033:0x7f1579b1288b
+
+Fixes: 3ef14e463f6e ("net/mlx5e: Separate between netdev objects and mlx5e profiles initialization")
+Signed-off-by: Cosmin Ratiu <cratiu@nvidia.com>
+Reviewed-by: Dragos Tatulea <dtatulea@nvidia.com>
+Signed-off-by: Tariq Toukan <tariqt@nvidia.com>
+Signed-off-by: Paolo Abeni <pabeni@redhat.com>
+
+
+@@@COMMIT 836265d31631e28000fc8917ce697fc687a58724
+2024-10-08	Johannes Berg	wifi: remove iw_public_data from struct net_device
+
+Given the previous patches, we no longer need the
+struct iw_public_data etc., it's only used by the
+old Intel drivers (and ps3_gelic creates it but
+then doesn't use it). Remove all of that, including
+the pointer in struct net_device.
+
+Link: https://patch.msgid.link/20241007213525.8b2d52b60531.I6a27aaf30bded9a0977f07f47fba2bd31a3b3330@changeid
+Signed-off-by: Johannes Berg <johannes.berg@intel.com>
+
+@@@COMMIT c11a49d58ad229a1be1ebe08a2b68fedf83db6c8
+2024-09-26	Wenbo Li	virtio_net: Fix mismatched buf address when unmapping for small packets
+295525e29a5b ("virtio_net: merge dma operations when filling mergeable buffers")
+Currently, the virtio-net driver will perform a pre-dma-mapping for
+small or mergeable RX buffer. But for small packets, a mismatched address
+without VIRTNET_RX_PAD and xdp_headroom is used for unmapping.
+
+That will result in unsynchronized buffers when SWIOTLB is enabled, for
+example, when running as a TDX guest.
+
+This patch unifies the address passed to the virtio core as the address of
+the virtnet header and fixes the mismatched buffer address.
+
+Changes from v2: unify the buf that passed to the virtio core in small
+and merge mode.
+Changes from v1: Use ctx to get xdp_headroom.
+
+Fixes: 295525e29a5b ("virtio_net: merge dma operations when filling mergeable buffers")
+Signed-off-by: Wenbo Li <liwenbo.martin@bytedance.com>
+Signed-off-by: Jiahui Cen <cenjiahui@bytedance.com>
+Signed-off-by: Ying Fang <fangying.tommy@bytedance.com>
+Reviewed-by: Xuan Zhuo <xuanzhuo@linux.alibaba.com>
+Link: https://patch.msgid.link/20240919081351.51772-1-liwenbo.martin@bytedance.com
+Signed-off-by: Paolo Abeni <pabeni@redhat.com>
+
+
+@@@COMMIT 65249feb6b3df9e17bab5911ee56fa7b0971e231
+2024-09-11	Mina Almasry	net: add support for skbs with unreadable frags
+
+For device memory TCP, we expect the skb headers to be available in host
+memory for access, and we expect the skb frags to be in device memory
+and unaccessible to the host. We expect there to be no mixing and
+matching of device memory frags (unaccessible) with host memory frags
+(accessible) in the same skb.
+
+Add a skb->devmem flag which indicates whether the frags in this skb
+are device memory frags or not.
+
+__skb_fill_netmem_desc() now checks frags added to skbs for net_iov,
+and marks the skb as skb->devmem accordingly.
+
+Add checks through the network stack to avoid accessing the frags of
+devmem skbs and avoid coalescing devmem skbs with non devmem skbs.
+
+Signed-off-by: Willem de Bruijn <willemb@google.com>
+Signed-off-by: Kaiyuan Zhang <kaiyuanz@google.com>
+Signed-off-by: Mina Almasry <almasrymina@google.com>
+Reviewed-by: Eric Dumazet <edumazet@google.com>
+Reviewed-by: Jakub Kicinski <kuba@kernel.org>
+Link: https://patch.msgid.link/20240910171458.219195-9-almasrymina@google.com
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+
+@@@COMMIT 170aafe35cb98e0f3fbacb446ea86389fbce22ea
+2024-09-11	Mina Almasry	netdev: support binding dma-buf to netdevice
+
+Add a netdev_dmabuf_binding struct which represents the
+dma-buf-to-netdevice binding. The netlink API will bind the dma-buf to
+rx queues on the netdevice. On the binding, the dma_buf_attach
+& dma_buf_map_attachment will occur. The entries in the sg_table from
+mapping will be inserted into a genpool to make it ready
+for allocation.
+
+The chunks in the genpool are owned by a dmabuf_chunk_owner struct which
+holds the dma-buf offset of the base of the chunk and the dma_addr of
+the chunk. Both are needed to use allocations that come from this chunk.
+
+We create a new type that represents an allocation from the genpool:
+net_iov. We setup the net_iov allocation size in the
+genpool to PAGE_SIZE for simplicity: to match the PAGE_SIZE normally
+allocated by the page pool and given to the drivers.
+
+The user can unbind the dmabuf from the netdevice by closing the netlink
+socket that established the binding. We do this so that the binding is
+automatically unbound even if the userspace process crashes.
+
+The binding and unbinding leaves an indicator in struct netdev_rx_queue
+that the given queue is bound, and the binding is actuated by resetting
+the rx queue using the queue API.
+
+The netdev_dmabuf_binding struct is refcounted, and releases its
+resources only when all the refs are released.
+
+Signed-off-by: Willem de Bruijn <willemb@google.com>
+Signed-off-by: Kaiyuan Zhang <kaiyuanz@google.com>
+Signed-off-by: Mina Almasry <almasrymina@google.com>
+Reviewed-by: Pavel Begunkov <asml.silence@gmail.com> # excluding netlink
+Acked-by: Daniel Vetter <daniel.vetter@ffwll.ch>
+Reviewed-by: Jakub Kicinski <kuba@kernel.org>
+Link: https://patch.msgid.link/20240910171458.219195-4-almasrymina@google.com
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+
+@@@COMMIT 2d51eb0bd81cfbafc762592ede9e9234063cc853
+2024-09-10	Michael Chan	bnxt_en: Add MSIX check in bnxt_check_rings()
+
+bnxt_check_rings() is called to ensure that we have the hardware ring
+resources before committing to reinitialize with the new number of
+rings.  MSIX vectors are never checked at this point, because up
+until recently we must first disable MSIX before we can allocate the
+new set of MSIX vectors.
+
+Now that we support dynamic MSIX allocation, check to make sure we
+can dynamically allocate the new MSIX vectors as the last step in
+bnxt_check_rings() if dynamic MSIX is supported.
+
+For example, the IOMMU group may limit the number of MSIX vectors
+for the device.  With this patch, the ring change will fail more
+gracefully when there is not enough MSIX vectors.
+
+It is also better to move bnxt_check_rings() to be called as the last
+step when changing ethtool rings.
+
+Reviewed-by: Somnath Kotur <somnath.kotur@broadcom.com>
+Reviewed-by: Kalesh AP <kalesh-anakkur.purayil@broadcom.com>
+Reviewed-by: Andy Gospodarek <andrew.gospodarek@broadcom.com>
+Signed-off-by: Michael Chan <michael.chan@broadcom.com>
+Reviewed-by: Simon Horman <horms@kernel.org>
+Link: https://patch.msgid.link/20240909202737.93852-3-michael.chan@broadcom.com
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+
+@@@COMMIT 08062af0a52107a243f7608fd972edb54ca5b7f8
+2024-09-05	Joe Damato	net: napi: Prevent overflow of napi_defer_hard_irqs
+
+In commit 6f8b12d661d0 ("net: napi: add hard irqs deferral feature")
+napi_defer_irqs was added to net_device and napi_defer_irqs_count was
+added to napi_struct, both as type int.
+
+This value never goes below zero, so there is not reason for it to be a
+signed int. Change the type for both from int to u32, and add an
+overflow check to sysfs to limit the value to S32_MAX.
+
+The limit of S32_MAX was chosen because the practical limit before this
+patch was S32_MAX (anything larger was an overflow) and thus there are
+no behavioral changes introduced. If the extra bit is needed in the
+future, the limit can be raised.
+
+Before this patch:
+
+$ sudo bash -c 'echo 2147483649 > /sys/class/net/eth4/napi_defer_hard_irqs'
+$ cat /sys/class/net/eth4/napi_defer_hard_irqs
+-2147483647
+
+After this patch:
+
+$ sudo bash -c 'echo 2147483649 > /sys/class/net/eth4/napi_defer_hard_irqs'
+bash: line 0: echo: write error: Numerical result out of range
+
+Similarly, /sys/class/net/XXXXX/tx_queue_len is defined as unsigned:
+
+include/linux/netdevice.h:      unsigned int            tx_queue_len;
+
+And has an overflow check:
+
+dev_change_tx_queue_len(..., unsigned long new_len):
+
+  if (new_len != (unsigned int)new_len)
+          return -ERANGE;
+
+Suggested-by: Jakub Kicinski <kuba@kernel.org>
+Signed-off-by: Joe Damato <jdamato@fastly.com>
+Reviewed-by: Eric Dumazet <edumazet@google.com>
+Link: https://patch.msgid.link/20240904153431.307932-1-jdamato@fastly.com
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+
+@@@COMMIT 782dbbf589cd9082effaec522e3f1b4ce1594803
+2024-09-03	Alexander Lobakin	netdev_features: convert NETIF_F_FCOE_MTU to dev->fcoe_mtu
+
+Ability to handle maximum FCoE frames of 2158 bytes can never be changed
+and thus more of an attribute, not a toggleable feature.
+Move it from netdev_features_t to "cold" priv flags (bitfield bool) and
+free yet another feature bit.
+
+Signed-off-by: Alexander Lobakin <aleksander.lobakin@intel.com>
+Signed-off-by: Paolo Abeni <pabeni@redhat.com>
+
+
+@@@COMMIT 05c1280a2bcfca187fe7fa90bb240602cf54af0a
+2024-09-03	Alexander Lobakin	netdev_features: convert NETIF_F_NETNS_LOCAL to dev->netns_local
+
+"Interface can't change network namespaces" is rather an attribute,
+not a feature, and it can't be changed via Ethtool.
+Make it a "cold" private flag instead of a netdev_feature and free
+one more bit.
+
+Signed-off-by: Alexander Lobakin <aleksander.lobakin@intel.com>
+Signed-off-by: Paolo Abeni <pabeni@redhat.com>
+
+
+@@@COMMIT 00d066a4d4edbe559ba6c35153da71d4b2b8a383
+2024-09-03	Alexander Lobakin	netdev_features: convert NETIF_F_LLTX to dev->lltx
+
+NETIF_F_LLTX can't be changed via Ethtool and is not a feature,
+rather an attribute, very similar to IFF_NO_QUEUE (and hot).
+Free one netdev_features_t bit and make it a "hot" private flag.
+
+Signed-off-by: Alexander Lobakin <aleksander.lobakin@intel.com>
+Signed-off-by: Paolo Abeni <pabeni@redhat.com>
+
+
+@@@COMMIT e68256c8a73cafacc7976bb80359511ee0d0ab91
+2024-08-29	Michael Chan	bnxt_en: Support dynamic MSIX
+
+A range of MSIX vectors are allocated at initialization for the number
+needed for RocE and L2.  During run-time, if the user increases or
+decreases the number of L2 rings, all the MSIX vectors have to be
+freed and a new range has to be allocated.  This is not optimal and
+causes disruptions to RoCE traffic every time there is a change in L2
+MSIX.
+
+If the system supports dynamic MSIX allocations, use dynamic
+allocation to add new L2 MSIX vectors or free unneeded L2 MSIX
+vectors.  RoCE traffic is not affected using this scheme.
+
+Reviewed-by: Hongguang Gao <hongguang.gao@broadcom.com>
+Reviewed-by: Somnath Kotur <somnath.kotur@broadcom.com>
+Reviewed-by: Simon Horman <horms@kernel.org>
+Reviewed-by: Przemek Kitszel <przemyslaw.kitszel@intel.com>
+Signed-off-by: Michael Chan <michael.chan@broadcom.com>
+Reviewed-by: Michal Swiatkowski <michal.swiatkowski@linux.intel.com>
+Link: https://patch.msgid.link/20240828183235.128948-10-michael.chan@broadcom.com
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+
+@@@COMMIT 26e3846e23b49ec15a534e95bdc65e090eaaa42e
+2024-08-29	Sreekanth Reddy	bnxt_en: Support QOS and TPID settings for the SRIOV VLAN
+
+With recent changes in the .ndo_set_vf_*() guidelines, resubmitting
+this patch that was reverted eariler in 2023:
+
+c27153682eac ("Revert "bnxt_en: Support QOS and TPID settings for the SRIOV VLAN")
+
+Add these missing settings in the .ndo_set_vf_vlan() method.
+Older firmware does not support the TPID setting so check for
+proper support.
+
+Remove the unused BNXT_VF_QOS flag.
+
+Reviewed-by: Simon Horman <horms@kernel.org>
+Signed-off-by: Sreekanth Reddy <sreekanth.reddy@broadcom.com>
+Signed-off-by: Michael Chan <michael.chan@broadcom.com>
+Link: https://patch.msgid.link/20240828183235.128948-4-michael.chan@broadcom.com
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+
+@@@COMMIT a07e953dafe5ebd88942dc861dfb06eaf055fb07
+2024-08-16	Carolina Jubran	net/mlx5e: XPS, Fix oversight of Multi-PF Netdev changes
+bcee093751f8 ("net/mlx5e: Modifying channels number and updating TX queues")
+The offending commit overlooked the Multi-PF Netdev changes.
+
+Revert mlx5e_set_default_xps_cpumasks to incorporate Multi-PF Netdev
+changes.
+
+Fixes: bcee093751f8 ("net/mlx5e: Modifying channels number and updating TX queues")
+Signed-off-by: Carolina Jubran <cjubran@nvidia.com>
+Signed-off-by: Tariq Toukan <tariqt@nvidia.com>
+Link: https://patch.msgid.link/20240815071611.2211873-4-tariqt@nvidia.com
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+
+@@@COMMIT 94e521937839475b83bac46e4d3ccba332e12064
+2024-08-16	Dragos Tatulea	net/mlx5e: SHAMPO, Release in progress headers
+e839ac9a89cb ("net/mlx5e: SHAMPO, Simplify header page release in teardown")
+The change in the fixes tag cleaned up too much: it removed the part
+that was releasing header pages that were posted via UMR but haven't
+been acknowledged yet on the ICOSQ.
+
+This patch corrects this omission by setting the bits between pi and ci
+to on when shutting down a queue with SHAMPO. To be consistent with the
+Striding RQ code, this action is done in mlx5e_free_rx_missing_descs().
+
+Fixes: e839ac9a89cb ("net/mlx5e: SHAMPO, Simplify header page release in teardown")
+Signed-off-by: Dragos Tatulea <dtatulea@nvidia.com>
+Signed-off-by: Tariq Toukan <tariqt@nvidia.com>
+Link: https://patch.msgid.link/20240815071611.2211873-3-tariqt@nvidia.com
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+
+@@@COMMIT df28de7b00502761eba62490f413c65c9b175ed9
+2024-08-15	Jason Wang	virtio-net: synchronize operstate with admin state on up/down
+
+This patch synchronizes operstate with admin state per RFC2863.
+
+This is done by trying to toggle the carrier upon open/close and
+synchronize with the config change work. This allows to propagate
+status correctly to stacked devices like:
+
+ip link add link enp0s3 macvlan0 type macvlan
+ip link set link enp0s3 down
+ip link show
+
+Before this patch:
+
+3: enp0s3: <BROADCAST,MULTICAST> mtu 1500 qdisc pfifo_fast state DOWN mode DEFAULT group default qlen 1000
+    link/ether 00:00:05:00:00:09 brd ff:ff:ff:ff:ff:ff
+......
+5: macvlan0@enp0s3: <BROADCAST,MULTICAST,UP,LOWER_UP,M-DOWN> mtu 1500 qdisc noqueue state UP mode DEFAULT group default qlen 1000
+    link/ether b2:a9:c5:04:da:53 brd ff:ff:ff:ff:ff:ff
+
+After this patch:
+
+3: enp0s3: <BROADCAST,MULTICAST> mtu 1500 qdisc pfifo_fast state DOWN mode DEFAULT group default qlen 1000
+    link/ether 00:00:05:00:00:09 brd ff:ff:ff:ff:ff:ff
+...
+5: macvlan0@enp0s3: <NO-CARRIER,BROADCAST,MULTICAST,UP,M-DOWN> mtu 1500 qdisc noqueue state LOWERLAYERDOWN mode DEFAULT group default qlen 1000
+    link/ether b2:a9:c5:04:da:53 brd ff:ff:ff:ff:ff:ff
+
+Cc: Venkat Venkatsubra <venkat.x.venkatsubra@oracle.com>
+Cc: Gia-Khanh Nguyen <gia-khanh.nguyen@oracle.com>
+Acked-by: Michael S. Tsirkin <mst@redhat.com>
+Signed-off-by: Jason Wang <jasowang@redhat.com>
+Link: https://patch.msgid.link/20240814052228.4654-4-jasowang@redhat.com
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+
+@@@COMMIT c948c0973df5db9314459da621342e1170bd9e8e
+2024-08-15	Pavan Chebbi	bnxt_en: Don't clear ntuple filters and rss contexts during ethtool ops
+1018319f949c ("bnxt_en: Invalidate user filters when needed")
+The driver currently blindly deletes its cache of RSS cotexts and
+ntuple filters when the ethtool channel count is changing.  It also
+deletes the ntuple filters cache when the default indirection table
+is changing.
+
+The core will not allow ethtool channels to drop below any that
+have been configured as ntuple destinations since this commit from 2022:
+
+47f3ecf4763d ("ethtool: Fail number of channels change when it conflicts with rxnfc")
+
+So there is absolutely no need to delete the ntuple filters and
+RSS contexts when changing ethtool channels.
+
+It is also unnecessary to delete ntuple filters when the default
+RSS indirection table is changing.
+
+Remove bnxt_clear_usr_fltrs() and bnxt_clear_rss_ctxis() from the
+ethtool ops and change them to static functions.
+
+This bug will cause confusion to the end user and causes failure when
+running the rss_ctx.py selftest.
+
+Fixes: 1018319f949c ("bnxt_en: Invalidate user filters when needed")
+Reported-by: Jakub Kicinski <kuba@kernel.org>
+Closes: https://lore.kernel.org/netdev/20240725111912.7bc17cf6@kernel.org/
+Reviewed-by: Andy Gospodarek <andrew.gospodarek@broadcom.com>
+Signed-off-by: Pavan Chebbi <pavan.chebbi@broadcom.com>
+Signed-off-by: Michael Chan <michael.chan@broadcom.com>
+Link: https://patch.msgid.link/20240814225429.199280-1-michael.chan@broadcom.com
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+
+@@@COMMIT d440af37ba6fa301144c6fce2186fe0ab5a8f283
+2024-08-15	Uros Bizjak	netdev: Add missing __percpu qualifier to a cast
+
+Add missing __percpu qualifier to a (void *) cast to fix
+
+dev.c:10863:45: warning: cast removes address space '__percpu' of expression
+
+sparse warning. Also remove now unneeded __force sparse directives.
+
+Found by GCC's named address space checks.
+
+There were no changes in the resulting object file.
+
+Signed-off-by: Uros Bizjak <ubizjak@gmail.com>
+Link: https://patch.msgid.link/20240814070748.943671-1-ubizjak@gmail.com
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+
+@@@COMMIT ab6013a59b4d0947fda409c29426dc904959e632
+2024-08-09	Dragos Tatulea	net/mlx5e: SHAMPO, Increase timeout to improve latency
+99be56171fa9 ("net/mlx5e: SHAMPO, Re-enable HW-GRO")
+During latency tests (netperf TCP_RR) a 30% degradation of HW GRO vs SW
+GRO was observed. This is due to SHAMPO triggering timeout filler CQEs
+instead of delivering the CQE for the packet.
+
+Having a short timeout for SHAMPO doesn't bring any benefits as it is
+the driver that does the merging, not the hardware. On the contrary, it
+can have a negative impact: additional filler CQEs are generated due to
+the timeout. As there is no way to disable this timeout, this change
+sets it to the maximum value.
+
+Instead of using the packet_merge.timeout parameter which is also used
+for LRO, set the value directly when filling in the rest of the SHAMPO
+parameters in mlx5e_build_rq_param().
+
+Fixes: 99be56171fa9 ("net/mlx5e: SHAMPO, Re-enable HW-GRO")
+Signed-off-by: Dragos Tatulea <dtatulea@nvidia.com>
+Signed-off-by: Tariq Toukan <tariqt@nvidia.com>
+Link: https://patch.msgid.link/20240808144107.2095424-3-tariqt@nvidia.com
+Signed-off-by: Jakub Kicinski <kuba@kernel.org>
+

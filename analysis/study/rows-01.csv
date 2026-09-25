@@ -1,0 +1,12 @@
+commit,date,subsystem,symptom,trigger,sustaining_loop,recovers_when_load_drops,found_by,fix_type,introduced_by,lifetime_days,confidence
+06e3f54e8b22040ada01a28343badf1990b4dd7d,2026-09-24,core-napi,stall,race,Y,N,unknown,other,68822bdf76f1,1612,low
+a155ac8f0c523bd53f412196dcbb104ad1f4595f,2026-08-30,softirq,starvation,race,Y,N,unknown,barrier,e901c1510e24,20,high
+51e96fa31f7e7eac2cba8f854e24d36600cc040b,2026-08-10,driver:bnxt,stall,affinity change,Y,N,unknown,reschedule,c214410c47d6,542,low
+1eb8fc67ca41db71c90866ff76c990d85247daef,2026-06-30,driver:virtio_net,livelock,overload,Y,Y,unknown,re-arm,ceef438d613f,3434,low
+58e2330bd45572a6e3d46ea94cf7a9641f43591a,2026-05-08,busy-poll,stall,race,Y,N,unknown,re-arm,7fd3253a7de6,1984,high
+1a86a1f7d88996085934139fa4c063b6299a2dd3,2026-03-03,threaded,stall,config toggle,Y,unknown,unknown,other,c18d4b190a46,120,high
+09e6960e843586315ddf3222daa217244688e76d,2026-02-04,driver:mlx5e,stall,config toggle,Y,N,unknown,re-check,,,high
+fcdef3bcbb2c04e06ae89f8faff2cd6416b3a467,2026-01-10,driver:virtio_net,stall,race,Y,N,unknown,reschedule,4bc12818b363,263,high
+6f5dacf88a32b3fd8b52c8ea781bf188c42aaa95,2025-09-30,driver:mlx5e,no-recovery,config toggle,Y,N,unknown,other,ceddedc969f0,35,low
+fd4e876f59b7e70283b4025c717cad8948397be1,2025-09-17,softirq,livelock,race,Y,N,unknown,barrier,,,low
+97bcc5b6f45425ac56fb04b0893cdaa607ec7e45,2025-08-27,core-napi,livelock,overload,Y,Y,unknown,re-check,,,low
