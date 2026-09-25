@@ -1,115 +1,56 @@
-# Track A workshop paper: outline (DR-004; due 2026-09-29, drafted 2026-09-25)
+# DR-004 task 5: workshop paper outline (v2, 2026-09-25)
 
-Six pages. Established results only. Rules: every sentence with a number
-cites a finding ID; every figure comes from a script in analysis/; only
-Supported claims in the claim list (negative results are reported as
-pre-registered outcomes, see Section 5 -- PI's call on including them).
+v2 supersedes v1 (same day): v1 used the skeleton's structure and titles;
+the memo's own section table and working title govern this paper and are
+executed literally below. v1 remains in git history and the PI saw its
+review items (carried forward at the bottom). (Record: v2's first write
+attempt was refused because the file had only been paged-read; the commit
+between the attempts carried a stale v1 copy under a v2 message.)
 
-## Title options (pick at review)
+**Working title (the memo's): Invisible Receive Work: What Linux Pays for
+It Under Overload.**
 
-1. Separate, Don't Defer: Receive Overload Protection Without the Latency Cost
-2. The Receive Overload Regression, and Predictable Placement as the Fix
+Rules (verbatim): Every sentence with a number cites a finding ID. Every
+figure comes from a script in analysis/. Only Supported claims.
+Dates (verbatim): Outline Sep 29; final figures Oct 6; full draft Oct 9;
+PI review Oct 12; revision Oct 16.
 
-## 1. Introduction (1 page)
+## The memo's section table, with the evidence in hand
 
-- The regression in one paragraph: since Linux 6.5 the default receive path
-  processes packets inline on the interrupt core; when a flood lands on the
-  application's core the application receives 0.20% of the offered load
-  (95% CI 0.20-0.20, n=2, at 2x the knee) [p1-LADDER.1; abstract fill,
-  Fig. 1 data].
-- The headline fix: moving the application off the receive core delivers
-  97.5% and 74.2% of the offered load at 1.5x and 2x knee against the
-  default's 9.0% and 0.2% [p1-LADDER.1, rows-fig1-3.csv].
-- The mechanism sentence: co-location's latency cost is scheduler wait
-  behind receive processing -- 50 us vs 4 us wake delay on TCP (12.5x) and
-  34-60 us vs 4 us on UDP [p1-LADDER.2, p1-LADDER.6; C-012].
-- Contributions (numbers cited in later sections): (a) the characterization
-  across placements and kernel policy; (b) a knee model from two measured
-  per-packet costs (2.8% and 6% miss) [p1-LADDER.4]; (c) TCP evidence on
-  memcached with a pre-registered kill criterion that kills the
-  transport-independence claim [p1-LADDER.6]; (d) the measurement lesson:
-  stock per-CPU accounting undercounts receive work 166x on this kernel
-  [p1-LADDER.3, AN-007; C-014].
+| Section | Content | Evidence (the memo's column) | Numbers ready |
+|---|---|---|---|
+| 1. Introduction | Receive work runs outside any thread, and three measured costs follow | C-004, C-007, C-012 | 0.20% of offered at 2x knee (95% CI 0.20-0.20, n=2) [F-p1-LADDER-1]; the model's 2%/9% miss with correction [p1-LADDER.4]; wake wait 34-60 us vs 4 us UDP, 47 us vs 3 us TCP (means, 1.2M wake events) [p1-LADDER.2, p1-LADDER.6] |
+| 2. Background | NAPI, softirq, and the 2016 and 2023 policy changes | Literature | Table text only |
+| 3. Collapse and separation | Goodput against load, and the interrupt core as separation's ceiling | Fig. 1, C-013 | separated 97.5%/74.2% of offered at 1.5x/2x knee vs the default's 9.0%/0.2% [p1-LADDER.1]; the ceiling: core 8 100% busy at ~1.2 us/pkt while the app core runs ~85% [p1-LADDER.1, C-013] |
+| 4. Invisibility makes models wrong | The hidden share, and the model with and without correction | Fig. 2, C-006, C-007 | hidden share 26-42% at 390k (mean 33%) [F-p1-LADDER-3, C-006]; without the (1-h) correction the model over-predicts 53% (F=669.0k vs 438.6k measured), with it 2% (448.2k); split form 9% (894.3k vs ~818k) [p1-LADDER.4, C-007 re-promotion pending]; the error of plain F is 0.656 ~= (1-h) -- the invisible softirq time; /proc/stat undercounts receive work 166x [AN-007, C-014] |
+| 5. Invisibility makes wakeups wait | Wake-delay distributions, co-located against separated | Fig. 3, C-012 | means: UDP 59.2/33.8 us co-located vs 1.7/2.1 us separated (adaptive-rx on/off), TCP 47.0 us vs 3.2 us; tails to 1242/3502 us and 791/1088 us [p1-LADDER.2, p1-LADDER.6]; NAPI kthread 3 us in both placements |
+| 6. The threaded-NAPI stall | Survival curves, what we ruled out, and its status | Fig. 4, C-008, C-011 | 25 of 48 cells plus 24 of 24 stall; unpinned fastest 8/8, onsets 9-19 s [p1-LADDER.2, AN-006]; ruled out: the mlx5 poll-affinity bailout (pre-registered A/B, C-010 Refuted); status: AN-006A timelines delivered, interpretation held for the PI (no public mention before the netdev report is approved) |
+| 7. Agenda | Visibility-aware placement; upstream work | -- | no numbers |
 
-## 2. Background (0.5 page)
+Related work (the memo's five): Mogul and Ramakrishnan 1997; Iron
+(NSDI'18); threaded NAPI's rationale (2021); Brouer 2023; Zuo et al.
+(SIGCOMM'26). One sentence each.
 
-NAPI, softirqs, threaded NAPI, the 2016 deferral and the 2023 revert --
-Table 1 condensed to the workshop's space. No new numbers.
+## Figure audit (rule: every figure from a script in analysis/)
 
-## 3. The trade-off on modern hardware (1.5 pages)
+| The memo's figure | script | status |
+|---|---|---|
+| Fig. 1 goodput vs load | analysis/p1_figures.py (fig1) | Draft, QA pass |
+| Fig. 2 hidden share + model with/without correction | TODO: p1_fig_model (fig3's hidden-share data + the re-grade's with/without points) | data ready (rows-fig1-3.csv; checkpoints/2026-09-24-recovery-and-knee-regrade.md) |
+| Fig. 3 wake-delay distributions co-located vs separated | analysis/p1_fig_wakedelay.py (fig3-wakedelay) | Draft, QA pass 2026-09-25 (anchors reproduce every recorded mean/max) |
+| Fig. 4 wedge survival curves | analysis/p1_fig_wedge.py (fig-wedge-ab) | Draft, QA pass; the W39 figure of the week |
 
-- Fig. 1 (analysis/p1_figures.py): goodput vs offered, one line per
-  placement. The default collapses past the knee; separation drains; the
-  threaded rungs stall under sustained overload (25 of 48 cells plus 24 of
-  24; unpinned threaded NAPI fastest at 8 of 8 with onsets 9-19 s)
-  [p1-LADDER.2; C-008, C-011]. Wedge markers per AN-003/AN-006.
-- Fig. 2: low-rate p50/p99 per placement. The protection cost is latency:
-  the first ladder rung pays none [p1-LADDER.2].
-- Fig. 3 (analysis/p1_figures.py): CPU per packet by core. The hidden
-  softirq share is 26-42% (mean 33%) at 390k pps and invisible to
-  /proc/stat on this kernel (no CONFIG_IRQ_TIME_ACCOUNTING, NO_HZ_FULL);
-  the PMU basis is required [p1-LADDER.3; C-014].
-- Mechanism paragraph: perf sched shows the worker's wake wait behind the
-  receive work (50/4 us TCP at 0.25x knee; 34-60/4 us UDP) with the NAPI
-  kthread waking in 3 us in both placements [p1-LADDER.2, p1-LADDER.6].
+## Review items (Sep 29)
 
-## 4. Predicting the knee (1 page)
-
-- Fig. 4 (analysis/p1_figures.py): predicted vs measured knee over packet
-  sizes and placements. With the corrected busy metric the knee follows
-  from two measured costs: 2.8% miss co-located (F = 451.0k vs 438.6k),
-  6.2% separated (767k vs 818k) at 64 B [p1-LADDER.4; C-007 pending PI
-  re-promotion -- flag at review].
-- Scope sentence (negative result, Section 5 material): the same model
-  built from low-load costs misses the TCP knee by 3.1x because the TCP
-  per-request cost falls with load (16.1 us at 20k to 3.3 us at 300k)
-  [p1-LADDER.6; C-017 Refuted].
-
-## 5. TCP evidence and pre-registered negative results (1 page)
-
-- Fig. 7 (first rows, analysis script to be named per the rule): memcached
-  -t 1 under mutilate, 5 loads x 3 reps. Separation beats co-location at
-  every load above the lightest: SLO frac 0.999 vs 0.829 and p99 645 vs
-  1475 us at 1.5x knee; +15% goodput at 2x knee (369k vs 320k)
-  [p1-LADDER.6; C-005, C-015].
-- The kill criterion paragraph (PI's call): we pre-registered a criterion
-  that would kill the transport-independence claim if goodput plateaued at
-  2x knee. It plateaued at 169%/194% of knee goodput; the claim is Refuted
-  and Dropped from the story (skeleton rule 4). What crosses to TCP is the
-  co-location cost and SLO degradation, not the collapse
-  [p1-LADDER.6; C-016, C-018].
-- Method point: pre-registration kept every surprise from bending the
-  story (AN-008: no knee to 130k before the saturation definition; three
-  of four predictions failed on their own rules) [AN-008; specs/p1-W3MEMC].
-
-## 6. Design sketch and discussion (1 page)
-
-- The ladder (design only, no evaluation claims -- C-009 suspended): the
-  application's core, then its SMT sibling, then another core, switched on
-  predicted capacity via netlink and CPU affinity (p1ctl.py, 157 lines).
-- Discussion: TCP scope (Section 5's boundary), power states (the
-  low-load latency floor anomaly), other NICs (Fig. 10 blocked on the
-  r650 allocation), upstreaming (a netdev report is drafted; no public
-  mention before the PI approves it).
-- Related work condensed to 3 sentences (the skeleton's list, one clause
-  each): receive livelock's modern form; threaded NAPI supplies the
-  mechanism, we supply the placement policy; IRQ suspension and busy
-  polling need application changes (our BP arm: p50 41 us at 0.25x knee
-  but SLO frac 0.807 at 1.5x vs separated 0.999) [p1-LADDER.6].
-
-## Figure/script audit (rule: every figure from a script in analysis/)
-
-| Fig | script | status |
-|-----|--------|--------|
-| 1, 2, 3 | analysis/p1_figures.py | Draft (QA pass 2026-09-24/25) |
-| 4 | analysis/p1_figures.py (knee model recompute) | Draft (task 1) |
-| 7 (first rows) | analysis/p1_fig_w3.py (rows: analysis/rows-w3-full.csv via w3_analyze.py) | Draft (QA pass 2026-09-25) |
-| Table 1 | literature table (no script needed) | Final |
-
-## Open items for the PI (2026-09-29 review)
-
-1. C-007 re-promotion (the model numbers enter Section 4 only if promoted).
-2. Include the pre-registered negative results (Section 5) or cut to
-   positive results only.
-3. Title pick; [Name] for the controller; whether the design sketch
-   (Section 6) stays without evaluation.
+1. C-004 and C-006 are still Pending in the ledger although the memo's
+   evidence column names them. The numbers are in findings (F-p1-LADDER-1,
+   F-p1-LADDER-3) and the sentences cite findings per the rules -- promote
+   the claims at review, or the paper cites findings only?
+2. C-007 re-promotion (its revised numbers enter sections 1 and 4).
+3. The W3 TCP outcomes (the kill criterion, three failed predictions) have
+   no section in the plan. They currently surface only as section 5's TCP
+   wake-delay numbers. Include a short "what TCP does not carry" note in
+   section 5 or section 7, or drop? (Nothing outside the plan without
+   approval.)
+4. Confirm the working title; the controller name is not needed for this
+   paper (section 7 is the agenda).
