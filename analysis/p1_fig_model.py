@@ -24,7 +24,10 @@ Anchors (FINDINGS p1-LADDER.4; W3 notes/p1-W3.md):
   190k/260k (3.06x/3.16x) -- TCP per-request cost falls with load.
 """
 import os, sys
-sys.path.insert(0, "/mnt/davidlin-personal/flowlet-eval/figures")
+for _p in ("/home/david/workspace/flowlet-eval/figures",
+           "/mnt/davidlin-personal/flowlet-eval/figures"):
+    if os.path.isdir(_p):
+        sys.path.insert(0, _p)
 from figstyle import (PALETTE, apply_publication_style, create_subplots,
                       finalize_figure)
 
@@ -86,7 +89,7 @@ def main():
 
     # ---- panel (b) data: the corrected-cost model ----
     pts = [("P0, UDP 64 B", 438.6, 451.0, "2.8%", PALETTE["blue_main"], "o", (8, -12)),
-           ("P0X, UDP 64 B", 818.0, 767.0, "6.2%", PALETTE["teal"], "^", (-46, 4)),
+           ("P0X, UDP 64 B", 818.0, 767.0, "6.2%", PALETTE["teal"], "^", (-8, -16)),
            ("P0, TCP", 190.0, 62.0, "3.06x", PALETTE["red_strong"], "X", (8, -4)),
            ("P0X, TCP", 260.0, 82.4, "3.16x", PALETTE["red_strong"], "X", (8, -4))]
     for nm, meas, pred, miss, c, m, off in pts:
@@ -132,8 +135,8 @@ def main():
                     textcoords="offset points", fontsize=6.5, color=c)
     ax.set_xscale("log")
     ax.set_yscale("log")
-    ax.set_xlim(40, 1000)
-    ax.set_ylim(40, 1000)
+    ax.set_xlim(40, 1100)
+    ax.set_ylim(40, 1200)
     ax.set_xticks([50, 100, 200, 1000])
     ax.set_yticks([50, 100, 200, 1000])
     ax.get_xaxis().set_major_formatter(lambda v, p: f"{int(v)}")
@@ -146,9 +149,9 @@ def main():
     ax.set_title("(b) corrected costs predict the knee -- UDP only", fontsize=8, pad=5)
     ax.grid(True, alpha=0.25, linewidth=0.6, which="both")
     # the tolerance band's lower-right triangle is empty on a log-log plot
-    ax.legend(loc="lower right", frameon=False, fontsize=6.5,
+    ax.legend(loc="upper left", frameon=False, fontsize=6.5,
               handlelength=1.2, labelspacing=0.3, borderaxespad=0.35)
-    ax.annotate("+/-25% of measured", xy=(760, 900), ha="right",
+    ax.annotate("+/-25% of measured", xy=(1050, 270), ha="right",
                 fontsize=6, color=PALETTE["neutral"])
     fig.subplots_adjust(hspace=0.78, left=0.30, right=0.97, top=0.95, bottom=0.10)
     print(finalize_figure(fig, os.path.join(out, "fig2-metricmodel"),

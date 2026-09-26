@@ -78,22 +78,26 @@ projected margin) [p1-LADDER.4].
 
 ## 4. Invisibility makes models wrong
 
-CPU time per packet, by core and by thread (Fig. 2a): per-thread
-accounting hides 26-42% of the app core near the collapse region
-(mean 33%) [F-p1-LADDER-3]. We measure the hidden share two ways and they
-agree: the schedstat derivation from the matrix rows gives 25.0-40.3%
-(mean 32.2%, n = 3), and the independent measurement behind C-006
-(/proc/pmudrain and the softirq poll) gives 26-42% (mean 33%).
+CPU time per packet, by core and by thread (Fig. 2a): the standard
+metric is blind to receive work. /proc/stat attributes 0.6% of it to
+the interrupt-only core (0.22 s of stat CPU against 36.53 s of
+PMU-measured receive work; a 166x undercount) [AN-007, C-014], and
+per-thread accounting (schedstat) sees 43-55% of the app core's
+receive cost across placements [F-p1-LADDER-3, C-006]. Only the
+PMU-basis corrected metric sees the whole per-packet cost, and that is
+the quantity the knee model needs.
 
-The knee model makes the cost concrete. From two measured per-packet
-costs (app and net), the co-located knee is F = 1e9 / (c_app + c_net);
-with the hidden share corrected, F' = (1 - h) F. At 64 B the uncorrected
-model over-predicts by 53% (669.0k against a measured 438.6k QPS); the
-corrected model lands within 2% (448.2k) [p1-LADDER.4]. The error of the
-uncorrected model is 0.656, within 2% of (1 - h) with h = 33%: the
-model's error is exactly the invisible softirq time. Separately,
-/proc/stat undercounts receive work by 166x under load [AN-007, C-014],
-so the standard tooling cannot see the quantity the model needs.
+The model makes the cost concrete. From the corrected per-packet
+costs (app and net), the co-located knee is F = 1e9 / (c_app + c_net)
+and the separated form splits the terms across the two cores -- no
+fitted constant anywhere. At 64 B the UDP predictions land within 2.8%
+(co-located: 451.0k predicted against 438.6k measured) and 6.2%
+(separated: 767.0k against 818.0k) [p1-LADDER.4]. On TCP the same
+constant-cost form fails, exactly where cost depends on load: it
+under-predicts the measured knees 3.06x and 3.16x (62.0k/82.4k
+predicted against 190k/260k measured) [C-017]. Standard tooling cannot
+see the quantity the model needs: the corrected metric is not
+optional.
 
 ## 5. Invisibility makes wakeups wait
 
@@ -145,7 +149,7 @@ our wedge.
 | Fig | shows | script | status |
 |---|---|---|---|
 | 1 | goodput against load | analysis/p1_figures.py | Draft |
-| 2 | hidden share; model +/- correction | analysis/p1_fig_model.py | Draft |
+| 2 | the blind standard metric; corrected costs predict the knee (UDP) | analysis/p1_fig_model.py | Draft |
 | 3 | wake-delay distributions | analysis/p1_fig_wakedelay.py | Draft |
 | 4 | wedge survival curves | analysis/p1_fig_wedge.py | Draft |
 
