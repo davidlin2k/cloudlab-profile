@@ -14,7 +14,10 @@
 #  8. mechanism snapshot M316 rep 1 only, 30 s after REDUCE
 set -u
 MODE="${1:?mode M|B}"; KEEP="${2:?keep e.g. \"10\" or \"10 11\"}"; REP="${3:-1}"
+WIRE="${4:-unpin}"   # unpin (A1 default) | pin8 (E2 verified-aligned: ch7
+                     # kthread pinned to its IRQ core, cpu 8)
 case "$MODE" in M|B) ;; *) echo "bad mode"; exit 2 ;; esac
+case "$WIRE" in unpin|pin8) ;; *) echo "bad wire"; exit 2 ;; esac
 IFACE=enp195s0np0
 IRQ=$(grep -E 'mlx5_comp7@pci:0000:c3' /proc/interrupts | awk '{print $1}' | tr -d ':')
 NKEEP=$(echo $KEEP | wc -w)
@@ -30,16 +33,32 @@ for o in 10 11 12 13 14; do ssh -n -o StrictHostKeyChecking=no -o ConnectTimeout
 for p in $(pgrep -x trace-cmd); do kill -9 $p 2>/dev/null; done
 sleep 1
 
-# --- unpin wiring block only (DR-005 step 2.2) ---
+# --- wiring block: unpin (A1) or pin8 (E2 verified-aligned) ---
 NICPU=none; IRQC=8
 echo 1 > /sys/class/net/$IFACE/threaded
-for p in /proc/[0-9]*; do c=$(cat "$p/comm" 2>/dev/null); case "$c" in napi/enp195s0np0-*) taskset -pc 0-63 "${p#/proc/}" >/dev/null 2>&1 || true ;; esac; done
+for p in /proc/[0-9]*; do
+  c=$(cat "$p/comm" 2>/dev/null)
+  case "$c" in
+    napi/enp195s0np0-8263)
+      if [ "$WIRE" = pin8 ]; then
+        taskset -pc 8 "${p#/proc/}" >/dev/null 2>&1 || true
+      else
+        taskset -pc 0-63 "${p#/proc/}" >/dev/null 2>&1 || true
+      fi ;;
+    napi/enp195s0np0-*)
+      taskset -pc 0-63 "${p#/proc/}" >/dev/null 2>&1 || true ;;
+  esac
+done
 NAPI_PID=none
 for p in /proc/[0-9]*; do c=$(cat "$p/comm" 2>/dev/null); if [ "$c" = "napi/enp195s0np0-8263" ]; then NAPI_PID="${p#/proc/}"; fi; done
-taskset -pc 0-63 "$NAPI_PID" > "$O/ni-pin.txt" 2>&1
+if [ "$WIRE" = pin8 ]; then
+  taskset -pc 8 "$NAPI_PID" > "$O/ni-pin.txt" 2>&1
+else
+  taskset -pc 0-63 "$NAPI_PID" > "$O/ni-pin.txt" 2>&1
+fi
 echo "$IRQC" > /proc/irq/$IRQ/smp_affinity_list
 sleep 1
-echo "irq=$IRQ napi_pid=$NAPI_PID mode=$MODE keep=$KEEP rep=$REP" > "$O/affinity-pre.txt"
+echo "irq=$IRQ napi_pid=$NAPI_PID mode=$MODE keep=$KEEP rep=$REP wire=$WIRE" > "$O/affinity-pre.txt"
 echo "smp_affinity_list: $(cat /proc/irq/$IRQ/smp_affinity_list)" >> "$O/affinity-pre.txt"
 echo "effective_affinity_list: $(cat /proc/irq/$IRQ/effective_affinity_list 2>/dev/null || echo n/a)" >> "$O/affinity-pre.txt"
 echo "napi_aff: $(awk '/Cpus_allowed_list/{print $2}' /proc/$NAPI_PID/status 2>/dev/null)" >> "$O/affinity-pre.txt"
