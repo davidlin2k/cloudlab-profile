@@ -15,14 +15,16 @@
 set -u
 MODE="${1:?mode M|B}"; KEEP="${2:?keep e.g. \"10\" or \"10 11\"}"; REP="${3:-1}"
 WIRE="${4:-unpin}"   # unpin (A1 default) | pin8 (E2 verified-aligned: ch7
-                     # kthread pinned to its IRQ core, cpu 8)
+                     # kthread pinned to its IRQ core, cpu 8) | pin10
+                     # (RQ1 arms: ch7 kthread pinned to CPU 10, off-mask,
+                     # per specs/p1-CAUSAL.md)
 THREADED="${5:-1}"   # A4 runs 0 (default inline softirq NAPI)
 CORE="${6:-8}"       # k2_rx consumer core (A5 runs a non-IRQ core)
 RATE="${7:-158000}"  # per-sender flood rate (A6 runs 105000 = 525k total)
 QUIET="${8:-20}"     # seconds after senders stop, before the probe
                      # (A0 runs 300, with a 1 Hz quiet-window sampler)
 case "$MODE" in M|B) ;; *) echo "bad mode"; exit 2 ;; esac
-case "$WIRE" in unpin|pin8) ;; *) echo "bad wire"; exit 2 ;; esac
+case "$WIRE" in unpin|pin8|pin10) ;; *) echo "bad wire"; exit 2 ;; esac
 case "$THREADED" in 0|1) ;; *) echo "bad threaded"; exit 2 ;; esac
 IFACE=enp195s0np0
 IRQ=$(grep -E 'mlx5_comp7@pci:0000:c3' /proc/interrupts | awk '{print $1}' | tr -d ':')
@@ -48,6 +50,8 @@ for p in /proc/[0-9]*; do
     napi/enp195s0np0-8263)
       if [ "$WIRE" = pin8 ]; then
         taskset -pc 8 "${p#/proc/}" >/dev/null 2>&1 || true
+      elif [ "$WIRE" = pin10 ]; then
+        taskset -pc 10 "${p#/proc/}" >/dev/null 2>&1 || true
       else
         taskset -pc 0-63 "${p#/proc/}" >/dev/null 2>&1 || true
       fi ;;
@@ -59,6 +63,8 @@ NAPI_PID=none
 for p in /proc/[0-9]*; do c=$(cat "$p/comm" 2>/dev/null); if [ "$c" = "napi/enp195s0np0-8263" ]; then NAPI_PID="${p#/proc/}"; fi; done
 if [ "$WIRE" = pin8 ]; then
   taskset -pc 8 "$NAPI_PID" > "$O/ni-pin.txt" 2>&1
+elif [ "$WIRE" = pin10 ]; then
+  taskset -pc 10 "$NAPI_PID" > "$O/ni-pin.txt" 2>&1
 else
   taskset -pc 0-63 "$NAPI_PID" > "$O/ni-pin.txt" 2>&1
 fi
