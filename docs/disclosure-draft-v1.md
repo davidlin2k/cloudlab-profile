@@ -9,7 +9,8 @@ counts. [A0: PENDING -- batch running]
 
 ## Summary
 
-On kernel 6.17.8 with a ConnectX-5 (mlx5_core, fw 20.43.3608),
+On kernel 6.17.8 with a Mellanox ConnectX-6 (MT28908, mlx5_core, fw
+20.43.3608),
 enabling threaded NAPI and loading the queue whose IRQ is affined to a
 single busy CPU can drive the receive queue into a metastable state in
 which it drains ~24-80 packets/s against ~790k packets/s offered --
@@ -21,18 +22,30 @@ cc, healthy control 0), the NAPI parked with no SCHED/MISSED bit, no
 UMR outstanding, ICOSQ fully drained, the RQ enabled with buffers
 posted, and per-event polls consuming exactly one 64-CQE budget.
 
-## Mechanism (code path confirmed by trace + a verified-aligned A/B)
+## Mechanism: the contract defect (code path confirmed by trace + a
+## verified-aligned A/B)
+
+The contract (net/core/dev.c __napi_poll, v6.17.8): any poll return
+below budget means "done, don't repoll" (`if (likely(work < weight))
+return work;`); only work == weight sets repoll. The poll-return value
+therefore carries two signals -- how much work was done, and whether
+the core should keep polling here -- and the mlx5 driver overloads
+them: in its affinity bailout it does `if (done == budget) done--;`,
+deliberately underreporting work to land in the "done" branch so the
+interrupt can restart the poll on the right CPU. Under softirq NAPI
+that restart assumption holds. Under threaded NAPI the thread is
+already off-CPU by scheduler choice, the restart assumption is void,
+and returning budget-1 strands the pending backlog with no repoll and
+no re-trigger.
 
 mlx5e_napi_poll (drivers/net/ethernet/mellanox/mlx5/core/en_txrx.c)
-marks the poll busy when the budget is exhausted (work_done == budget)
-and returns the full budget so the core repolls -- unless the poll is
-running off the channel's IRQ affinity CPU, in which case the driver
-takes the affinity bailout: `ch_stats->aff_change++; if (work_done ==
-budget) work_done--;` and falls through to napi_complete_done(). The
-decrement makes a budget-exhausted poll LOOK short to the core, so the
-core releases the NAPI: it parks, and further draining waits for the
-next hardware completion event -- which, with the CQ nearly full,
-arrives only after the previous poll frees slots. The fixed point:
+marks the poll busy when the budget is exhausted and returns the full
+budget so the core repolls -- unless the poll is running off the
+channel's IRQ affinity CPU, in which case the bailout decrements and
+falls through to napi_complete_done(). The core releases the NAPI: it
+parks, and further draining waits for the next hardware completion
+event -- which, with the CQ nearly full, arrives only after the
+previous poll frees slots. The fixed point:
 
     poll 63 off-mask -> complete_done -> park -> event -> poll 63 ...
 
@@ -103,22 +116,31 @@ threaded NAPI.
 
 ## Fix candidates (built and measured, [E5: PENDING])
 
-- F1 (driver): in the bailout, when the budget was exhausted,
-  napi_schedule() and return instead of decrement-and-complete. Short
-  polls keep the existing hand-back. (The same restart strategy i40e
-  uses; mlx5 already uses napi_schedule on the XSK path.)
-- F2 (core): bind the threaded NAPI kthread to its NAPI's IRQ affinity
-  mask at creation (n->config->affinity_mask; the core tracks it;
-  iavf/ice/idpf opt in via netif_set_affinity_auto). A hint
-  (set_cpus_allowed_ptr), still userspace-overridable.
+- F3 (contract fix -- the paper's): on a budget-exhausted off-mask
+  poll, return budget (the core's repoll decision is honored; the
+  backlog is not stranded) and express the placement preference
+  through the channel the core tracks: move the kthread onto
+  napi->config->affinity_mask. Softirq context keeps the original
+  hand-back (the 2017 case the bailout was written for). Pre-registered
+  predictions: 0/8 latches; the stranded-backlog event count -> 0; the
+  poll migrates (aff_change returns ~0 -- placement preserved); the
+  livelock check passes.
+- F1 (naive foil, driver): in the bailout, napi_schedule() and return
+  instead of decrement-and-complete. Drains the backlog but abandons
+  placement (the poll keeps running off-mask).
+- F2 (naive foil, core): bind the threaded NAPI kthread to its NAPI's
+  IRQ affinity mask at creation. Prevents the bailout but removes
+  threaded NAPI's placement freedom.
 
-Pre-registered success: 0/8 latches on both (vs >= 3/8 unfixed
-baseline), and no livelock regression in the inline-poll
-app-on-IRQ-core config (the bailout's original 2017 purpose).
+The paper's metric is the stranded-backlog event -- work < weight, no
+repoll, a pending completion at the consumer index, off-mask -- logged
+at the core (trace_napi_poll) plus the driver state per poll. BASE
+fires it continuously; the fixes are measured on eliminating it, not
+just on dead-cell counts.
 
 ## Reproduction (the essential recipe)
 
-1. ConnectX-5, 6.17.8, single flow steering (we use explicit ntuple
+1. ConnectX-6 (MT28908), 6.17.8, single flow steering (we use explicit ntuple
    rules; RSS-key steering is fragile), queue 7's IRQ affined to one
    CPU (comp7 -> CPU 8).
 2. echo 1 > /sys/class/net/<dev>/threaded; leave the napi kthreads

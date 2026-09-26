@@ -1,0 +1,36 @@
+--- a/drivers/net/ethernet/mellanox/mlx5/core/en_txrx.c
++++ b/drivers/net/ethernet/mellanox/mlx5/core/en_txrx.c
+@@ -210,12 +210,24 @@ int mlx5e_napi_poll(struct napi_struct *napi, int budget)
+ 	if (busy) {
+ 		if (likely(mlx5e_channel_no_affinity_change(c))) {
+ 			work_done = budget;
+ 			goto out;
+ 		}
+ 		ch_stats->aff_change++;
+ 		aff_change = true;
+-		if (work_done == budget)
++		if (work_done == budget) {
++			/* p1-FIX F3 (contract fix, DR-009 Change 3): the
++			 * poll exhausted its budget while off the channel's
++			 * affinity CPU. Honor the poll-return contract:
++			 * report the true work count (budget) so the core's
++			 * repoll decision is correct and the backlog is not
++			 * stranded; express the placement preference through
++			 * the channel the core already tracks -- move the
++			 * kthread onto the NAPI's IRQ affinity mask instead
++			 * of encoding "stop" in the work count. Softirq
++			 * context keeps the original hand-back: there is no
++			 * kthread to move, and the IRQ restarts the poll on
++			 * the (new) affinity CPU -- exactly the 2017 case
++			 * the bailout was written for. */
++			if ((napi->state & NAPIF_STATE_THREADED) &&
++			    napi->config &&
++			    !cpumask_empty(&napi->config->affinity_mask))
++				set_cpus_allowed_ptr(current,
++					&napi->config->affinity_mask);
++			goto out;
++		}
+ 	}
+ 
+ 	if (unlikely(!napi_complete_done(napi, work_done)))
+ 		goto out;
