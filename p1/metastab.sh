@@ -16,8 +16,14 @@ set -u
 MODE="${1:?mode M|B}"; KEEP="${2:?keep e.g. \"10\" or \"10 11\"}"; REP="${3:-1}"
 WIRE="${4:-unpin}"   # unpin (A1 default) | pin8 (E2 verified-aligned: ch7
                      # kthread pinned to its IRQ core, cpu 8)
+THREADED="${5:-1}"   # A4 runs 0 (default inline softirq NAPI)
+CORE="${6:-8}"       # k2_rx consumer core (A5 runs a non-IRQ core)
+RATE="${7:-158000}"  # per-sender flood rate (A6 runs 105000 = 525k total)
+QUIET="${8:-20}"     # seconds after senders stop, before the probe
+                     # (A0 runs 300, with a 1 Hz quiet-window sampler)
 case "$MODE" in M|B) ;; *) echo "bad mode"; exit 2 ;; esac
 case "$WIRE" in unpin|pin8) ;; *) echo "bad wire"; exit 2 ;; esac
+case "$THREADED" in 0|1) ;; *) echo "bad threaded"; exit 2 ;; esac
 IFACE=enp195s0np0
 IRQ=$(grep -E 'mlx5_comp7@pci:0000:c3' /proc/interrupts | awk '{print $1}' | tr -d ':')
 NKEEP=$(echo $KEEP | wc -w)
@@ -35,7 +41,7 @@ sleep 1
 
 # --- wiring block: unpin (A1) or pin8 (E2 verified-aligned) ---
 NICPU=none; IRQC=8
-echo 1 > /sys/class/net/$IFACE/threaded
+echo "$THREADED" > /sys/class/net/$IFACE/threaded
 for p in /proc/[0-9]*; do
   c=$(cat "$p/comm" 2>/dev/null)
   case "$c" in
@@ -80,7 +86,7 @@ CW_PID=$!
 sleep 1
 
 # --- consumer (DR-005 step 2.4: 400 s) ---
-/root/k2/k2_rx --port 7777 --core 8 --secs 400 --skip 0 > "$O/consumer.txt" 2> "$O/consumer.err" &
+/root/k2/k2_rx --port 7777 --core "$CORE" --secs 400 --skip 0 > "$O/consumer.txt" 2> "$O/consumer.err" &
 APP=$!
 sleep 1
 
@@ -132,10 +138,10 @@ if [ "$MODE" = B ]; then
   snap_m316 & SNAP_PID=$!    # no-op in mode B, kept for symmetry
   monitor
 else
-  # mode M: full flood 790k until WEDGE, hold 10 s, then the monitor
+  # mode M: full flood RATE*5 until WEDGE, hold 10 s, then the monitor
   for pair in 10:32704 11:32726 12:32706 13:32724 14:32725; do
     o=${pair%%:*}; s=${pair##*:}
-    send_k5 $o $s 158000 400
+    send_k5 $o $s "$RATE" 400
   done
   TFLOOD=$(awk '{print $1}' /proc/uptime)
   echo "FLOOD START mono=$TFLOOD" | tee -a "$O/cell.env"
@@ -157,9 +163,21 @@ else
   monitor
 fi
 
-# --- step 2.7: stop all senders, wait 20 s, 10k probe 30 s from .10 ---
+# --- step 2.7: stop all senders, wait QUIET, then 10k probe 30 s from .10 ---
+# (A0's amendment: QUIET >= 60 gets a 1 Hz quiet-window sampler; the
+# outcome rule needs rx7 advance over the whole quiet window)
 for o in 10 11 12 13 14; do ssh -n -o StrictHostKeyChecking=no -o ConnectTimeout=8 davidlin@10.10.1.$o 'sudo pkill -xc k5blast; true' 2>/dev/null || true; done
-sleep 20
+if [ "$QUIET" -ge 60 ]; then
+  # amendment A quiet-window sampler: 1 Hz rx7_packets / rx_out_of_buffer
+  ( for i in $(seq 1 "$QUIET"); do
+      L=$(ethtool -S $IFACE 2>/dev/null | awk -F': ' '/rx7_packets:/{w=$2} /rx_out_of_buffer:/{o=$2} END{print strftime("%H:%M:%S")","w","o}')
+      echo "$L"
+      sleep 1
+    done ) > "$O/quiet.csv" 2>&1 &
+  QPID=$!
+fi
+sleep "$QUIET"
+if [ -n "${QPID:-}" ]; then wait $QPID 2>/dev/null; echo "QUIET-WINDOW-LOGGED sec=$QUIET" >> "$O/cell.env"; fi
 TP=$(awk '{print $1}' /proc/uptime)
 P0=$(ethtool -S $IFACE | awk '/rx7_packets:/{print $2}')
 echo "PROBE START mono=$TP rx7=$P0" | tee -a "$O/cell.env"
