@@ -57,3 +57,25 @@ mlx5_core, 6.17.8). Counts only, no narrative.
 Smoke before the batch (one A8 cell -- the arm most likely to be
 clean -- verifies the wiring and the recovery path). Commit before
 running. Supersede, never delete. No public mention of the wedge.
+
+## Amendment A (2026-09-26 ~04:05Z, PI instruction 4 after AN-006B/C)
+
+The dead-state findings (AN-006B/C) show the wedge is a deep
+metastable trickle that self-recovered twice under probe traffic;
+"permanent" is not established. To decide the severity word:
+
+- **A0 arm added, 10 cells, interleaved with the existing rounds**:
+  A1 wiring (unpin threaded, IRQ 312 -> CPU 8, k2_rx core 8), flood
+  790k -> reduce 158k per protocol, then -- instead of the 10k probe
+  only -- a **true zero-load quiet window**: no sender, no discovery
+  probe for 300 s, monitored by a 1 Hz rx7_packets/rx_out_of_buffer
+  sampler. Then the standard 30 s 10k probe.
+- Outcome rule (pre-registered): a cell counts PERMANENT-LATCH if
+  rx7_packets advances 0 over the full 300 s quiet window AND the
+  probe still reads PROBE-DEAD; DEEP-TRICKLE if rx7_packets advances
+  > 0 during quiet (self-draining) or the probe reads PROBE-OK after
+  a quiet window; counts per arm reported in notes/p1-PERSIST-1.md
+  with the same binomial discipline. No narrative.
+- The existing arms A1/A4/A5/A6/A7/A8 and their predictions are
+  unchanged; A0 cells are extra, one per round, order rotated like
+  the A7/A8 counterbalancing.

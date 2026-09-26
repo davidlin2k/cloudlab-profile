@@ -1,0 +1,230 @@
+== provenance: offsets from pahole -F dwarf mlx5_core.ko (v6.17.8 build, same config as running 6.17.8-061708-generic)
+    mlx5_buf_list.buf = 0
+    mlx5_buf_list.size = 16
+    mlx5_core_cq.arm_db = 16
+    mlx5_core_cq.arm_sn = 100
+    mlx5_core_cq.cons_index = 96
+    mlx5_core_cq.cqe_sz = 4
+    mlx5_core_cq.cqn = 0
+    mlx5_core_cq.set_ci_db = 8
+    mlx5_cqwq.cc = 32
+    mlx5_cqwq.fbc = 0
+    mlx5_frag_buf_ctrl.frag_sz_m1 = 12
+    mlx5_frag_buf_ctrl.frags = 0
+    mlx5_frag_buf_ctrl.log_frag_strides = 18
+    mlx5_frag_buf_ctrl.log_stride = 17
+    mlx5_frag_buf_ctrl.log_sz = 16
+    mlx5_frag_buf_ctrl.strides_offset = 14
+    mlx5_frag_buf_ctrl.sz_m1 = 8
+    mlx5_wq_cyc.cur_sz = 36
+    mlx5_wq_cyc.fbc = 0
+    mlx5_wq_cyc.sz = 32
+    mlx5_wq_cyc.wqe_ctr = 34
+    mlx5_wq_ll.cur_sz = 44
+    mlx5_wq_ll.db = 24
+    mlx5_wq_ll.fbc = 0
+    mlx5_wq_ll.head = 40
+    mlx5_wq_ll.tail_next = 32
+    mlx5_wq_ll.wqe_ctr = 42
+    mlx5e_ch_stats.arm = 16
+    mlx5e_ch_stats.eq_rearm = 40
+    mlx5e_ch_stats.events = 0
+    mlx5e_ch_stats.poll = 8
+    mlx5e_channel.async_icosq = 12736
+    mlx5e_channel.cpu = 13444
+    mlx5e_channel.icosq = 9344
+    mlx5e_channel.ix = 13432
+    mlx5e_channel.napi = 10000
+    mlx5e_channel.priv = 13400
+    mlx5e_channel.rq = 0
+    mlx5e_channel.state = 13424
+    mlx5e_channel.stats = 13392
+    mlx5e_channels.c = 0
+    mlx5e_channels.num = 16
+    mlx5e_cq.mcq = 56
+    mlx5e_cq.napi = 48
+    mlx5e_cq.wq = 0
+    mlx5e_icosq.cc = 0
+    mlx5e_icosq.cq = 64
+    mlx5e_icosq.db_wqe_info = 448
+    mlx5e_icosq.pc = 2
+    mlx5e_icosq.sqn = 504
+    mlx5e_icosq.state = 512
+    mlx5e_icosq.wq = 456
+    mlx5e_priv.channels = 1600
+    mlx5e_priv.netdev = 2240
+    mlx5e_rq.cq = 320
+    mlx5e_rq.icosq_ptr = 912
+    mlx5e_rq.ix = 968
+    mlx5e_rq.mpwqe.actual_wq_head = 198
+    mlx5e_rq.mpwqe.log_stride_sz = 200
+    mlx5e_rq.mpwqe.min_wqe_bulk = 204
+    mlx5e_rq.mpwqe.num_strides = 196
+    mlx5e_rq.mpwqe.pages_per_wqe = 206
+    mlx5e_rq.mpwqe.umr_completed = 203
+    mlx5e_rq.mpwqe.umr_in_progress = 201
+    mlx5e_rq.mpwqe.umr_last_bulk = 202
+    mlx5e_rq.mpwqe.umr_mkey_be = 192
+    mlx5e_rq.mpwqe.umr_mode = 209
+    mlx5e_rq.mpwqe.umr_wqebbs = 207
+    mlx5e_rq.rqn = 1240
+    mlx5e_rq.state = 960
+    mlx5e_rq.stats = 256
+    mlx5e_rq.union_wq = 0
+    mlx5e_rq.wq_type = 1236
+    mlx5e_rq_stats.buff_alloc_err = 216
+    mlx5e_rq_stats.congst_umr = 240
+    mlx5e_rq_stats.mpwqe_filler_cqes = 192
+    mlx5e_rq_stats.mpwqe_filler_strides = 200
+    mlx5e_rq_stats.packets = 0
+    mlx5e_rq_stats.wqe_err = 184
+== provenance: napi_struct.state offset 16 (vmlinux DWARF)
+== NAPI_STATE_*: NAPI_STATE_DISABLE=0x4, NAPI_STATE_HAS_NOTIFIER=0x400, NAPI_STATE_IN_BUSY_POLL=0x40, NAPI_STATE_LISTED=0x10, NAPI_STATE_MISSED=0x2, NAPI_STATE_NO_BUSY_POLL=0x20, NAPI_STATE_NPSVC=0x8, NAPI_STATE_PREFER_BUSY_POLL=0x80, NAPI_STATE_SCHED=0x1, NAPI_STATE_SCHED_THREADED=0x200, NAPI_STATE_THREADED=0x100
+== discovery: bpftrace kprobe mlx5e_napi_poll + mlx5e_completion_event, 10k pps probe from 10.10.1.10
+    bpftrace lines: napi=3470 comp=3470 -> 42 distinct channels
+== priv candidates (netdev name read from memory):
+    0xff2714b3cc1d8a80 votes=28 netdev='enp195s0np0'
+    0xff2714b3cd1f0a80 votes=14 netdev='eno12399np0'
+    priv = 0xff2714b3cc1d8a80 (netdev name match: enp195s0np0)
+    channels: c=0xff2714a84fb2f200 num=32 priv.netdev=0xff2714b3cc1d8000
+    channel ix map: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31]
+
+######## SNAPSHOT 1 03:47:55
+== napi.state of all channels
+    ch0: 0x110 [NAPI_STATE_LISTED,NAPI_STATE_THREADED]
+    ch1: 0x110 [NAPI_STATE_LISTED,NAPI_STATE_THREADED]
+    ch2: 0x110 [NAPI_STATE_LISTED,NAPI_STATE_THREADED]
+    ch3: 0x110 [NAPI_STATE_LISTED,NAPI_STATE_THREADED]
+    ch4: 0x110 [NAPI_STATE_LISTED,NAPI_STATE_THREADED]
+    ch5: 0x110 [NAPI_STATE_LISTED,NAPI_STATE_THREADED]
+    ch6: 0x110 [NAPI_STATE_LISTED,NAPI_STATE_THREADED]
+    ch7: 0x110 [NAPI_STATE_LISTED,NAPI_STATE_THREADED]
+    ch8: 0x110 [NAPI_STATE_LISTED,NAPI_STATE_THREADED]
+    ch9: 0x110 [NAPI_STATE_LISTED,NAPI_STATE_THREADED]
+    ch10: 0x110 [NAPI_STATE_LISTED,NAPI_STATE_THREADED]
+    ch11: 0x110 [NAPI_STATE_LISTED,NAPI_STATE_THREADED]
+    ch12: 0x110 [NAPI_STATE_LISTED,NAPI_STATE_THREADED]
+    ch13: 0x110 [NAPI_STATE_LISTED,NAPI_STATE_THREADED]
+    ch14: 0x110 [NAPI_STATE_LISTED,NAPI_STATE_THREADED]
+    ch15: 0x110 [NAPI_STATE_LISTED,NAPI_STATE_THREADED]
+    ch16: 0x110 [NAPI_STATE_LISTED,NAPI_STATE_THREADED]
+    ch17: 0x110 [NAPI_STATE_LISTED,NAPI_STATE_THREADED]
+    ch18: 0x110 [NAPI_STATE_LISTED,NAPI_STATE_THREADED]
+    ch19: 0x110 [NAPI_STATE_LISTED,NAPI_STATE_THREADED]
+    ch20: 0x110 [NAPI_STATE_LISTED,NAPI_STATE_THREADED]
+    ch21: 0x110 [NAPI_STATE_LISTED,NAPI_STATE_THREADED]
+    ch22: 0x110 [NAPI_STATE_LISTED,NAPI_STATE_THREADED]
+    ch23: 0x110 [NAPI_STATE_LISTED,NAPI_STATE_THREADED]
+    ch24: 0x110 [NAPI_STATE_LISTED,NAPI_STATE_THREADED]
+    ch25: 0x110 [NAPI_STATE_LISTED,NAPI_STATE_THREADED]
+    ch26: 0x110 [NAPI_STATE_LISTED,NAPI_STATE_THREADED]
+    ch27: 0x110 [NAPI_STATE_LISTED,NAPI_STATE_THREADED]
+    ch28: 0x110 [NAPI_STATE_LISTED,NAPI_STATE_THREADED]
+    ch29: 0x110 [NAPI_STATE_LISTED,NAPI_STATE_THREADED]
+    ch30: 0x110 [NAPI_STATE_LISTED,NAPI_STATE_THREADED]
+    ch31: 0x110 [NAPI_STATE_LISTED,NAPI_STATE_THREADED]
+== ch7 (WEDGED) @ 0xff2714b410c44000
+    napi.state = 0x110 [NAPI_STATE_LISTED,NAPI_STATE_THREADED]
+    channel.state = 0x0 [no-xsk]
+    channel.cpu = 15
+    ch.stats: events=420266408 poll=2103894417 arm=547244637 aff_change=107641128 force_irq=0 eq_rearm=0
+    ch7 rq @ 0xff2714b410c44000:
+      state = 0x25 [ENABLED,DIM,MINI_CQE_HW_STRIDX]
+      rqn=29001 wq_type=2 ix=7
+      wq_ll: head=7 wqe_ctr=3655 cur_sz=62 (posted buffers)
+      mpwqe: num_strides=1024 actual_wq_head=7 log_stride_sz=8 umr_in_progress=0 umr_last_bulk=2 umr_completed=0
+             min_wqe_bulk=2 pages_per_wqe=64 umr_wqebbs=10 umr_mode=0
+      rq.icosq -> 0xff2714b410c46480 (channel.icosq)
+      rq.stats: packets=20513443473 wqe_err=0 mpwqe_filler_cqes=3027412 congst_umr=0 buff_alloc_err=0
+      rq.cq: cqn=1067 cqe_sz=64 ncqes=65536 (log_sz=16) cc=3679997 cons_index(calib skipped) arm_sn(built-off)=74295 fbc.log_stride=6 log_frag_strides=6
+      cq occupancy: phase=0 pending-walk from cc: 55555 consecutive HW-owned entries; first-64 opcode histogram {2: 64}; whole-CQ invalid(0xF) slots: 0/65536
+    icosq: sq=0xff2714b410c46480 (channel.icosq) cc=38986 pc=38986 outstanding(pc-cc)=0 sqn=28998 wq.sz=1024 wq.cur_sz=0 wq.wqe_ctr=0 state=0x1
+    async_icosq: sq=0xff2714b410c471c0 (channel.async_icosq) cc=1 pc=1 outstanding(pc-cc)=0 sqn=28997 wq.sz=64 wq.cur_sz=0 wq.wqe_ctr=0 state=0x1
+== ch0 (healthy comparison) @ 0xff2714b3e58f0000
+    napi.state = 0x110 [NAPI_STATE_LISTED,NAPI_STATE_THREADED]
+    channel.state = 0x0 [no-xsk]
+    channel.cpu = 8
+    ch.stats: events=282254275 poll=315090651 arm=261132733 aff_change=5908 force_irq=0 eq_rearm=0
+    ch0 rq @ 0xff2714b3e58f0000:
+      state = 0x25 [ENABLED,DIM,MINI_CQE_HW_STRIDX]
+      rqn=28959 wq_type=2 ix=0
+      wq_ll: head=39 wqe_ctr=103 cur_sz=62 (posted buffers)
+      mpwqe: num_strides=1024 actual_wq_head=39 log_stride_sz=8 umr_in_progress=0 umr_last_bulk=2 umr_completed=0
+             min_wqe_bulk=2 pages_per_wqe=64 umr_wqebbs=10 umr_mode=0
+      rq.icosq -> 0xff2714b3e58f2480 (channel.icosq)
+      rq.stats: packets=3179188405 wqe_err=0 mpwqe_filler_cqes=10090213 congst_umr=0 buff_alloc_err=0
+      rq.cq: cqn=1032 cqe_sz=64 ncqes=65536 (log_sz=16) cc=42631 cons_index(calib skipped) arm_sn(built-off)=42624 fbc.log_stride=6 log_frag_strides=6
+      cq occupancy: phase=0 pending-walk from cc: 0 consecutive HW-owned entries; first-64 opcode histogram {15: 64}; whole-CQ invalid(0xF) slots: 22905/65536
+    icosq: sq=0xff2714b3e58f2480 (channel.icosq) cc=1098 pc=1098 outstanding(pc-cc)=0 sqn=28956 wq.sz=1024 wq.cur_sz=0 wq.wqe_ctr=0 state=0x1
+    async_icosq: sq=0xff2714b3e58f31c0 (channel.async_icosq) cc=1 pc=1 outstanding(pc-cc)=0 sqn=28955 wq.sz=64 wq.cur_sz=0 wq.wqe_ctr=0 state=0x1
+
+######## SNAPSHOT 2 03:47:59
+== napi.state of all channels
+    ch0: 0x110 [NAPI_STATE_LISTED,NAPI_STATE_THREADED]
+    ch1: 0x110 [NAPI_STATE_LISTED,NAPI_STATE_THREADED]
+    ch2: 0x110 [NAPI_STATE_LISTED,NAPI_STATE_THREADED]
+    ch3: 0x110 [NAPI_STATE_LISTED,NAPI_STATE_THREADED]
+    ch4: 0x110 [NAPI_STATE_LISTED,NAPI_STATE_THREADED]
+    ch5: 0x110 [NAPI_STATE_LISTED,NAPI_STATE_THREADED]
+    ch6: 0x110 [NAPI_STATE_LISTED,NAPI_STATE_THREADED]
+    ch7: 0x110 [NAPI_STATE_LISTED,NAPI_STATE_THREADED]
+    ch8: 0x110 [NAPI_STATE_LISTED,NAPI_STATE_THREADED]
+    ch9: 0x110 [NAPI_STATE_LISTED,NAPI_STATE_THREADED]
+    ch10: 0x110 [NAPI_STATE_LISTED,NAPI_STATE_THREADED]
+    ch11: 0x110 [NAPI_STATE_LISTED,NAPI_STATE_THREADED]
+    ch12: 0x110 [NAPI_STATE_LISTED,NAPI_STATE_THREADED]
+    ch13: 0x110 [NAPI_STATE_LISTED,NAPI_STATE_THREADED]
+    ch14: 0x110 [NAPI_STATE_LISTED,NAPI_STATE_THREADED]
+    ch15: 0x110 [NAPI_STATE_LISTED,NAPI_STATE_THREADED]
+    ch16: 0x110 [NAPI_STATE_LISTED,NAPI_STATE_THREADED]
+    ch17: 0x110 [NAPI_STATE_LISTED,NAPI_STATE_THREADED]
+    ch18: 0x110 [NAPI_STATE_LISTED,NAPI_STATE_THREADED]
+    ch19: 0x110 [NAPI_STATE_LISTED,NAPI_STATE_THREADED]
+    ch20: 0x110 [NAPI_STATE_LISTED,NAPI_STATE_THREADED]
+    ch21: 0x110 [NAPI_STATE_LISTED,NAPI_STATE_THREADED]
+    ch22: 0x110 [NAPI_STATE_LISTED,NAPI_STATE_THREADED]
+    ch23: 0x110 [NAPI_STATE_LISTED,NAPI_STATE_THREADED]
+    ch24: 0x110 [NAPI_STATE_LISTED,NAPI_STATE_THREADED]
+    ch25: 0x110 [NAPI_STATE_LISTED,NAPI_STATE_THREADED]
+    ch26: 0x110 [NAPI_STATE_LISTED,NAPI_STATE_THREADED]
+    ch27: 0x110 [NAPI_STATE_LISTED,NAPI_STATE_THREADED]
+    ch28: 0x110 [NAPI_STATE_LISTED,NAPI_STATE_THREADED]
+    ch29: 0x110 [NAPI_STATE_LISTED,NAPI_STATE_THREADED]
+    ch30: 0x110 [NAPI_STATE_LISTED,NAPI_STATE_THREADED]
+    ch31: 0x110 [NAPI_STATE_LISTED,NAPI_STATE_THREADED]
+== ch7 (WEDGED) @ 0xff2714b410c44000
+    napi.state = 0x110 [NAPI_STATE_LISTED,NAPI_STATE_THREADED]
+    channel.state = 0x0 [no-xsk]
+    channel.cpu = 15
+    ch.stats: events=420266408 poll=2103894417 arm=547244637 aff_change=107641128 force_irq=0 eq_rearm=0
+    ch7 rq @ 0xff2714b410c44000:
+      state = 0x25 [ENABLED,DIM,MINI_CQE_HW_STRIDX]
+      rqn=29001 wq_type=2 ix=7
+      wq_ll: head=7 wqe_ctr=3655 cur_sz=62 (posted buffers)
+      mpwqe: num_strides=1024 actual_wq_head=7 log_stride_sz=8 umr_in_progress=0 umr_last_bulk=2 umr_completed=0
+             min_wqe_bulk=2 pages_per_wqe=64 umr_wqebbs=10 umr_mode=0
+      rq.icosq -> 0xff2714b410c46480 (channel.icosq)
+      rq.stats: packets=20513443473 wqe_err=0 mpwqe_filler_cqes=3027412 congst_umr=0 buff_alloc_err=0
+      rq.cq: cqn=1067 cqe_sz=64 ncqes=65536 (log_sz=16) cc=3679997 cons_index(calib skipped) arm_sn(built-off)=74295 fbc.log_stride=6 log_frag_strides=6
+      cq occupancy: phase=0 pending-walk from cc: 55555 consecutive HW-owned entries; first-64 opcode histogram {2: 64}; whole-CQ invalid(0xF) slots: 0/65536
+    icosq: sq=0xff2714b410c46480 (channel.icosq) cc=38986 pc=38986 outstanding(pc-cc)=0 sqn=28998 wq.sz=1024 wq.cur_sz=0 wq.wqe_ctr=0 state=0x1
+    async_icosq: sq=0xff2714b410c471c0 (channel.async_icosq) cc=1 pc=1 outstanding(pc-cc)=0 sqn=28997 wq.sz=64 wq.cur_sz=0 wq.wqe_ctr=0 state=0x1
+== ch0 (healthy comparison) @ 0xff2714b3e58f0000
+    napi.state = 0x110 [NAPI_STATE_LISTED,NAPI_STATE_THREADED]
+    channel.state = 0x0 [no-xsk]
+    channel.cpu = 8
+    ch.stats: events=282254298 poll=315090674 arm=261132756 aff_change=5908 force_irq=0 eq_rearm=0
+    ch0 rq @ 0xff2714b3e58f0000:
+      state = 0x25 [ENABLED,DIM,MINI_CQE_HW_STRIDX]
+      rqn=28959 wq_type=2 ix=0
+      wq_ll: head=39 wqe_ctr=103 cur_sz=62 (posted buffers)
+      mpwqe: num_strides=1024 actual_wq_head=39 log_stride_sz=8 umr_in_progress=0 umr_last_bulk=2 umr_completed=0
+             min_wqe_bulk=2 pages_per_wqe=64 umr_wqebbs=10 umr_mode=0
+      rq.icosq -> 0xff2714b3e58f2480 (channel.icosq)
+      rq.stats: packets=3179188428 wqe_err=0 mpwqe_filler_cqes=10090213 congst_umr=0 buff_alloc_err=0
+      rq.cq: cqn=1032 cqe_sz=64 ncqes=65536 (log_sz=16) cc=42654 cons_index(calib skipped) arm_sn(built-off)=42647 fbc.log_stride=6 log_frag_strides=6
+      cq occupancy: phase=0 pending-walk from cc: 0 consecutive HW-owned entries; first-64 opcode histogram {15: 64}; whole-CQ invalid(0xF) slots: 22882/65536
+    icosq: sq=0xff2714b3e58f2480 (channel.icosq) cc=1098 pc=1098 outstanding(pc-cc)=0 sqn=28956 wq.sz=1024 wq.cur_sz=0 wq.wqe_ctr=0 state=0x1
+    async_icosq: sq=0xff2714b3e58f31c0 (channel.async_icosq) cc=1 pc=1 outstanding(pc-cc)=0 sqn=28955 wq.sz=64 wq.cur_sz=0 wq.wqe_ctr=0 state=0x1
+
+== done (facts only; interpretation held for the PI)
