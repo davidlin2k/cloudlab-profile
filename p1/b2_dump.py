@@ -117,6 +117,7 @@ OFF = {
 RQ_STATE_NAMES = ["ENABLED", "RECOVERING", "DIM", "NO_CSUM_COMPLETE",
                   "CSUM_FULL", "MINI_CQE_HW_STRIDX", "SHAMPO",
                   "MINI_CQE_ENHANCED", "XSK"]
+CALIB = {}
 
 print("== provenance: offsets from pahole -F dwarf mlx5_core.ko "
       "(v6.17.8 build, same config as running 6.17.8-061708-generic)")
@@ -144,11 +145,18 @@ def u(addr, n):
 def s64(addr):
     return int.from_bytes(rd(addr, 8), "little", signed=True)
 
-# ---- NAPI_STATE_* from the kernel's own source
+# ---- NAPI_STATE_* from the kernel's own source (enum in 6.17)
 napi_bits = {}
-for m in re.finditer(r"#define\s+(NAPI_STATE_\w+)\s+BIT\((\d+)\)",
-                     open(NETDEV_H).read()):
-    napi_bits[m.group(1)] = 1 << int(m.group(2))
+_enum_txt = open(NETDEV_H).read()
+_m = re.search(r"enum\s*\{([^}]*NAPI_STATE_SCHED[^}]*)\}", _enum_txt, re.S)
+if _m:
+    _v = 0
+    for line in _m.group(1).splitlines():
+        mm = re.match(r"\s*(NAPI_STATE_\w+)\s*(?:=\s*(\d+))?\s*,", line)
+        if mm:
+            _v = int(mm.group(2)) if mm.group(2) else _v
+            napi_bits[mm.group(1)] = 1 << _v
+            _v += 1
 print("== NAPI_STATE_*:", ", ".join(f"{k}=0x{v:x}" for k, v in
                                     sorted(napi_bits.items())))
 
@@ -254,7 +262,7 @@ def rq_line(tag, rq):
     print(f"      state = 0x{st:x} [{','.join(bits) or 'none'}]")
     print(f"      rqn={u(rq + OFF['mlx5e_rq.rqn'], 4)} "
           f"wq_type={u(rq + OFF['mlx5e_rq.wq_type'], 1)} "
-          f"ix={s64(rq + OFF['mlx5e_rq.ix'])}")
+          f"ix={u(rq + OFF['mlx5e_rq.ix'], 4)}")
     wqll = rq + OFF["mlx5e_rq.union_wq"]
     print(f"      wq_ll: head={u(wqll + OFF['mlx5_wq_ll.head'], 2)} "
           f"wqe_ctr={u(wqll + OFF['mlx5_wq_ll.wqe_ctr'], 2)} "
@@ -296,8 +304,27 @@ def rq_line(tag, rq):
     frags = u(fbc + OFF["mlx5_frag_buf_ctrl.frags"], 8)
     cqn = u(cq + OFF["mlx5e_cq.mcq"] + OFF["mlx5_core_cq.cqn"], 4)
     cqe_sz = u(cq + OFF["mlx5e_cq.mcq"] + OFF["mlx5_core_cq.cqe_sz"], 4)
-    cons = u(cq + OFF["mlx5e_cq.mcq"] + OFF["mlx5_core_cq.cons_index"], 4)
-    arm_sn = u(cq + OFF["mlx5e_cq.mcq"] + OFF["mlx5_core_cq.arm_sn"], 4)
+    mcq = cq + OFF["mlx5e_cq.mcq"]
+    # empirical cons_index calibration: the running kernel's
+    # mlx5_core_cq may differ from our rebuild; locate the u32 that
+    # tracks cc (they advance together per CQE consumed)
+    if "cons_off" not in CALIB:
+        raw = rd(mcq, 192)
+        cc32 = cc & 0xFFFFFFFF
+        cand = [i for i in range(0, 188, 4)
+                if int.from_bytes(raw[i:i + 4], "little") == cc32
+                and cc32 > 4096]
+        CALIB["cons_off"] = cand[0] if cand else OFF["mlx5_core_cq.cons_index"]
+        CALIB["cons_calibrated"] = bool(cand)
+        CALIB["raw_hex"] = raw.hex()
+        print(f"      [calibration] built-layout cons_index @96; "
+              f"running-kernel match candidates {cand} -> using "
+              f"{CALIB['cons_off']}")
+    cons = u(mcq + CALIB["cons_off"], 4)
+    arm_sn = u(mcq + OFF["mlx5_core_cq.arm_sn"], 4)
+    if not CALIB["cons_calibrated"]:
+        print(f"      [calibration] WARNING: cc match not found; "
+              f"raw mcq: {CALIB.get('raw_hex', '<unavailable>')}")
     n_cqes = sz_m1 + 1
     print(f"      rq.cq: cqn={cqn} cqe_sz={cqe_sz} ncqes={n_cqes} "
           f"(log_sz={log_sz}) cc={cc} cons_index={cons} arm_sn={arm_sn} "
