@@ -17,6 +17,7 @@ import time
 CH = int(sys.argv[1], 16)
 OUT = sys.argv[2]
 DUR = float(sys.argv[3]) if len(sys.argv) > 3 else 400.0
+TPID = int(sys.argv[4]) if len(sys.argv) > 4 else None
 VMLINUX = "/scratch/kbuild/linux/vmlinux"
 
 # offsets (pahole-DWARF on the build tree, proven in b2_dump.py)
@@ -30,8 +31,10 @@ FBC_LOGSZ = CQ + 16
 FBC_LFS = CQ + 18
 NAPI = CH + 10000
 NAPI_STATE = NAPI + 16
-NAPI_THREAD = NAPI + 352   # napi_struct.thread (pahole, this build)
 CH_STATS_PTR = CH + 13392  # mlx5e_channel.stats = mlx5e_channel_stats* (POINTER)
+# NOTE: napi_struct.thread (+352) reads a DANGLING task pointer on this
+# build (the reused-thread/recreation dance) -- the cpu column comes
+# from /proc/<pid>/stat of the correlation-identified poll thread.
 
 import drgn
 prog = drgn.program_from_kernel()
@@ -55,13 +58,12 @@ def owned_at_cc(cc, logsz, lfs):
     return op_own, (cc >> logsz) & 1
 
 def thread_cpu():
-    # napi_struct.thread (task_struct*) -> thread_info.cpu @ task+20
+    # the REAL poll thread's current cpu from /proc/<pid>/stat (field 39)
+    if TPID is None:
+        return -1
     try:
-        task = u(NAPI_THREAD, 8)
-        if task < 0xFF00000000000000:
-            return -1
-        c = u(task + 20, 4)
-        return c if 0 <= c < 64 else -1
+        with open(f"/proc/{TPID}/stat") as f:
+            return int(f.read().rsplit(")", 1)[1].split()[37])
     except Exception:
         return -1
 

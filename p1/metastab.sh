@@ -60,11 +60,9 @@ for p in /proc/[0-9]*; do
   esac
 done
 NAPI_PID="${RQ1_NAPI_PID:-none}"
-if [ -n "${RQ1_CH:-}" ]; then
-  # re-resolve at the last moment: preflight's ring dance can recreate
-  # the channel and the kthread, making an exported pid stale
-  P=$(python3 /root/p1/napi_pid.py "$RQ1_CH" 2>/dev/null)
-  case "$P" in ''|*[!0-9]*) : ;; *) NAPI_PID="$P" ;; esac
+if [ "$NAPI_PID" != none ] && [ ! -d "/proc/$NAPI_PID" ]; then
+  echo "exported napi pid $NAPI_PID gone; NOT pinning" >> "$O/ni-pin.txt"
+  NAPI_PID=none
 fi
 if [ "$NAPI_PID" = none ]; then
   for p in /proc/[0-9]*; do c=$(cat "$p/comm" 2>/dev/null); if [ "$c" = "napi/enp195s0np0-8263" ]; then NAPI_PID="${p#/proc/}"; fi; done
@@ -87,9 +85,6 @@ echo "irq=$IRQ napi_pid=$NAPI_PID mode=$MODE keep=$KEEP rep=$REP wire=$WIRE" > "
 echo "smp_affinity_list: $(cat /proc/irq/$IRQ/smp_affinity_list)" >> "$O/affinity-pre.txt"
 echo "effective_affinity_list: $(cat /proc/irq/$IRQ/effective_affinity_list 2>/dev/null || echo n/a)" >> "$O/affinity-pre.txt"
 echo "napi_aff: $(awk '/Cpus_allowed_list/{print $2}' /proc/$NAPI_PID/status 2>/dev/null)" >> "$O/affinity-pre.txt"
-if [ -n "${RQ1_CH:-}" ]; then
-  echo "napi_cpu_kcore: $(python3 /root/p1/napi_pid.py "$RQ1_CH" --cpu 2>/dev/null | tail -1)" >> "$O/affinity-pre.txt"
-fi
 
 # --- tracing only with TRACE=1 (DR-005 step 2.3) ---
 TRACE_PID=none
