@@ -25,6 +25,7 @@ import drgn
 WEDGE_IX = int(sys.argv[1]) if len(sys.argv) > 1 else 7
 HEALTH_IX = int(sys.argv[2]) if len(sys.argv) > 2 else 0
 GAP_S = float(sys.argv[3]) if len(sys.argv) > 3 else 5.0
+IFACE = "enp195s0np0"
 
 VMLINUX = "/scratch/kbuild/linux/vmlinux"
 KO = ("/scratch/kbuild/linux/drivers/net/ethernet/mellanox/"
