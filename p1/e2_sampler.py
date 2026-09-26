@@ -6,6 +6,7 @@ argv: <ch7_addr_hex> <outdir> -- 1 Hz CSV of:
   ch7_ch_stats_aff_change (kcore read, raw counter), ch7_stats_events
 Runs until SIGTERM. Facts only.
 """
+import os
 import re
 import subprocess
 import sys
@@ -70,6 +71,7 @@ def thread_mask():
         return "?"
     return "?"
 
+os.makedirs(OUT, exist_ok=True)
 path = f"{OUT}/e2-sampler.csv"
 print(f"sampler: ch=0x{CH:x} napi_id={napi_id} pid={pid} stats=0x{stats_ptr:x} -> {path}", flush=True)
 prev = u(stats_ptr + AFF_CHANGE_OFF, 8)

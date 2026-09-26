@@ -12,7 +12,10 @@ CH=$(sudo python3 /tmp/b2_dump.py 7 0 2 2>/dev/null | grep -m1 -oE "ch7 \(WEDGED
 [ -n "$CH" ] || { echo "E2: discovery failed" >> /root/p1/e2.log; exit 1; }
 echo "E2 ch7 addr $CH $(date -u +%FT%TZ)" >> /root/p1/e2.log
 for i in 1 2 3 4 5 6 7 8; do
-  D=/root/p1/metastab/M10-e2-$i
+  # metastab's cell dir naming: $MODE$NKEEP-$REP, NKEEP = word count of
+  # KEEP ("10" is one word -> M1-; the task-1 cells are M1-* for the
+  # same reason). My M10-* assumption broke the first attempt.
+  D=/root/p1/metastab/M1-e2-$i
   rm -rf "$D"
   sudo bash /root/p1/metastab.sh M 10 "e2-$i" pin8 >> /root/p1/e2.log 2>&1 &
   CPID=$!
