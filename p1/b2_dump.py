@@ -320,52 +320,57 @@ def rq_line(tag, rq):
     cqn = u(cq + OFF["mlx5e_cq.mcq"] + OFF["mlx5_core_cq.cqn"], 4)
     cqe_sz = u(cq + OFF["mlx5e_cq.mcq"] + OFF["mlx5_core_cq.cqe_sz"], 4)
     mcq = cq + OFF["mlx5e_cq.mcq"]
-    # empirical cons_index calibration: the running kernel's
-    # mlx5_core_cq may differ from our rebuild; locate the u32 that
-    # tracks cc (they advance together per CQE consumed)
-    if "cons_off" not in CALIB:
-        raw = rd(mcq, 192)
-        cc32 = cc & 0xFFFFFFFF
-        cand = [i for i in range(0, 188, 4)
-                if int.from_bytes(raw[i:i + 4], "little") == cc32
-                and cc32 > 4096]
-        CALIB["cons_off"] = cand[0] if cand else OFF["mlx5_core_cq.cons_index"]
-        CALIB["cons_calibrated"] = bool(cand)
-        CALIB["raw_hex"] = raw.hex()
-        print(f"      [calibration] built-layout cons_index @96; "
-              f"running-kernel match candidates {cand} -> using "
-              f"{CALIB['cons_off']}")
-    cons = u(mcq + CALIB["cons_off"], 4)
-    arm_sn = u(mcq + OFF["mlx5_core_cq.arm_sn"], 4)
-    if not CALIB["cons_calibrated"]:
-        print(f"      [calibration] WARNING: cc match not found; "
-              f"raw mcq: {CALIB.get('raw_hex', '<unavailable>')}")
+    raw = rd(mcq, 192)
+    CALIB["raw_hex"] = raw.hex()
     n_cqes = sz_m1 + 1
     print(f"      rq.cq: cqn={cqn} cqe_sz={cqe_sz} ncqes={n_cqes} "
-          f"(log_sz={log_sz}) cc={cc} cons_index={cons} arm_sn={arm_sn} "
+          f"(log_sz={log_sz}) cc={cc} cons_index(calib skipped) "
+          f"arm_sn(built-off)={int.from_bytes(raw[100:104], 'little')} "
           f"fbc.log_stride={log_stride} log_frag_strides={lfs}")
-    phase = (cons >> log_sz) & 1
-    pending = 0
-    first_op = None
-    ops = []
-    for k in range(min(n_cqes, 1024)):
-        i = (cc + k) & sz_m1
-        frag = u(frags + OFF["mlx5_buf_list.size"] * (i >> lfs) +
-                 OFF["mlx5_buf_list.buf"], 8)
-        cqe = frag + ((i & ((1 << lfs) - 1)) << log_stride) + 63
+    # --- occupancy by completion timestamp (robust to cons_index
+    # layout drift): the newest-written CQE is HW's producer head.
+    nfrags = (n_cqes + (1 << lfs) - 1) >> lfs
+    per_frag = 1 << lfs
+    span = per_frag << log_stride
+    fr = rd(frags, 16 * nfrags)
+    frag_bufs = [int.from_bytes(fr[16 * i:16 * i + 8], "little")
+                 for i in range(nfrags)]
+    ts_at = {}
+    op_at = {}
+    for fi, fb in enumerate(frag_bufs):
         try:
-            op_own = rd(cqe, 1)[0]
+            blob = rd(fb, span)
         except Exception as e:
-            print(f"      cqe walk: read fault at k={k}: {e}")
-            break
-        if (op_own & 1) == phase:
-            pending += 1
-            ops.append(op_own >> 4)
+            print(f"      cq walk: frag {fi} read fault: {e}")
+            continue
+        for j in range(per_frag):
+            i = (fi << lfs) + j
+            if i >= n_cqes:
+                break
+            ent = blob[j << log_stride:(j << log_stride) + 64]
+            op_at[i] = ent[63]
+            ts_at[i] = int.from_bytes(ent[48:56], "little")
+    head = max(ts_at, key=lambda i: ts_at[i])
+    max_ts = ts_at[head]
+    pending = (head - ((cc - 1) % n_cqes)) % n_cqes
+    behind = max_ts - ts_at[(cc - 1) % n_cqes]
+    ph = (cc >> log_sz) & 1
+    fwd = 0
+    for k in range(n_cqes):
+        if op_at.get((cc + k) % n_cqes, 0xFF) & 1 == ph:
+            fwd += 1
         else:
             break
-    print(f"      cq walk from cc: {pending} HW-owned (unconsumed) CQEs; "
-          f"first opcodes {ops[:8]}")
-    return {"cons": cons, "cc": cc, "pc_pending": pending}
+    hist = collections.Counter((op_at[i] >> 4) for i in
+                               ((cc + k) % n_cqes for k in range(64)))
+    print(f"      cq occupancy: HW writer head at index {head} "
+          f"(cc={cc}) -> pending(unconsumed, incl. head)={pending}; "
+          f"max_ts={max_ts} ts(cc-1)={ts_at[(cc - 1) % n_cqes]} "
+          f"head-minus-(cc-1)={behind}")
+    print(f"      cq owner-phase walk from cc (phase={ph}): {fwd} "
+          f"consecutive HW-owned; opcode histogram of first 64 from cc: "
+          f"{dict(hist)}")
+    return {"cons": cc, "cc": cc, "pc_pending": fwd}
 
 def ch_line(ix, tag):
     ch = chs[ix]
