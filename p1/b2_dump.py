@@ -381,7 +381,7 @@ def ch_line(ix, tag):
     if st_ptr:
         g = lambda o: int.from_bytes(rd(st_ptr + o, 8), "little", signed=True)
         print(f"    ch.stats: events={g(0)} poll={g(8)} arm={g(16)} "
-              f"eq_rearm={g(40)}")
+              f"aff_change={g(24)} force_irq={g(32)} eq_rearm={g(40)}")
     rq_line(f"ch{ix}", ch + OFF["mlx5e_channel.rq"])
     icosq_line("icosq", ch + OFF["mlx5e_channel.icosq"], ch)
     icosq_line("async_icosq", ch + OFF["mlx5e_channel.async_icosq"], ch)
