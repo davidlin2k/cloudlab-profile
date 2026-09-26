@@ -327,15 +327,15 @@ def rq_line(tag, rq):
           f"(log_sz={log_sz}) cc={cc} cons_index(calib skipped) "
           f"arm_sn(built-off)={int.from_bytes(raw[100:104], 'little')} "
           f"fbc.log_stride={log_stride} log_frag_strides={lfs}")
-    # --- occupancy by completion timestamp (robust to cons_index
-    # layout drift): the newest-written CQE is HW's producer head.
+    # --- occupancy by owner-phase walk (the mlx5e poll pattern):
+    # entries HW has written since cc carry owner == current cycle
+    # parity; never-written slots carry opcode 0xF (invalid).
     nfrags = (n_cqes + (1 << lfs) - 1) >> lfs
     per_frag = 1 << lfs
     span = per_frag << log_stride
     fr = rd(frags, 16 * nfrags)
     frag_bufs = [int.from_bytes(fr[16 * i:16 * i + 8], "little")
                  for i in range(nfrags)]
-    ts_at = {}
     op_at = {}
     for fi, fb in enumerate(frag_bufs):
         try:
@@ -347,30 +347,24 @@ def rq_line(tag, rq):
             i = (fi << lfs) + j
             if i >= n_cqes:
                 break
-            ent = blob[j << log_stride:(j << log_stride) + 64]
-            op_at[i] = ent[63]
-            ts_at[i] = int.from_bytes(ent[48:56], "little")
-    head = max(ts_at, key=lambda i: ts_at[i])
-    max_ts = ts_at[head]
-    pending = (head - ((cc - 1) % n_cqes)) % n_cqes
-    behind = max_ts - ts_at[(cc - 1) % n_cqes]
+            op_at[i] = blob[(j << log_stride) + 63]
     ph = (cc >> log_sz) & 1
     fwd = 0
+    fwd_ops = []
     for k in range(n_cqes):
-        if op_at.get((cc + k) % n_cqes, 0xFF) & 1 == ph:
+        oo = op_at.get((cc + k) % n_cqes, 0xFF)
+        if oo & 1 == ph:
             fwd += 1
+            fwd_ops.append(oo >> 4)
         else:
             break
+    invalid = sum(1 for v in op_at.values() if (v >> 4) == 0xF)
     hist = collections.Counter((op_at[i] >> 4) for i in
                                ((cc + k) % n_cqes for k in range(64)))
-    print(f"      cq occupancy: HW writer head at index {head} "
-          f"(cc={cc}) -> pending(unconsumed, incl. head)={pending}; "
-          f"max_ts={max_ts} ts(cc-1)={ts_at[(cc - 1) % n_cqes]} "
-          f"head-minus-(cc-1)={behind}")
-    print(f"      cq owner-phase walk from cc (phase={ph}): {fwd} "
-          f"consecutive HW-owned; opcode histogram of first 64 from cc: "
-          f"{dict(hist)}")
-    return {"cons": cc, "cc": cc, "pc_pending": fwd}
+    print(f"      cq occupancy: phase={ph} pending-walk from cc: {fwd} "
+          f"consecutive HW-owned entries; first-64 opcode histogram "
+          f"{dict(hist)}; whole-CQ invalid(0xF) slots: {invalid}/{n_cqes}")
+    return {"cc": cc, "pending_walk": fwd}
 
 def ch_line(ix, tag):
     ch = chs[ix]
