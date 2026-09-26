@@ -59,8 +59,10 @@ for p in /proc/[0-9]*; do
       taskset -pc 0-63 "${p#/proc/}" >/dev/null 2>&1 || true ;;
   esac
 done
-NAPI_PID=none
-for p in /proc/[0-9]*; do c=$(cat "$p/comm" 2>/dev/null); if [ "$c" = "napi/enp195s0np0-8263" ]; then NAPI_PID="${p#/proc/}"; fi; done
+NAPI_PID="${RQ1_NAPI_PID:-none}"
+if [ "$NAPI_PID" = none ]; then
+  for p in /proc/[0-9]*; do c=$(cat "$p/comm" 2>/dev/null); if [ "$c" = "napi/enp195s0np0-8263" ]; then NAPI_PID="${p#/proc/}"; fi; done
+fi
 if [ "$WIRE" = pin8 ]; then
   taskset -pc 8 "$NAPI_PID" > "$O/ni-pin.txt" 2>&1
 elif [ "$WIRE" = pin10 ]; then

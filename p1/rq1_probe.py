@@ -21,7 +21,7 @@ VMLINUX = "/scratch/kbuild/linux/vmlinux"
 
 # offsets (pahole-DWARF on the build tree, proven in b2_dump.py)
 RQ = CH                    # mlx5e_channel.rq = 0
-RQ_STATS = RQ + 256        # mlx5e_rq.stats
+RQ_STATS_PTR = RQ + 256    # mlx5e_rq.stats = mlx5e_rq_stats* (POINTER)
 CQ = RQ + 320              # mlx5e_rq.cq
 CC = CQ + 32               # mlx5_cqwq.cc
 FBC_SZ_M1 = CQ + 8         # mlx5_frag_buf_ctrl.sz_m1
@@ -31,7 +31,7 @@ FBC_LFS = CQ + 18
 NAPI = CH + 10000
 NAPI_STATE = NAPI + 16
 NAPI_THREAD = NAPI + 352   # napi_struct.thread (pahole, this build)
-CH_STATS = CH + 13392      # mlx5e_channel.stats
+CH_STATS_PTR = CH + 13392  # mlx5e_channel.stats = mlx5e_channel_stats* (POINTER)
 
 import drgn
 prog = drgn.program_from_kernel()
@@ -77,9 +77,11 @@ with open(OUT, "w") as f:
         t1 = time.time()
         cc = u(CC, 4)
         op_own, phase = owned_at_cc(cc, logsz, lfs)
-        pkt = u(RQ_STATS, 8)
-        ev = u(CH_STATS, 8)
-        arm = u(CH_STATS + 16, 8)
+        stats_p = u(RQ_STATS_PTR, 8)
+        pkt = u(stats_p, 8) if stats_p > 0xFF00000000000000 else 0
+        chst_p = u(CH_STATS_PTR, 8)
+        ev = u(chst_p, 8) if chst_p > 0xFF00000000000000 else 0
+        arm = u(chst_p + 16, 8) if chst_p > 0xFF00000000000000 else 0
         st = u(NAPI_STATE, 1)
         f.write(f"{(t1 - t0) * 1000:.1f},{cc},{op_own},{phase},"
                 f"{op_own & 1 == phase},{pkt},{ev},{arm},{st},{thread_cpu()}\n")
