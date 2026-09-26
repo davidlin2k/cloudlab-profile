@@ -1,0 +1,41 @@
+== preflight 2026-09-26T04:00:20Z
+ring: 1024 striding: on threaded: 1
+steering assert: rx7 advance 80065 (need >= 14000)
+PREFLIGHT OK
+== minimize cell-015 2026-09-26T04:00:33Z
+minimal dimensions (reset removes the hit): ['threaded']
+confirm 0: hits=['COLLAPSE', 'METASTABLE', 'PERMANENT', 'STALL'] probe=0
+confirm 1: hits=['COLLAPSE', 'METASTABLE', 'PERMANENT', 'STALL'] probe=100845
+confirm 2: hits=['COLLAPSE', 'METASTABLE', 'PERMANENT', 'STALL'] probe=0
+-- exit=0 2026-09-26T04:42:34Z
+== minimize cell-038 2026-09-26T04:42:34Z
+minimal dimensions (reset removes the hit): ['adaptive_rx', 'striding_rq']
+confirm 0: hits=['COLLAPSE', 'METASTABLE', 'PERMANENT', 'STALL'] probe=0
+confirm 1: hits=['COLLAPSE', 'METASTABLE', 'STALL'] probe=300099
+confirm 2: hits=['COLLAPSE', 'METASTABLE', 'STALL'] probe=300097
+-- exit=0 2026-09-26T06:02:44Z
+== minimize cell-056 2026-09-26T06:02:44Z
+minimal dimensions (reset removes the hit): ['threaded', 'napi_placement', 'adaptive_rx', 'ring', 'striding_rq', 'busy_read', 'napi_defer_hard_irqs', 'gro_flush_timeout']
+confirm 0: hits=['COLLAPSE', 'METASTABLE', 'STALL'] probe=300098
+confirm 1: hits=['COLLAPSE'] probe=300100
+confirm 2: hits=['COLLAPSE', 'STALL'] probe=300099
+-- exit=0 2026-09-26T07:03:37Z
+== minimize cell-069 2026-09-26T07:03:37Z
+minimal dimensions (reset removes the hit): ['napi_placement', 'adaptive_rx', 'ring', 'gro', 'napi_defer_hard_irqs', 'gro_flush_timeout']
+confirm 0: hits=[] probe=300097
+confirm 1: hits=['COLLAPSE'] probe=315314
+confirm 2: hits=[] probe=300102
+-- exit=0 2026-09-26T07:40:29Z
+== minimize cell-086 2026-09-26T07:40:29Z
+minimal dimensions (reset removes the hit): []
+confirm 0: hits=['COLLAPSE', 'PERMANENT', 'STALL'] probe=0
+confirm 1: hits=['COLLAPSE', 'PERMANENT', 'STALL'] probe=0
+confirm 2: hits=['COLLAPSE', 'PERMANENT', 'STALL'] probe=0
+-- exit=0 2026-09-26T08:54:20Z
+== minimize cell-089 2026-09-26T08:54:20Z
+minimal dimensions (reset removes the hit): ['threaded', 'napi_placement', 'adaptive_rx', 'ring', 'striding_rq', 'busy_read', 'gro_flush_timeout']
+confirm 0: hits=['COLLAPSE', 'METASTABLE', 'PERMANENT', 'STALL'] probe=0
+confirm 1: hits=['COLLAPSE', 'METASTABLE', 'PERMANENT', 'STALL'] probe=0
+confirm 2: hits=['COLLAPSE', 'METASTABLE', 'PERMANENT', 'STALL'] probe=0
+-- exit=0 2026-09-26T09:36:01Z
+ALL-DONE 2026-09-26T09:36:01Z

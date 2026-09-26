@@ -1,0 +1,29 @@
+# E1 fresh-boot default-pinning check -- recorded 2026-09-26 (raw, verbatim
+# from the session transcript of the live read; node rebooted 14:35:14Z,
+# boot time 14:37:09Z, read taken minutes after boot)
+
+threaded default (before any touch): 0
+napi threads before enable: 0 (none exist; threads are created by the
+  threaded=1 toggle)
+after `echo 1 > /sys/class/net/enp195s0np0/threaded` (root): threaded = 1
+napi kthreads created: 64 (napi/enp195s0np0-8256 .. napi/enp195s0np0-8318)
+  every one: Cpus_allowed_list: 0-63
+
+PID sample (all 64 identical):
+pid 2667 comm napi/enp195s0np0-8318 Cpus_allowed_list: 0-63
+pid 2668 comm napi/enp195s0np0-8317 Cpus_allowed_list: 0-63
+pid 2705 comm napi/enp195s0np0-8280 Cpus_allowed_list: 0-63
+pid 2729 comm napi/enp195s0np0-8256 Cpus_allowed_list: 0-63
+(full per-pid list in the session transcript; 64/64 = 0-63, no exceptions)
+
+IRQ placement at fresh boot, before any task wiring (from
+/proc/interrupts, mlx5_comp*@pci:0000:c3:00.0):
+  comp0 -> cpu 8 (46 irqs), comp1 -> cpu 9 (14), comp2 -> cpu 10 (11),
+  comp3 -> cpu 11 (12), comp4 -> cpu 12 (22), ...
+  comp7 = IRQ 312 -> effective_affinity_list: 15
+(the driver's default spread puts channel i's IRQ on cpu 8+i; queue 7's
+IRQ mask is the single CPU 15 -- the task-1 wiring later moves it to cpu
+8. Either way the mask is a single CPU and the kthread is unbound.)
+
+E1 verdict: prediction CONFIRMED -- threaded NAPI kthreads are created
+unpinned (0-63) by default on this kernel; default exposure is empirical.
