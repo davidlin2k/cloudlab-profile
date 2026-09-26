@@ -1,0 +1,28 @@
+--- a/drivers/net/ethernet/mellanox/mlx5/core/en_txrx.c
++++ b/drivers/net/ethernet/mellanox/mlx5/core/en_txrx.c
+@@ -210,10 +210,16 @@ int mlx5e_napi_poll(struct napi_struct *napi, int budget)
+ 	if (busy) {
+ 		if (likely(mlx5e_channel_no_affinity_change(c))) {
+ 			work_done = budget;
+ 			goto out;
+ 		}
+ 		ch_stats->aff_change++;
+ 		aff_change = true;
+-		if (work_done == budget)
++		if (work_done == budget) {
++			/* p1-FIX F1 (candidate): the poll exhausted its
++			 * budget while off the channel's affinity CPU.
++			 * Reschedule instead of completing: completing
++			 * here parks the NAPI with the CQ backlog
++			 * pending, and the queue can only drain one
++			 * budget per hardware event (the observed
++			 * metastable trickle, AN-006B/C). Short polls
++			 * still hand back to the affinity CPU below. */
+ 			work_done--;
++			napi_schedule(napi);
++			goto out;
++		}
+ 	}
+ 
+ 	if (unlikely(!napi_complete_done(napi, work_done)))
+ 		goto out;

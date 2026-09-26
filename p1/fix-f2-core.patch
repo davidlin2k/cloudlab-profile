@@ -1,0 +1,28 @@
+--- a/net/core/dev.c
++++ b/net/core/dev.c
+@@ -<VERIFY>,8 +<VERIFY>,13 @@
+ static int napi_kthread_create(struct napi_struct *n)
+ {
+ 	int err = 0;
+ 
+ 	/* ... existing kthread_run(napi_threaded_poll, n, ...) ... */
++	/* p1-FIX F2 (candidate): bind the threaded NAPI's kthread to the
++	 * NAPI's IRQ affinity mask. The core already tracks it in
++	 * n->config->affinity_mask (iavf/ice/idpf opt in via
++	 * netif_set_affinity_auto; mlx5 uses netif_napi_add_config, so
++	 * n->config exists). Without this the kthread inherits no
++	 * affinity guidance (E1: Cpus_allowed_list = 0-63 on a fresh
++	 * boot), polls off the channel's mask, and the driver's
++	 * affinity bailout completes a budget-exhausted poll into a
++	 * park -- the observed metastable trickle (AN-006B/C).
++	 * set_cpus_allowed_ptr, not kthread_bind: a hint the scheduler
++	 * honours, still overridable from userspace. */
++	if (n->config && !cpumask_empty(&n->config->affinity_mask))
++		set_cpus_allowed_ptr(n->thread, &n->config->affinity_mask);
+ 	/* ... existing error handling ... */
+ }
+ 
+ NOTE: the exact hunk location, the napi_config field name, and the
+ mask member must be verified against /scratch/kbuild/linux at build
+ time (grep kthread_run napi_threaded_poll net/core/dev.c; pahole -C
+ napi_config vmlinux). Apply with fuzz after verifying.
