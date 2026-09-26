@@ -22,6 +22,14 @@ done
 [ -e /proc/sys/net/core/busy_read ] && echo 0 > /proc/sys/net/core/busy_read
 [ -n "$IRQ" ] && echo 8 > /proc/irq/$IRQ/smp_affinity_list
 for p in /proc/[0-9]*; do c=$(cat "$p/comm" 2>/dev/null); case "$c" in napi/enp195s0np0-*) taskset -pc 0-63 "${p#/proc/}" >/dev/null 2>&1 ;; esac; done
+# steering is by explicit ntuple rules (the RSS-key route was never
+# reliable: p1prep's hkey set always failed on format; a reboot
+# re-randomizes the key and the W1 sports hash elsewhere). Install the
+# five W1 rules idempotently, then assert.
+for pair in "10.10.1.10 32704" "10.10.1.11 32726" "10.10.1.12 32706" "10.10.1.13 32724" "10.10.1.14 32725"; do
+  set -- $pair
+  sudo ethtool -N $IFACE flow-type udp4 src-ip $1 dst-ip 10.10.1.1 src-port $2 dst-port 7777 action 7 >/dev/null 2>&1 || true
+done
 sleep 2
 # assert queue-7 steering: a 10k probe at sport 32704 must advance rx7
 P0=$(ethtool -S $IFACE | awk '/rx7_packets:/{print $2}')
