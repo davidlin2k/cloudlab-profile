@@ -24,11 +24,13 @@ RQ = CH                    # mlx5e_channel.rq = 0
 RQ_STATS = RQ + 256        # mlx5e_rq.stats
 CQ = RQ + 320              # mlx5e_rq.cq
 CC = CQ + 32               # mlx5_cqwq.cc
+FBC_SZ_M1 = CQ + 8         # mlx5_frag_buf_ctrl.sz_m1
 FBC_FRAGS = CQ + 0         # mlx5_frag_buf_ctrl.frags
 FBC_LOGSZ = CQ + 16
 FBC_LFS = CQ + 18
 NAPI = CH + 10000
 NAPI_STATE = NAPI + 16
+NAPI_THREAD = NAPI + 352   # napi_struct.thread (pahole, this build)
 CH_STATS = CH + 13392      # mlx5e_channel.stats
 
 import drgn
@@ -41,31 +43,27 @@ except Exception:
 def u(addr, n):
     return int.from_bytes(bytes(prog.read(addr, n)), "little")
 
+LFS_MASK = (u(FBC_SZ_M1, 4) >> u(FBC_LFS, 1))  # frag-array bound
+
 def owned_at_cc(cc, logsz, lfs):
+    # cc is the free-running consumer counter; the frag index is
+    # (cc >> lfs) masked by the array bound (b2_dump's convention)
     frags = u(FBC_FRAGS, 8)
-    frag = u(frags + (cc >> lfs) * 16, 8)
+    frag = u(frags + ((cc >> lfs) & LFS_MASK) * 16, 8)
     idx = cc & ((1 << lfs) - 1)
     op_own = u(frag + idx * 64 + 63, 1)
     return op_own, (cc >> logsz) & 1
 
 def thread_cpu():
-    for line in open(f"/proc/{PID}/stat"):
-        return line.split(")")[-1].split()[37]  # field 39 (1-indexed 39) = processor
-    return -1
-
-# the ch7 kthread (napi_id 8263)
-PID = None
-for p in os.listdir("/proc"):
-    if not p.isdigit():
-        continue
+    # napi_struct.thread (task_struct*) -> thread_info.cpu @ task+20
     try:
-        if open(f"/proc/{p}/comm").read().strip() == "napi/enp195s0np0-8263":
-            PID = p
-            break
+        task = u(NAPI_THREAD, 8)
+        if task < 0xFF00000000000000:
+            return -1
+        c = u(task + 20, 4)
+        return c if 0 <= c < 64 else -1
     except Exception:
-        continue
-if not PID:
-    sys.exit("no ch7 kthread (napi_id 8263)")
+        return -1
 
 os.makedirs(os.path.dirname(OUT) or ".", exist_ok=True)
 t0 = time.time()
