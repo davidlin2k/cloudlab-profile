@@ -216,9 +216,23 @@ for ch in ch_addrs:
         continue
 if not priv_votes:
     sys.exit("no priv address discovered")
-priv, votes = priv_votes.most_common(1)[0]
-print(f"    priv = 0x{priv:x} (voted by {votes} channels; "
-      f"all votes: {[(hex(p), c) for p, c in priv_votes.items()]})")
+name_off = next(m.offset for m in prog.type("struct net_device").members
+                if m.name == "name")
+print("== priv candidates (netdev name read from memory):")
+chosen = None
+for p, votes in priv_votes.most_common():
+    try:
+        nd = u(p + OFF["mlx5e_priv.netdev"], 8)
+        nm = rd(nd + name_off, 16).split(b"\x00")[0].decode()
+    except Exception as e:
+        nm = f"<unreadable {e}>"
+    print(f"    0x{p:x} votes={votes} netdev={nm!r}")
+    if nm == IFACE:
+        chosen = p
+if chosen is None:
+    sys.exit(f"no priv candidate resolves to {IFACE}")
+priv = chosen
+print(f"    priv = 0x{priv:x} (netdev name match: {IFACE})")
 
 cptr = u(priv + OFF["mlx5e_priv.channels"] + OFF["mlx5e_channels.c"], 8)
 nch = u(priv + OFF["mlx5e_priv.channels"] + OFF["mlx5e_channels.num"], 4)
