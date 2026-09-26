@@ -19,7 +19,7 @@ case "$CH" in 0x[0-9a-f]*) ;; *) echo "DISCOVERY-FAIL ch='$CH'"; exit 1;; esac
 RQ1_NAPI_PID=$(sudo python3 /tmp/napi_pid.py "$CH" 2>/dev/null)
 case "$RQ1_NAPI_PID" in ''|*[!0-9]*) echo "NAPI-PID-FAIL"; exit 1;; esac
 echo "ch7=$CH napi_pid=$RQ1_NAPI_PID"
-export RQ1_NAPI_PID
+export RQ1_NAPI_PID RQ1_CH="$CH"
 
 # the probe covers the whole cell (~260 s), pinned to cpu 0
 (taskset -c 0 python3 /tmp/rq1_probe.py "$CH" "$D/probe.csv" 260 > "$D/probe.meta" 2>&1 &)

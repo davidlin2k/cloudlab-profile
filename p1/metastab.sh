@@ -60,15 +60,26 @@ for p in /proc/[0-9]*; do
   esac
 done
 NAPI_PID="${RQ1_NAPI_PID:-none}"
+if [ -n "${RQ1_CH:-}" ]; then
+  # re-resolve at the last moment: preflight's ring dance can recreate
+  # the channel and the kthread, making an exported pid stale
+  P=$(python3 /root/p1/napi_pid.py "$RQ1_CH" 2>/dev/null)
+  case "$P" in ''|*[!0-9]*) : ;; *) NAPI_PID="$P" ;; esac
+fi
 if [ "$NAPI_PID" = none ]; then
   for p in /proc/[0-9]*; do c=$(cat "$p/comm" 2>/dev/null); if [ "$c" = "napi/enp195s0np0-8263" ]; then NAPI_PID="${p#/proc/}"; fi; done
 fi
-if [ "$WIRE" = pin8 ]; then
-  taskset -pc 8 "$NAPI_PID" > "$O/ni-pin.txt" 2>&1
-elif [ "$WIRE" = pin10 ]; then
-  taskset -pc 10 "$NAPI_PID" > "$O/ni-pin.txt" 2>&1
-else
-  taskset -pc 0-63 "$NAPI_PID" > "$O/ni-pin.txt" 2>&1
+PIN_CPU=none
+case "$WIRE" in
+  pin8) PIN_CPU=8 ;;
+  pin10) PIN_CPU=10 ;;
+esac
+if [ "$PIN_CPU" != none ] && [ "$NAPI_PID" != none ]; then
+  # the napi kthread is often invisible in /proc on this build, so pin
+  # via the sched_setaffinity syscall directly (no /proc dependency)
+  python3 -c "import os,sys; os.sched_setaffinity($NAPI_PID, {$PIN_CPU})" > "$O/ni-pin.txt" 2>&1 \
+    && echo "pin cpu=$PIN_CPU pid=$NAPI_PID OK" >> "$O/ni-pin.txt" \
+    || echo "pin FAILED (see above)" >> "$O/ni-pin.txt"
 fi
 echo "$IRQC" > /proc/irq/$IRQ/smp_affinity_list
 sleep 1
@@ -76,6 +87,9 @@ echo "irq=$IRQ napi_pid=$NAPI_PID mode=$MODE keep=$KEEP rep=$REP wire=$WIRE" > "
 echo "smp_affinity_list: $(cat /proc/irq/$IRQ/smp_affinity_list)" >> "$O/affinity-pre.txt"
 echo "effective_affinity_list: $(cat /proc/irq/$IRQ/effective_affinity_list 2>/dev/null || echo n/a)" >> "$O/affinity-pre.txt"
 echo "napi_aff: $(awk '/Cpus_allowed_list/{print $2}' /proc/$NAPI_PID/status 2>/dev/null)" >> "$O/affinity-pre.txt"
+if [ -n "${RQ1_CH:-}" ]; then
+  echo "napi_cpu_kcore: $(python3 /root/p1/napi_pid.py "$RQ1_CH" --cpu 2>/dev/null | tail -1)" >> "$O/affinity-pre.txt"
+fi
 
 # --- tracing only with TRACE=1 (DR-005 step 2.3) ---
 TRACE_PID=none
