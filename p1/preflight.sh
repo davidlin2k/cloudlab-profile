@@ -6,7 +6,7 @@ set -u
 IFACE=${IFACE:-enp195s0np0}
 IRQ=$(grep -E 'mlx5_comp7@pci:0000:c3' /proc/interrupts | awk '{print $1}' | tr -d ':')
 echo "== preflight $(date -u +%FT%TZ)"
-echo "ring: $(ethtool -g $IFACE | awk '/^RX:/{print $2}' | tail -1) striding: $(ethtool --show-priv-flags $IFACE | awk '/rx_striding_rq/{print $2}') threaded: $(cat /sys/class/net/$IFACE/threaded)"
+echo "ring: $(ethtool -g $IFACE | awk '/^RX:/{print $2}' | tail -1) striding: $(ethtool --show-priv-flags $IFACE | awk '/rx_striding_rq/{print $3}') threaded: $(cat /sys/class/net/$IFACE/threaded)"
 # restore the task-1 defaults unless the caller exported overrides
 RING=${RING:-1024}
 STRIDING=${STRIDING:-on}
