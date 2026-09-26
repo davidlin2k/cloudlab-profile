@@ -63,7 +63,8 @@ def thread_cpu():
         return -1
     try:
         with open(f"/proc/{TPID}/stat") as f:
-            return int(f.read().rsplit(")", 1)[1].split()[37])
+            # after "comm)": state=idx0 ... processor (field 39) = idx 36
+            return int(f.read().rsplit(")", 1)[1].split()[36])
     except Exception:
         return -1
 
