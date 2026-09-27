@@ -1,0 +1,33 @@
+PT10-1 probe: 300626 samples, 17 gaps, 4 stranded (owned throughout)
+PT10-1 CLASS SUMMARY: {'event-silent': 3, 'wake-lost': 0, 'wake-flowing': 1}
+PT10-2 probe: 271639 samples, 14 gaps, 0 stranded (owned throughout)
+PT10-2 CLASS SUMMARY: {'event-silent': 0, 'wake-lost': 0, 'wake-flowing': 0}
+PT10-3 probe: 271420 samples, 13 gaps, 0 stranded (owned throughout)
+PT10-3 CLASS SUMMARY: {'event-silent': 0, 'wake-lost': 0, 'wake-flowing': 0}
+PT10-4 probe: 271417 samples, 13 gaps, 0 stranded (owned throughout)
+PT10-4 CLASS SUMMARY: {'event-silent': 0, 'wake-lost': 0, 'wake-flowing': 0}
+PT10-5 probe: 271391 samples, 9 gaps, 0 stranded (owned throughout)
+PT10-5 CLASS SUMMARY: {'event-silent': 0, 'wake-lost': 0, 'wake-flowing': 0}
+PT10-6 probe: 271372 samples, 8 gaps, 0 stranded (owned throughout)
+PT10-6 CLASS SUMMARY: {'event-silent': 0, 'wake-lost': 0, 'wake-flowing': 0}
+PT10-7 probe: 271359 samples, 10 gaps, 0 stranded (owned throughout)
+PT10-7 CLASS SUMMARY: {'event-silent': 0, 'wake-lost': 0, 'wake-flowing': 0}
+PT10-8 probe: 271410 samples, 7 gaps, 0 stranded (owned throughout)
+PT10-8 CLASS SUMMARY: {'event-silent': 0, 'wake-lost': 0, 'wake-flowing': 0}
+PT24-1 probe: 263447 samples, 47 gaps, 39 stranded (owned throughout)
+PT24-1 CLASS SUMMARY: {'event-silent': 27, 'wake-lost': 0, 'wake-flowing': 12}
+PT24-2 probe: 234462 samples, 48 gaps, 41 stranded (owned throughout)
+PT24-2 CLASS SUMMARY: {'event-silent': 27, 'wake-lost': 0, 'wake-flowing': 14}
+PT24-3 probe: 239291 samples, 38 gaps, 24 stranded (owned throughout)
+PT24-3 CLASS SUMMARY: {'event-silent': 16, 'wake-lost': 0, 'wake-flowing': 8}
+PT24-4 probe: 197080 samples, 46 gaps, 21 stranded (owned throughout)
+PT24-4 CLASS SUMMARY: {'event-silent': 16, 'wake-lost': 0, 'wake-flowing': 5}
+PT24-5 probe: 186772 samples, 54 gaps, 40 stranded (owned throughout)
+PT24-5 CLASS SUMMARY: {'event-silent': 28, 'wake-lost': 0, 'wake-flowing': 12}
+PT24-6 probe: 231991 samples, 52 gaps, 41 stranded (owned throughout)
+PT24-6 CLASS SUMMARY: {'event-silent': 27, 'wake-lost': 0, 'wake-flowing': 14}
+PT24-7 probe: 278469 samples, 51 gaps, 40 stranded (owned throughout)
+PT24-7 CLASS SUMMARY: {'event-silent': 25, 'wake-lost': 0, 'wake-flowing': 15}
+PT24-8 probe: 304824 samples, 43 gaps, 22 stranded (owned throughout)
+PT24-8 CLASS SUMMARY: {'event-silent': 0, 'wake-lost': 0, 'wake-flowing': 22}
+SWEEP CLASSIFY DONE
