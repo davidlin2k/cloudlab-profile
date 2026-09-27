@@ -1,11 +1,15 @@
-# p1-MIGRATE (DRAFT -- the separate investigation DR-010 orders; NOT
-# frozen, NOT run until the PI approves)
+# p1-MIGRATE (the separate investigation DR-010 orders)
 
-Status: DRAFT for the PI's review. Per DR-010's negative branch:
-"Write it up as a negative result, keep the placement measurements,
-and open a separate investigation into their cause." This spec is
-that investigation's pre-registration DRAFT. It does not run until
-the PI approves the design.
+Frozen 2026-09-27 ~00:0xZ, before any run. Source:
+decisions/DR-010.md's negative branch ("open a separate investigation
+into their cause") -- the PI's standing rule authorizes executing
+queued work; the draft was committed 0366875 and is now frozen
+verbatim below. Arm M-B pins to cpu 46 (the pin46 wire). The
+wake-loss trace reuses metastab's TRACE=1 machinery (trace-cmd: the
+napi/sched/irq events + the function probes), joined with the
+readiness probe by mono time at analysis.
+
+---
 
 ## The question (one variable)
 
