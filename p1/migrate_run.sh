@@ -1,10 +1,11 @@
 #!/bin/bash
-# p1/migrate_run.sh -- one p1-MIGRATE cell (specs/p1-MIGRATE.md).
-# Usage: migrate_run.sh <cell> <MA|MB>   MA=unpin(migrating) MB=pin46
+# p1/migrate_run.sh -- one p1-MIGRATE cell. Usage: migrate_run.sh <cell> <MA|MB|HOP>
 set -u
-CELL="${1:?cellname}"; ARM="${2:?arm MA|MB}"
+CELL="${1:?cellname}"; ARM="${2:?arm MA|MB|HOP}"
 WIRE=unpin
 [ "$ARM" = MB ] && WIRE=pin46
+[ "$ARM" = HOP ] && WIRE=pin10   # the hopper takes over the affinity
+                                 # right after the wiring pins to 10
 IFACE=enp195s0np0
 IRQ=$(grep -E 'mlx5_comp7@pci:0000:c3' /proc/interrupts | awk '{print $1}' | tr -d ':')
 D=/root/p1/migrate/$CELL
@@ -31,6 +32,11 @@ export RQ1_NAPI_PID RQ1_CH="$CH"
 
 # the readiness probe covers the whole cell (TRACE=1 lengthens it)
 (taskset -c 0 python3 /root/p1/rq1_probe.py "$CH" "$D/probe.csv" 330 "$RQ1_NAPI_PID" > "$D/probe.meta" 2>&1 &)
+
+if [ "$ARM" = HOP ]; then
+  # the forced-migration arm: pin + hop 10<->46 every 100 ms
+  (python3 /root/p1/hopper.py "$RQ1_NAPI_PID" 10 46 100 400 "$D/hops.csv" > "$D/hopper.out" 2>&1 &)
+fi
 
 # the cell WITH the wake trace (metastab TRACE=1: napi/sched/irq events)
 TRACE=1 bash /root/p1/metastab.sh M 10 "$CELL" "$WIRE" 1 8 158000 20 >> "$D/cell.log" 2>&1
