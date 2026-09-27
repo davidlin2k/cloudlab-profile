@@ -1,0 +1,49 @@
+== MA-1 pid=467120 napi=0xff3dad3749e4e710
+probe: 256431 samples, 25 gaps, 8 stranded (owned throughout)
+CLASS SUMMARY: {'event-silent': 7, 'wake-lost': 0, 'wake-flowing': 1}
+== MA-2 pid=467120 napi=0xff3dad3749e4e710
+probe: 175674 samples, 44 gaps, 29 stranded (owned throughout)
+CLASS SUMMARY: {'event-silent': 12, 'wake-lost': 4, 'wake-flowing': 13}
+== MA-3 pid=467120 napi=0xff3dad3749e4e710
+probe: 218655 samples, 46 gaps, 35 stranded (owned throughout)
+CLASS SUMMARY: {'event-silent': 25, 'wake-lost': 0, 'wake-flowing': 10}
+== MA-4 pid=467120 napi=0xff3dad3749e4e710
+probe: 271983 samples, 48 gaps, 37 stranded (owned throughout)
+CLASS SUMMARY: {'event-silent': 25, 'wake-lost': 0, 'wake-flowing': 12}
+== MA-5 pid=467120 napi=0xff3dad3749e4e710
+probe: 252886 samples, 47 gaps, 33 stranded (owned throughout)
+CLASS SUMMARY: {'event-silent': 29, 'wake-lost': 0, 'wake-flowing': 4}
+== MA-6 pid=467120 napi=0xff3dad3749e4e710
+probe: 254319 samples, 50 gaps, 35 stranded (owned throughout)
+CLASS SUMMARY: {'event-silent': 22, 'wake-lost': 0, 'wake-flowing': 13}
+== MA-7 pid=467120 napi=0xff3dad3749e4e710
+probe: 257355 samples, 48 gaps, 36 stranded (owned throughout)
+CLASS SUMMARY: {'event-silent': 23, 'wake-lost': 0, 'wake-flowing': 13}
+== MA-8 pid=467120 napi=0xff3dad3749e4e710
+probe: 253344 samples, 44 gaps, 33 stranded (owned throughout)
+CLASS SUMMARY: {'event-silent': 24, 'wake-lost': 0, 'wake-flowing': 9}
+== MB-1 pid=467120 napi=0xff3dad3749e4e710
+probe: 299794 samples, 21 gaps, 3 stranded (owned throughout)
+CLASS SUMMARY: {'event-silent': 0, 'wake-lost': 0, 'wake-flowing': 3}
+== MB-2 pid=467120 napi=0xff3dad3749e4e710
+probe: 277519 samples, 34 gaps, 21 stranded (owned throughout)
+CLASS SUMMARY: {'event-silent': 16, 'wake-lost': 0, 'wake-flowing': 5}
+== MB-3 pid=467120 napi=0xff3dad3749e4e710
+probe: 200907 samples, 28 gaps, 12 stranded (owned throughout)
+CLASS SUMMARY: {'event-silent': 10, 'wake-lost': 0, 'wake-flowing': 2}
+== MB-4 pid=467120 napi=0xff3dad3749e4e710
+probe: 188457 samples, 23 gaps, 8 stranded (owned throughout)
+CLASS SUMMARY: {'event-silent': 7, 'wake-lost': 0, 'wake-flowing': 1}
+== MB-5 pid=467120 napi=0xff3dad3749e4e710
+probe: 178213 samples, 24 gaps, 5 stranded (owned throughout)
+CLASS SUMMARY: {'event-silent': 5, 'wake-lost': 0, 'wake-flowing': 0}
+== MB-6 pid=467120 napi=0xff3dad3749e4e710
+probe: 164865 samples, 23 gaps, 5 stranded (owned throughout)
+CLASS SUMMARY: {'event-silent': 5, 'wake-lost': 0, 'wake-flowing': 0}
+== MB-7 pid=467120 napi=0xff3dad3749e4e710
+probe: 164941 samples, 21 gaps, 5 stranded (owned throughout)
+CLASS SUMMARY: {'event-silent': 3, 'wake-lost': 0, 'wake-flowing': 2}
+== MB-8 pid=467120 napi=0xff3dad3749e4e710
+probe: 242997 samples, 23 gaps, 3 stranded (owned throughout)
+CLASS SUMMARY: {'event-silent': 0, 'wake-lost': 0, 'wake-flowing': 3}
+V1 CLASSIFY DONE

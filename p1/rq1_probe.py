@@ -24,6 +24,9 @@ VMLINUX = "/scratch/kbuild/linux/vmlinux"
 RQ = CH                    # mlx5e_channel.rq = 0
 RQ_STATS_PTR = RQ + 256    # mlx5e_rq.stats = mlx5e_rq_stats* (POINTER)
 CQ = RQ + 320              # mlx5e_rq.cq
+ARM_SN = CQ + 56 + 100     # mlx5_cq.mcq -> mlx5_core_cq.arm_sn
+ARM_DB = CQ + 56 + 16      # mlx5_core_cq.arm_db (the doorbell record:
+                           # sn << 28 | cmd | ci, big-endian)
 CC = CQ + 32               # mlx5_cqwq.cc
 FBC_SZ_M1 = CQ + 8         # mlx5_frag_buf_ctrl.sz_m1
 FBC_FRAGS = CQ + 0         # mlx5_frag_buf_ctrl.frags
@@ -73,12 +76,18 @@ t0 = time.time()
 n = 0
 lat_sum = 0.0
 with open(OUT, "w") as f:
-    f.write("ts_ms,cc,own,phase,owned,packets,events,arm,state,cpu\n")
+    f.write("ts_ms,cc,own,phase,owned,packets,events,arm,state,cpu,"
+            "arm_sn,adb_sn\n")
     logsz = u(FBC_LOGSZ, 1)
     lfs = u(FBC_LFS, 1)
     while time.time() - t0 < DUR:
         t1 = time.time()
         cc = u(CC, 4)
+        arm_sn = u(ARM_SN, 4)
+        # the arm doorbell record's sn bits (BE: sn << 28 | cmd | ci)
+        adb = u(ARM_DB, 4)
+        adb_sn = (int.from_bytes(adb.to_bytes(4, "little"), "big")
+                  >> 28) & 3
         op_own, phase = owned_at_cc(cc, logsz, lfs)
         stats_p = u(RQ_STATS_PTR, 8)
         pkt = u(stats_p, 8) if stats_p > 0xFF00000000000000 else 0
@@ -87,7 +96,8 @@ with open(OUT, "w") as f:
         arm = u(chst_p + 16, 8) if chst_p > 0xFF00000000000000 else 0
         st = u(NAPI_STATE, 1)
         f.write(f"{(t1 - t0) * 1000:.1f},{cc},{op_own},{phase},"
-                f"{op_own & 1 == phase},{pkt},{ev},{arm},{st},{thread_cpu()}\n")
+                f"{op_own & 1 == phase},{pkt},{ev},{arm},{st},"
+                f"{thread_cpu()},{arm_sn},{adb_sn}\n")
         n += 1
         # spin-wait to the next millisecond boundary (sleep granularity
         # is ~50-200 us; the achieved rate is reported on exit)

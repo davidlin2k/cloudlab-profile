@@ -21,3 +21,8 @@ k2/k2_rx
 wk/*.trace
 wk/*.txt
 *.pcap
+
+# raw run dirs (kept on node + local disk; parsed CSVs are committed)
+analysis/w3main/
+analysis/w3knee/
+analysis/t2/

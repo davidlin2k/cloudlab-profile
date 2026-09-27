@@ -1,3 +1,16 @@
+# SUPERSEDED -- DO NOT SEND (DR-011, 2026-09-27)
+
+This draft is retired by decisions/DR-011.md: "The disclosure draft
+is wrong and must not go anywhere. 'Dead until reset' is refuted, the
+default kernel is clean, and the rate is low. If a report goes out,
+it goes publicly to netdev as a liveness bug once the mechanism is
+known, not privately to security@kernel.org." The body below is kept
+only as the historical record of what we believed before the RQ1
+negative branch (decisions/DR-010.md, notes/p1-CAUSAL-1.md,
+anomalies/AN-006D.md).
+
+---
+
 # DRAFT disclosure v1 -- mlx5: threaded-NAPI affinity bailout parks a
 # budget-exhausted poll with a full completion queue (metastable
 # receive trickle / effective DoS)

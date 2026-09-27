@@ -113,6 +113,7 @@ else:
 print("== gap classification (DR-011 item 3)")
 cls = {"event-silent": 0, "wake-lost": 0, "wake-flowing": 0}
 for a, b in stranded:
+    b = min(b, len(rows) - 1)  # the trailing gap's end index is len(rows)
     t0 = rows[a]["ts"] + off if off else None
     t1 = rows[b]["ts"] + off if off else None
     if t0 is None:
@@ -139,6 +140,7 @@ print(f"CLASS SUMMARY: {cls}")
 
 # ---- the per-gap detail (the wake candidates, cpu-8-filtered) -------
 for a, b in stranded:
+    b = min(b, len(rows) - 1)  # the trailing gap's end index is len(rows)
     t0 = rows[a]["ts"] + off if off else None
     t1 = rows[b]["ts"] + off if off else None
     if t0 is None:

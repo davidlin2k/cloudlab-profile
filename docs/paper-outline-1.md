@@ -3,6 +3,27 @@
 Companion to decisions/DR-010.md (the run order) and
 decisions/DR-009A-caution.md (the calibration). RQ1 gates everything.
 
+## UPDATE 2026-09-27 (per DR-011): the outline is revised to the
+## current facts
+
+RQ1's negative branch fired: the contract/restart-strategy mechanism
+is refuted (arm A 0/8 with the pin verified; notes/p1-CAUSAL-1.md)
+and is off the paper. The surviving, instrument-verified finding:
+threaded NAPI with an unpinned thread under sustained overload
+strands ready receive work for tens of seconds in a minority of
+overload episodes; it recovers on its own; pinning prevents it; the
+default kernel is unaffected. The live lead is the migration race
+(the forced-hop investigation, specs/p1-MIGRATE.md v2, one-week
+time-box per DR-011). The value scenarios: (a) the race lands in the
+core threaded-NAPI code -> it affects every threaded-NAPI driver ->
+the strongest version; (b) it lands in mlx5 -> a driver bug report
+with a fix; (c) no race found -> a short note + a netdev liveness
+bug report. The venue: workshop-level / bug report unless the
+core-code scenario lands. The RQ list below is the OLD framing,
+superseded by the DR-011 program (DR-011 items 2-4).
+
+---
+
 ---
 
 # Paper outline (internal, draft v0)
