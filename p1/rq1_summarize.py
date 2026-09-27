@@ -16,7 +16,7 @@ pat = sys.argv[1] if len(sys.argv) > 1 else "*"
 min_gap = float(sys.argv[2]) if len(sys.argv) > 2 else 200.0
 base = sys.argv[3] if len(sys.argv) > 3 else "/root/p1/rq1"
 
-print("cell wedged probe gaps owned_gaps ready_unserved_s cpu_top")
+print("cell wedged probe gaps owned_gaps ready_unserved_s cpu_top verdict")
 for d in sorted(glob.glob(f"{base}/{pat}")):
     cell = os.path.basename(d)
     csvp = os.path.join(d, "probe.csv")
@@ -56,4 +56,15 @@ for d in sorted(glob.glob(f"{base}/{pat}")):
             rus += (seg[-1]["ts"] - seg[0]["ts"]) / 1000.0
     cpus = collections.Counter(r["cpu"] for r in rows)
     top = ",".join(f"{c}x{n}" for c, n in cpus.most_common(3))
-    print(f"{cell} {wedged} {probe} {len(gaps)} {og} {rus:.1f} {top}")
+    # DR-012 step 4: the tightened clean definition. A cell is CLEAN
+    # only with ZERO stranded (owned-throughout) gaps; any stranded
+    # gap without the full wedge is TRICKLING (the HOP-27/30 lesson:
+    # "clean while showing 42 and 27 stranded gaps" is no longer
+    # callable clean).
+    if wedged == "YES":
+        verdict = "WEDGED"
+    elif og > 0:
+        verdict = "TRICKLING"
+    else:
+        verdict = "CLEAN"
+    print(f"{cell} {wedged} {probe} {len(gaps)} {og} {rus:.1f} {top} {verdict}")

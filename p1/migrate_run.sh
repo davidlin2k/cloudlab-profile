@@ -8,6 +8,8 @@ WIRE=unpin
                                  # right after the wiring pins to 10
 [ "$ARM" = SMOKE ] && WIRE=pin10 # the static healthy-queue smoke (the
                                  # DR-012 step-2 logger sanity cell)
+[ "$ARM" = SWEEP ] && WIRE="pin${SWEEP_CPU:?SWEEP_CPU env not set}"
+                                 # the DR-012 step-3 locality sweep
 IFACE=enp195s0np0
 IRQ=$(grep -E 'mlx5_comp7@pci:0000:c3' /proc/interrupts | awk '{print $1}' | tr -d ':')
 D=/root/p1/migrate/$CELL
