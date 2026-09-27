@@ -24,7 +24,7 @@ import time
 CH = int(sys.argv[1], 16)
 OUT = sys.argv[2]
 DUR = float(sys.argv[3]) if len(sys.argv) > 3 else 400.0
-TPID = int(sys.argv[4]) if len(sys.argv) > 4 else None
+TPID = int(sys.argv[4]) if len(sys.argv) > 4 and sys.argv[4] else None
 EQ = int(sys.argv[5], 16) if len(sys.argv) > 5 and sys.argv[5] else 0
 IRQN = sys.argv[6] if len(sys.argv) > 6 and sys.argv[6] else None
 IFACE = sys.argv[7] if len(sys.argv) > 7 and sys.argv[7] else "enp195s0np0"
@@ -131,7 +131,8 @@ def eq_state():
         if (owner ^ exp) & 1 == 0:
             devw |= 1 << i
             if i == 0:
-                cqn = int.from_bytes(u(eqe + 32, 4).to_bytes(4, "little"),
+                # ev_data @eqe+32; mlx5_eqe_comp.cqn @ union+24 -> eqe+56
+                cqn = int.from_bytes(u(eqe + 56, 4).to_bytes(4, "little"),
                                      "big") & 0xFFFFFF
                 cqn0 = cqn
     return eq_ci, devw, cqn0
