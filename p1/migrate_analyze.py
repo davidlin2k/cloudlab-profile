@@ -106,8 +106,12 @@ else:
     off = None
     print("ALIGNMENT FAILED: no cc jumps or no polls to match")
 
-# ---- the lost-wake scan ---------------------------------------------
-lost = []
+# ---- the DR-011 gap classification (counts only) --------------------
+# per stranded gap: event-silent (0 ch7 wake attempts in the window),
+# wake-lost (wakeups >> switchins: the wake was issued, the thread
+# never ran), wake-flowing (the thread runs, no progress).
+print("== gap classification (DR-011 item 3)")
+cls = {"event-silent": 0, "wake-lost": 0, "wake-flowing": 0}
 for a, b in stranded:
     t0 = rows[a]["ts"] + off if off else None
     t1 = rows[b]["ts"] + off if off else None
@@ -116,7 +120,32 @@ for a, b in stranded:
     scheds = [e for e in irq_sched if t0 - 0.01 <= e[0] <= t1 + 0.01]
     wakes = [e for e in th_wake if t0 - 0.01 <= e[0] <= t1 + 0.01]
     runs = [e for e in th_in if t0 - 0.01 <= e[0] <= t1 + 0.01]
-    migs = [e for e in th_mig if t0 - 0.05 <= e[0] <= t1 + 0.05]
+    if len(scheds) == 0:
+        cls["event-silent"] += 1
+        tag = "event-silent (0 wake attempts)"
+    elif len(runs) < 0.2 * max(len(wakes), 1):
+        cls["wake-lost"] += 1
+        tag = f"wake-lost (wakes={len(wakes)} switchins={len(runs)})"
+    else:
+        cls["wake-flowing"] += 1
+        tag = (f"wake-flowing (wakes={len(wakes)} "
+               f"switchins={len(runs)} polls_in_gap="
+               f"{sum(1 for e in ch_polls if t0 <= e[0] <= t1)})")
+    print(f"GAP t={t0:.3f}..{t1:.3f} dur={(t1 - t0) * 1000:.0f}ms "
+          f"napi_schedule={len(scheds)} migrations="
+          f"{len([e for e in th_mig if t0 - 0.05 <= e[0] <= t1 + 0.05])}"
+          f" -> {tag}")
+print(f"CLASS SUMMARY: {cls}")
+
+# ---- the per-gap detail (the wake candidates, cpu-8-filtered) -------
+for a, b in stranded:
+    t0 = rows[a]["ts"] + off if off else None
+    t1 = rows[b]["ts"] + off if off else None
+    if t0 is None:
+        break
+    scheds = [e for e in irq_sched if t0 - 0.01 <= e[0] <= t1 + 0.01]
+    wakes = [e for e in th_wake if t0 - 0.01 <= e[0] <= t1 + 0.01]
+    runs = [e for e in th_in if t0 - 0.01 <= e[0] <= t1 + 0.01]
     status = []
     for s in scheds:
         near_wake = any(0 <= w[0] - s[0] <= WAKE_US / 1000 for w in wakes)
@@ -126,11 +155,14 @@ for a, b in stranded:
                 f"LOST-WAKE cand: __napi_schedule @{s[0]:.6f} cpu{s[1]} "
                 f"-> no thread wakeup within {WAKE_US}us, no switch-in "
                 f"within {WAKE_MS}ms")
-    print(f"GAP t={t0:.3f}..{t1:.3f} dur={t1 - t0:.1f}s "
+    print(f"GAP t={t0:.3f}..{t1:.3f} dur={(t1 - t0) * 1000:.0f}ms "
           f"napi_schedule={len(scheds)} thread_wakeups={len(wakes)} "
-          f"switchins={len(runs)} migrations={len(migs)}")
-    for s in status:
+          f"switchins={len(runs)} migrations="
+          f"{len([e for e in th_mig if t0 - 0.05 <= e[0] <= t1 + 0.05])}")
+    for s in status[:20]:
         print("   " + s)
+    if len(status) > 20:
+        print(f"   ... {len(status) - 20} more candidates")
 
 migs_all = sorted({e[0] for e in th_mig})
 print(f"thread migrations total: {len(th_mig)}")
