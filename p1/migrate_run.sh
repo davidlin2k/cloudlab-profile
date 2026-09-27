@@ -34,8 +34,19 @@ case "$RQ1_NAPI_PID" in ''|*[!0-9]*) echo "NAPI-PID-FAIL"; exit 1;; esac
 echo "ch7=$CH napi_pid=$RQ1_NAPI_PID"
 export RQ1_NAPI_PID RQ1_CH="$CH"
 
-# the readiness probe covers the whole cell (TRACE=1 lengthens it)
-(taskset -c 0 python3 /root/p1/rq1_probe.py "$CH" "$D/probe.csv" 330 "$RQ1_NAPI_PID" > "$D/probe.meta" 2>&1 &)
+# the readiness probe covers the whole cell (TRACE=1 lengthens it).
+# T1A=1 (DR-013): the probe gets the eq pointer + irqn so the CSV
+# carries the comp-EQ state columns (specs/p1-T1A.md).
+PROBE_ARGS=("$CH" "$D/probe.csv" 330 "$RQ1_NAPI_PID")
+if [ "${T1A:-0}" = 1 ]; then
+  EQA=$(sudo python3 /root/p1/eqdump.py "$CH" 2>/dev/null \
+        | grep -oE 'EQ=0x[0-9a-f]+' | cut -d= -f2)
+  case "$EQA" in
+    0x[0-9a-f]*) PROBE_ARGS+=("$EQA" "$IRQ");;
+    *) echo "T1A-EQ-FAIL eq='$EQA'"; PROBE_ARGS+=(0 "");;
+  esac
+fi
+(taskset -c 0 python3 /root/p1/rq1_probe.py "${PROBE_ARGS[@]}" > "$D/probe.meta" 2>&1 &)
 
 if [ "$ARM" = HOP ]; then
   # the forced-migration arm: pin + hop 10<->46 every 100 ms
