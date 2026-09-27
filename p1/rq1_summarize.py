@@ -14,9 +14,10 @@ import collections
 
 pat = sys.argv[1] if len(sys.argv) > 1 else "*"
 min_gap = float(sys.argv[2]) if len(sys.argv) > 2 else 200.0
+base = sys.argv[3] if len(sys.argv) > 3 else "/root/p1/rq1"
 
 print("cell wedged probe gaps owned_gaps ready_unserved_s cpu_top")
-for d in sorted(glob.glob(f"/root/p1/rq1/{pat}")):
+for d in sorted(glob.glob(f"{base}/{pat}")):
     cell = os.path.basename(d)
     csvp = os.path.join(d, "probe.csv")
     env = f"/root/p1/metastab/M1-{cell}/cell.env"
