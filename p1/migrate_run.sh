@@ -13,7 +13,7 @@ rm -rf "$D"; mkdir -p "$D"
 exec >> "$D/cell.log" 2>&1
 echo "MIGRATE CELL $CELL ($ARM wire=$WIRE) START $(date -u +%FT%TZ)"
 
-bash /root/p1/preflight.sh || { echo PREFLIGHT-FAIL; exit 1; }
+bash /root/p1/preflight.sh || { echo PREFLIGHT-RETRY; sleep 60; bash /root/p1/preflight.sh || { echo PREFLIGHT-FAIL; exit 1; }; }
 
 CH=$(sudo python3 /tmp/b2_dump.py 7 0 1 2>/dev/null | awk '/^== ch7 /{print $5; exit}')
 case "$CH" in 0x[0-9a-f]*) ;; *) echo "DISCOVERY-FAIL ch='$CH'"; exit 1;; esac
