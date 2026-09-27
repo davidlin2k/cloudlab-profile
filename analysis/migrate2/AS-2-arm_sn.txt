@@ -1,0 +1,43 @@
+probe: 226637 samples, 39 flat gaps >= 200 ms
+cell gaps: start_s end_s dur_ms relation(equal/lag1/other) stale_candidate class
+GAP 0.000 6.652 6652ms 3326/0/0 clean unclassified
+GAP 6.845 7.061 216ms 109/0/0 clean unclassified
+GAP 10.846 28.239 17393ms 8699/0/0 clean event-silent
+GAP 28.543 40.049 11506ms 5758/0/0 clean event-silent
+GAP 40.053 45.079 5026ms 2514/0/0 clean event-silent
+GAP 51.834 56.659 4825ms 4824/0/0 clean unclassified
+GAP 56.660 61.092 4432ms 4430/0/0 clean unclassified
+GAP 61.093 73.060 11968ms 11958/0/0 clean unclassified
+GAP 73.253 73.469 216ms 217/0/0 clean unclassified
+GAP 103.524 105.063 1539ms 1539/0/0 clean unclassified
+GAP 105.064 110.068 5004ms 5003/0/0 clean unclassified
+GAP 110.071 110.435 364ms 365/0/0 clean unclassified
+GAP 110.436 111.106 670ms 670/0/0 clean unclassified
+GAP 111.107 115.493 4386ms 4385/0/0 clean unclassified
+GAP 115.494 117.406 1913ms 1913/0/0 clean unclassified
+GAP 125.408 145.520 20112ms 20100/0/0 clean unclassified
+GAP 173.099 176.696 3597ms 1800/0/0 clean unclassified
+GAP 176.700 180.483 3783ms 1893/0/0 clean unclassified
+GAP 184.057 185.107 1050ms 526/0/0 clean wake-flowing
+GAP 185.111 190.111 5000ms 2504/0/0 clean wake-flowing
+GAP 190.115 195.112 4997ms 2501/0/0 clean wake-flowing
+GAP 195.117 200.112 4995ms 2500/0/0 clean event-silent
+GAP 200.116 205.113 4997ms 2501/0/0 clean event-silent
+GAP 205.118 210.113 4995ms 2499/0/0 clean event-silent
+GAP 210.117 215.113 4996ms 2502/0/0 clean event-silent
+GAP 215.117 220.118 5001ms 2502/0/0 clean event-silent
+GAP 220.122 225.119 4997ms 2501/0/0 clean event-silent
+GAP 225.120 230.117 4997ms 2502/0/0 clean event-silent
+GAP 230.121 235.121 5000ms 2501/0/0 clean event-silent
+GAP 235.126 240.122 4996ms 2499/0/0 clean event-silent
+GAP 240.127 245.121 4994ms 2499/0/0 clean event-silent
+GAP 245.125 250.122 4997ms 2501/0/0 clean event-silent
+GAP 250.128 255.122 4994ms 2498/0/0 clean event-silent
+GAP 255.127 260.125 4998ms 2500/0/0 clean event-silent
+GAP 260.129 262.154 2025ms 1015/0/0 clean event-silent
+GAP 262.158 263.179 1021ms 512/0/0 clean event-silent
+GAP 263.183 264.202 1019ms 512/0/0 clean event-silent
+GAP 264.206 270.127 5921ms 2963/0/0 clean event-silent
+GAP 270.131 329.997 59866ms 29941/0/0 clean event-silent
+SUMMARY: gaps=39 stale_cand=0 clean=39 mixed=0 unclassed=15
+DECISION INPUT: stale candidates among event-silent gaps = the STALE-CAND rows whose class is event-silent

@@ -1,0 +1,49 @@
+probe: 251652 samples, 23 gaps, 21 stranded (owned throughout)
+trace: 5841680 events
+ch7 polls=304141 thread_wakeups=300741 thread_switchins=300629 migrations=605 __napi_schedule=302680
+probe->trace offset: 68722.921 s (median of 50, spread 0.039 s)
+== gap classification (DR-011 item 3)
+GAP t=68733.438..68734.494 dur=1056ms napi_schedule=0 migrations=0 -> event-silent (0 wake attempts)
+GAP t=68734.494..68739.492 dur=4998ms napi_schedule=0 migrations=0 -> event-silent (0 wake attempts)
+GAP t=68739.498..68744.494 dur=4996ms napi_schedule=0 migrations=0 -> event-silent (0 wake attempts)
+GAP t=68744.494..68749.495 dur=5001ms napi_schedule=0 migrations=0 -> event-silent (0 wake attempts)
+GAP t=68749.495..68754.495 dur=5000ms napi_schedule=0 migrations=0 -> event-silent (0 wake attempts)
+GAP t=68754.500..68759.496 dur=4996ms napi_schedule=0 migrations=0 -> event-silent (0 wake attempts)
+GAP t=68759.496..68764.500 dur=5004ms napi_schedule=29515 migrations=34 -> wake-flowing (wakes=29437 switchins=29429 polls_in_gap=30193)
+GAP t=68764.500..68769.499 dur=4999ms napi_schedule=28 migrations=0 -> wake-flowing (wakes=28 switchins=28 polls_in_gap=28)
+GAP t=68769.505..68774.501 dur=4996ms napi_schedule=2 migrations=1 -> wake-flowing (wakes=2 switchins=2 polls_in_gap=2)
+GAP t=68774.501..68779.504 dur=5003ms napi_schedule=2 migrations=1 -> wake-flowing (wakes=2 switchins=2 polls_in_gap=2)
+GAP t=68779.504..68784.503 dur=4999ms napi_schedule=28 migrations=1 -> wake-flowing (wakes=28 switchins=28 polls_in_gap=28)
+GAP t=68784.505..68789.504 dur=4999ms napi_schedule=2 migrations=0 -> wake-flowing (wakes=2 switchins=2 polls_in_gap=2)
+GAP t=68789.504..68794.504 dur=5000ms napi_schedule=2 migrations=0 -> wake-flowing (wakes=2 switchins=2 polls_in_gap=2)
+GAP t=68794.504..68799.505 dur=5001ms napi_schedule=29 migrations=0 -> wake-flowing (wakes=29 switchins=29 polls_in_gap=29)
+GAP t=68799.509..68804.509 dur=5000ms napi_schedule=2 migrations=0 -> wake-flowing (wakes=2 switchins=2 polls_in_gap=2)
+GAP t=68804.509..68809.507 dur=4998ms napi_schedule=2 migrations=0 -> wake-flowing (wakes=2 switchins=2 polls_in_gap=2)
+GAP t=68809.507..68811.535 dur=2028ms napi_schedule=0 migrations=0 -> event-silent (0 wake attempts)
+GAP t=68811.536..68812.560 dur=1024ms napi_schedule=0 migrations=0 -> event-silent (0 wake attempts)
+GAP t=68812.562..68813.584 dur=1022ms napi_schedule=0 migrations=0 -> event-silent (0 wake attempts)
+GAP t=68813.584..68819.509 dur=5925ms napi_schedule=28 migrations=0 -> wake-flowing (wakes=28 switchins=28 polls_in_gap=30)
+GAP t=68819.509..68968.527 dur=149018ms napi_schedule=64 migrations=10 -> wake-flowing (wakes=64 switchins=63 polls_in_gap=66)
+CLASS SUMMARY: {'event-silent': 9, 'wake-lost': 0, 'wake-flowing': 12}
+GAP t=68733.438..68734.494 dur=1056ms napi_schedule=0 thread_wakeups=0 switchins=0 migrations=0
+GAP t=68734.494..68739.492 dur=4998ms napi_schedule=0 thread_wakeups=0 switchins=0 migrations=0
+GAP t=68739.498..68744.494 dur=4996ms napi_schedule=0 thread_wakeups=0 switchins=0 migrations=0
+GAP t=68744.494..68749.495 dur=5001ms napi_schedule=0 thread_wakeups=0 switchins=0 migrations=0
+GAP t=68749.495..68754.495 dur=5000ms napi_schedule=0 thread_wakeups=0 switchins=0 migrations=0
+GAP t=68754.500..68759.496 dur=4996ms napi_schedule=0 thread_wakeups=0 switchins=0 migrations=0
+GAP t=68759.496..68764.500 dur=5004ms napi_schedule=29515 thread_wakeups=29437 switchins=29429 migrations=34
+GAP t=68764.500..68769.499 dur=4999ms napi_schedule=28 thread_wakeups=28 switchins=28 migrations=0
+GAP t=68769.505..68774.501 dur=4996ms napi_schedule=2 thread_wakeups=2 switchins=2 migrations=1
+GAP t=68774.501..68779.504 dur=5003ms napi_schedule=2 thread_wakeups=2 switchins=2 migrations=1
+GAP t=68779.504..68784.503 dur=4999ms napi_schedule=28 thread_wakeups=28 switchins=28 migrations=1
+GAP t=68784.505..68789.504 dur=4999ms napi_schedule=2 thread_wakeups=2 switchins=2 migrations=0
+GAP t=68789.504..68794.504 dur=5000ms napi_schedule=2 thread_wakeups=2 switchins=2 migrations=0
+GAP t=68794.504..68799.505 dur=5001ms napi_schedule=29 thread_wakeups=29 switchins=29 migrations=0
+GAP t=68799.509..68804.509 dur=5000ms napi_schedule=2 thread_wakeups=2 switchins=2 migrations=0
+GAP t=68804.509..68809.507 dur=4998ms napi_schedule=2 thread_wakeups=2 switchins=2 migrations=0
+GAP t=68809.507..68811.535 dur=2028ms napi_schedule=0 thread_wakeups=0 switchins=0 migrations=0
+GAP t=68811.536..68812.560 dur=1024ms napi_schedule=0 thread_wakeups=0 switchins=0 migrations=0
+GAP t=68812.562..68813.584 dur=1022ms napi_schedule=0 thread_wakeups=0 switchins=0 migrations=0
+GAP t=68813.584..68819.509 dur=5925ms napi_schedule=28 thread_wakeups=28 switchins=28 migrations=0
+GAP t=68819.509..68968.527 dur=149018ms napi_schedule=64 thread_wakeups=64 switchins=63 migrations=10
+thread migrations total: 605

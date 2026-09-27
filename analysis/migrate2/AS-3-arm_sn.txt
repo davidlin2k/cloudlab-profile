@@ -1,0 +1,27 @@
+probe: 251652 samples, 23 flat gaps >= 200 ms
+cell gaps: start_s end_s dur_ms relation(equal/lag1/other) stale_candidate class
+GAP 0.000 3.152 3152ms 1576/0/0 clean unclassified
+GAP 3.156 6.943 3787ms 1893/0/0 clean unclassified
+GAP 10.517 11.569 1052ms 528/0/0 clean event-silent
+GAP 11.573 16.567 4994ms 2499/0/0 clean event-silent
+GAP 16.577 21.569 4992ms 2499/0/0 clean event-silent
+GAP 21.573 26.573 5000ms 2503/0/0 clean event-silent
+GAP 26.574 31.573 4999ms 2500/0/0 clean event-silent
+GAP 31.579 36.574 4995ms 2501/0/0 clean event-silent
+GAP 36.575 41.575 5000ms 2501/0/0 clean event-silent
+GAP 41.579 46.574 4995ms 2499/0/0 clean wake-flowing
+GAP 46.584 51.576 4992ms 2499/0/0 clean wake-flowing
+GAP 51.580 56.579 4999ms 2501/0/0 clean wake-flowing
+GAP 56.583 61.578 4995ms 2499/0/0 clean wake-flowing
+GAP 61.584 66.579 4995ms 2500/0/0 clean wake-flowing
+GAP 66.583 71.582 4999ms 2501/0/0 clean wake-flowing
+GAP 71.583 76.583 5000ms 2499/0/0 clean wake-flowing
+GAP 76.588 81.584 4996ms 2500/0/0 clean wake-flowing
+GAP 81.588 86.585 4997ms 2501/0/0 clean wake-flowing
+GAP 86.586 88.610 2024ms 1013/0/0 clean wake-flowing
+GAP 88.615 89.635 1020ms 512/0/0 clean event-silent
+GAP 89.641 90.662 1021ms 510/0/0 clean event-silent
+GAP 90.663 96.587 5924ms 2963/0/0 clean event-silent
+GAP 96.588 245.605 149016ms 119012/0/0 clean wake-flowing
+SUMMARY: gaps=23 stale_cand=0 clean=23 mixed=0 unclassed=2
+DECISION INPUT: stale candidates among event-silent gaps = the STALE-CAND rows whose class is event-silent

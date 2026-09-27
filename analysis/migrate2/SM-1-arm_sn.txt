@@ -1,0 +1,21 @@
+probe: 329785 samples, 17 flat gaps >= 200 ms
+cell gaps: start_s end_s dur_ms relation(equal/lag1/other) stale_candidate class
+GAP 0.000 0.508 508ms 509/0/0 clean unclassified
+GAP 0.509 5.561 5052ms 5039/0/0 clean unclassified
+GAP 5.562 7.610 2048ms 2048/0/0 clean unclassified
+GAP 149.968 170.905 20937ms 20924/0/0 clean unclassified
+GAP 170.906 171.451 545ms 546/0/0 clean unclassified
+GAP 201.456 210.581 9126ms 9120/0/0 clean unclassified
+GAP 210.582 210.919 336ms 337/0/0 clean unclassified
+GAP 210.920 215.582 4662ms 4661/0/0 clean unclassified
+GAP 215.583 235.588 20005ms 19993/0/0 clean unclassified
+GAP 235.589 245.593 10004ms 9998/0/0 clean unclassified
+GAP 245.594 265.935 20341ms 20331/0/0 clean unclassified
+GAP 265.936 285.941 20005ms 19994/0/0 clean unclassified
+GAP 286.012 291.014 5001ms 4998/0/0 clean unclassified
+GAP 291.014 304.980 13966ms 13958/0/0 clean unclassified
+GAP 304.981 312.172 7191ms 7188/0/0 clean unclassified
+GAP 312.173 315.618 3445ms 3444/0/0 clean unclassified
+GAP 315.619 330.000 14381ms 14372/0/0 clean unclassified
+SUMMARY: gaps=17 stale_cand=0 clean=17 mixed=0 unclassed=17
+DECISION INPUT: stale candidates among event-silent gaps = the STALE-CAND rows whose class is event-silent

@@ -1,0 +1,8 @@
+probe: 329785 samples, 17 gaps, 0 stranded (owned throughout)
+trace: 30546848 events
+ch7 polls=1702176 thread_wakeups=1648312 thread_switchins=1648069 migrations=15 __napi_schedule=1650684
+probe->trace offset: 67623.563 s (median of 50, spread 114.195 s)
+WARNING: alignment spread > 2 s -- treat the join as approximate
+== gap classification (DR-011 item 3)
+CLASS SUMMARY: {'event-silent': 0, 'wake-lost': 0, 'wake-flowing': 0}
+thread migrations total: 15

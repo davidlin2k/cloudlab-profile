@@ -1,0 +1,28 @@
+probe: 304756 samples, 17 gaps, 10 stranded (owned throughout)
+trace: 1256724 events
+ch7 polls=44150 thread_wakeups=43134 thread_switchins=43123 migrations=360 __napi_schedule=43319
+probe->trace offset: 68179.245 s (median of 50, spread 0.046 s)
+== gap classification (DR-011 item 3)
+GAP t=68190.645..68339.137 dur=148492ms napi_schedule=32701 migrations=44 -> wake-flowing (wakes=32606 switchins=32600 polls_in_gap=33494)
+GAP t=68339.259..68339.580 dur=321ms napi_schedule=0 migrations=0 -> event-silent (0 wake attempts)
+GAP t=68339.632..68341.314 dur=1682ms napi_schedule=0 migrations=0 -> event-silent (0 wake attempts)
+GAP t=68341.314..68343.178 dur=1864ms napi_schedule=0 migrations=0 -> event-silent (0 wake attempts)
+GAP t=68343.178..68344.987 dur=1809ms napi_schedule=0 migrations=0 -> event-silent (0 wake attempts)
+GAP t=68344.987..68349.826 dur=4839ms napi_schedule=0 migrations=0 -> event-silent (0 wake attempts)
+GAP t=68349.826..68359.562 dur=9736ms napi_schedule=1 migrations=1 -> wake-lost (wakes=0 switchins=0)
+GAP t=68470.814..68488.210 dur=17396ms napi_schedule=3598 migrations=95 -> wake-flowing (wakes=3552 switchins=3551 polls_in_gap=3629)
+GAP t=68488.510..68500.025 dur=11515ms napi_schedule=3829 migrations=117 -> wake-flowing (wakes=3806 switchins=3803 polls_in_gap=3827)
+GAP t=68500.025..68505.050 dur=5025ms napi_schedule=1681 migrations=52 -> wake-flowing (wakes=1674 switchins=1673 polls_in_gap=1676)
+CLASS SUMMARY: {'event-silent': 5, 'wake-lost': 1, 'wake-flowing': 4}
+GAP t=68190.645..68339.137 dur=148492ms napi_schedule=32701 thread_wakeups=32606 switchins=32600 migrations=44
+GAP t=68339.259..68339.580 dur=321ms napi_schedule=0 thread_wakeups=0 switchins=0 migrations=0
+GAP t=68339.632..68341.314 dur=1682ms napi_schedule=0 thread_wakeups=0 switchins=0 migrations=0
+GAP t=68341.314..68343.178 dur=1864ms napi_schedule=0 thread_wakeups=0 switchins=0 migrations=0
+GAP t=68343.178..68344.987 dur=1809ms napi_schedule=0 thread_wakeups=0 switchins=0 migrations=0
+GAP t=68344.987..68349.826 dur=4839ms napi_schedule=0 thread_wakeups=0 switchins=0 migrations=0
+GAP t=68349.826..68359.562 dur=9736ms napi_schedule=1 thread_wakeups=0 switchins=0 migrations=1
+   LOST-WAKE cand: __napi_schedule @68351.671383 cpu8 -> no thread wakeup within 100us, no switch-in within 5ms
+GAP t=68470.814..68488.210 dur=17396ms napi_schedule=3598 thread_wakeups=3552 switchins=3551 migrations=95
+GAP t=68488.510..68500.025 dur=11515ms napi_schedule=3829 thread_wakeups=3806 switchins=3803 migrations=117
+GAP t=68500.025..68505.050 dur=5025ms napi_schedule=1681 thread_wakeups=1674 switchins=1673 migrations=52
+thread migrations total: 360
