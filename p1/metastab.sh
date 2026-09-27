@@ -24,7 +24,7 @@ RATE="${7:-158000}"  # per-sender flood rate (A6 runs 105000 = 525k total)
 QUIET="${8:-20}"     # seconds after senders stop, before the probe
                      # (A0 runs 300, with a 1 Hz quiet-window sampler)
 case "$MODE" in M|B) ;; *) echo "bad mode"; exit 2 ;; esac
-case "$WIRE" in unpin|pin8|pin10|pin46|pin[0-9]+) ;; *) echo "bad wire"; exit 2 ;; esac
+case "$WIRE" in unpin|pin8|pin10|pin46|pin[0-9]|pin[0-9][0-9]) ;; *) echo "bad wire"; exit 2 ;; esac
 case "$THREADED" in 0|1) ;; *) echo "bad threaded"; exit 2 ;; esac
 IFACE=enp195s0np0
 IRQ=$(grep -E 'mlx5_comp7@pci:0000:c3' /proc/interrupts | awk '{print $1}' | tr -d ':')
@@ -72,7 +72,9 @@ case "$WIRE" in
   pin8) PIN_CPU=8 ;;
   pin10) PIN_CPU=10 ;;
   pin46) PIN_CPU=46 ;;
-  pin[0-9]*) PIN_CPU="${WIRE#pin}" ;;   # the DR-012 step-3 locality sweep
+  pin[0-9]|pin[0-9][0-9]) PIN_CPU="${WIRE#pin}" ;;  # the DR-012 step-3 locality sweep
+                                                    # (bash case is GLOB, not regex:
+                                                    # pin[0-9]+ needs a literal '+')
 esac
 if [ "$PIN_CPU" != none ] && [ "$NAPI_PID" != none ]; then
   # the napi kthread is often invisible in /proc on this build, so pin
