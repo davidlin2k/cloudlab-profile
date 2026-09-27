@@ -84,8 +84,13 @@ with open(OUT, "w") as f:
         t1 = time.time()
         cc = u(CC, 4)
         arm_sn = u(ARM_SN, 4)
-        # the arm doorbell record's sn bits (BE: sn << 28 | cmd | ci)
-        adb = u(ARM_DB, 4)
+        # the arm doorbell RECORD's sn bits (BE: sn << 28 | cmd | ci).
+        # mcq+16 holds the arm_db POINTER (__be32 *); the record lives
+        # at *arm_db -- dereference first (the flat read of mcq+16
+        # yielded a constant derived from the pointer, caught in the
+        # SM-1 smoke).
+        adb_ptr = u(ARM_DB, 8)
+        adb = u(adb_ptr, 4) if adb_ptr > 0xFF00000000000000 else 0
         adb_sn = (int.from_bytes(adb.to_bytes(4, "little"), "big")
                   >> 28) & 3
         op_own, phase = owned_at_cc(cc, logsz, lfs)

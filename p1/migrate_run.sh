@@ -6,6 +6,8 @@ WIRE=unpin
 [ "$ARM" = MB ] && WIRE=pin46
 [ "$ARM" = HOP ] && WIRE=pin10   # the hopper takes over the affinity
                                  # right after the wiring pins to 10
+[ "$ARM" = SMOKE ] && WIRE=pin10 # the static healthy-queue smoke (the
+                                 # DR-012 step-2 logger sanity cell)
 IFACE=enp195s0np0
 IRQ=$(grep -E 'mlx5_comp7@pci:0000:c3' /proc/interrupts | awk '{print $1}' | tr -d ':')
 D=/root/p1/migrate/$CELL
