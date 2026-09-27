@@ -46,6 +46,14 @@ Wedged 17 / clean 2 of the 19 probe-bearing cells (HOP-27 and
 HOP-30 stayed clean while showing 42 and 27 stranded gaps -- the
 trickling regime without the full stall).
 
+> ADDENDUM 2026-09-27 (DR-012 step 4, supersedes the "clean 2"
+> wording above, which is kept for the record): under the tightened
+> definition a cell is CLEAN only with ZERO stranded gaps, so
+> HOP-27 (42) and HOP-30 (27) are TRICKLING, not clean. The batch
+> verdict becomes: wedged 17 / trickling 2 / clean 0 of the 19
+> probe-bearing cells. See notes/p1-LOCALITY-1.md and the
+> rq1_summarize.py verdict column.
+
 **The decisive statistic (259 stranded gaps across the 19 cells):**
 
 | Gap class | Count | Fraction |
