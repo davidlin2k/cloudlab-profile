@@ -30,21 +30,65 @@ IRQN = sys.argv[6] if len(sys.argv) > 6 and sys.argv[6] else None
 IFACE = sys.argv[7] if len(sys.argv) > 7 and sys.argv[7] else "enp195s0np0"
 VMLINUX = "/scratch/kbuild/linux/vmlinux"
 
-# offsets (pahole-DWARF on the build tree, proven in b2_dump.py)
+# offsets: runtime-calibrated from the RUNNING kernel's mlx5_core.ko
+# DWARF (6.18.9 moved mcq 56->64, cons_index 96->88, arm_sn 100->92,
+# eq 176->168); the fallback constants are the 6.17.8 values the
+# DR-012 runs were validated against.
+_CQO = dict(mcq=56, arm_db=16, cons=96, arm_sn=100, eq=176,
+            cc=32, rstats=256, rcq=320, chstats=13392)
+
+def _calibrate():
+    import glob, re
+    rel = os.uname().release
+    kos = glob.glob(f"/lib/modules/{rel}/kernel/drivers/net/ethernet/"
+                    "mellanox/mlx5/core/mlx5_core.ko")
+    if not kos:
+        return
+    def fld(struct, member):
+        try:
+            out = subprocess.run(
+                ["pahole", "-C", struct, kos[0]],
+                capture_output=True, text=True, timeout=20).stdout
+            m = re.search(
+                rf"{re.escape(member)}\b[^;]*;\s*"
+                rf"(?:__attribute__\(\([^)]*\)\)\s*)?/\*\s*(\d+)\s+\d+",
+                out)
+            return int(m.group(1)) if m else None
+        except Exception:
+            return None
+    for st, mem, key in (("mlx5e_cq", "mcq", "mcq"),
+                         ("mlx5_core_cq", "arm_db", "arm_db"),
+                         ("mlx5_core_cq", "cons_index", "cons"),
+                         ("mlx5_core_cq", "arm_sn", "arm_sn"),
+                         ("mlx5_core_cq", "eq", "eq"),
+                         ("mlx5_cqwq", "cc", "cc"),
+                         ("mlx5e_rq", "stats", "rstats"),
+                         ("mlx5e_rq", "cq", "rcq"),
+                         ("mlx5e_channel", "stats", "chstats"),
+                         ("mlx5e_channel", "napi", "napi")):
+        v = fld(st, mem)
+        if v is not None:
+            _CQO[key] = v
+    print("calib", os.uname().release, _CQO)
+
+import os
+_calibrate()
+
 RQ = CH                    # mlx5e_channel.rq = 0
-RQ_STATS_PTR = RQ + 256    # mlx5e_rq.stats = mlx5e_rq_stats* (POINTER)
-CQ = RQ + 320              # mlx5e_rq.cq
-ARM_SN = CQ + 56 + 100     # mlx5_cq.mcq -> mlx5_core_cq.arm_sn
-ARM_DB = CQ + 56 + 16      # mlx5_core_cq.arm_db (the doorbell record:
+RQ_STATS_PTR = RQ + _CQO["rstats"]   # mlx5e_rq.stats (POINTER)
+CQ = RQ + _CQO["rcq"]      # mlx5e_rq.cq (the mlx5e_cq struct)
+M = CQ + _CQO["mcq"]       # mlx5e_cq.mcq (the mlx5_core_cq)
+ARM_SN = M + _CQO["arm_sn"]
+ARM_DB = M + _CQO["arm_db"]  # the doorbell record:
                            # sn << 28 | cmd | ci, big-endian)
-CC = CQ + 32               # mlx5_cqwq.cc
+CC = CQ + _CQO["cc"]       # mlx5_cqwq.cc
 FBC_SZ_M1 = CQ + 8         # mlx5_frag_buf_ctrl.sz_m1
 FBC_FRAGS = CQ + 0         # mlx5_frag_buf_ctrl.frags
 FBC_LOGSZ = CQ + 16
 FBC_LFS = CQ + 18
-NAPI = CH + 10000
+NAPI = CH + _CQO.get("napi", 10000)
 NAPI_STATE = NAPI + 16
-CH_STATS_PTR = CH + 13392  # mlx5e_channel.stats = mlx5e_channel_stats* (POINTER)
+CH_STATS_PTR = CH + _CQO["chstats"]  # mlx5e_channel.stats (POINTER)
 # NOTE: napi_struct.thread (+352) reads a DANGLING task pointer on this
 # build (the reused-thread/recreation dance) -- the cpu column comes
 # from /proc/<pid>/stat of the correlation-identified poll thread.
