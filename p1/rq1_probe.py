@@ -44,29 +44,32 @@ def _calibrate():
                     "mellanox/mlx5/core/mlx5_core.ko")
     if not kos:
         return
-    def fld(struct, member):
+    def fld(struct, member, typ=None):
         try:
             out = subprocess.run(
                 ["pahole", "-C", struct, kos[0]],
                 capture_output=True, text=True, timeout=20).stdout
             m = re.search(
-                rf"{re.escape(member)}\b[^;]*;\s*"
-                rf"(?:__attribute__\(\([^)]*\)\)\s*)?/\*\s*(\d+)\s+\d+",
+                (rf"{re.escape(typ)}\s+{re.escape(member)}\b"
+                 if typ else rf"{re.escape(member)}\b")
+                + rf"[^;]*;\s*(?:__attribute__\(\([^)]*\)\)\s*)?"
+                rf"/\*\s*(\d+)\s+\d+",
                 out)
             return int(m.group(1)) if m else None
         except Exception:
             return None
-    for st, mem, key in (("mlx5e_cq", "mcq", "mcq"),
-                         ("mlx5_core_cq", "arm_db", "arm_db"),
-                         ("mlx5_core_cq", "cons_index", "cons"),
-                         ("mlx5_core_cq", "arm_sn", "arm_sn"),
-                         ("mlx5_core_cq", "eq", "eq"),
-                         ("mlx5_cqwq", "cc", "cc"),
-                         ("mlx5e_rq", "stats", "rstats"),
-                         ("mlx5e_rq", "cq", "rcq"),
-                         ("mlx5e_channel", "stats", "chstats"),
-                         ("mlx5e_channel", "napi", "napi")):
-        v = fld(st, mem)
+    for st, mem, key, typ in (("mlx5e_cq", "mcq", "mcq", None),
+                              ("mlx5_core_cq", "arm_db", "arm_db", None),
+                              ("mlx5_core_cq", "cons_index", "cons", None),
+                              ("mlx5_core_cq", "arm_sn", "arm_sn", None),
+                              ("mlx5_core_cq", "eq", "eq", None),
+                              ("mlx5_cqwq", "cc", "cc", None),
+                              ("mlx5e_rq", "stats", "rstats", None),
+                              ("mlx5e_rq", "cq", "rcq", None),
+                              ("mlx5e_channel", "stats", "chstats", None),
+                              ("mlx5e_channel", "napi", "napi",
+                               "struct napi_struct")):
+        v = fld(st, mem, typ)
         if v is not None:
             _CQO[key] = v
     print("calib", os.uname().release, _CQO)
