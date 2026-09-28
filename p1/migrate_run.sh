@@ -26,6 +26,10 @@ case "$CH" in 0x[0-9a-f]*) ;; *) CH=$(sudo python3 /tmp/b2_dump.py 7 0 1 2>/dev/
 case "$CH" in 0x[0-9a-f]*) ;; *) echo "DISCOVERY-FAIL ch='$CH'"; exit 1;; esac
 
 RQ1_NAPI_PID=""
+# b3's napi_pid first (napi.thread or the /proc comm fallback --
+# version-proof); the bpftrace correlation only if b3 gives nothing.
+RQ1_NAPI_PID=$(sudo python3 /root/p1/b3_channel.py enp195s0np0 7 2>/dev/null | awk -F= '/^napi_pid=/{print $2}')
+case "$RQ1_NAPI_PID" in ''|*[!0-9]*|0) RQ1_NAPI_PID="";; esac
 if [ -z "${RQ1_NAPI_PID:-}" ]; then
   ssh -n -o StrictHostKeyChecking=no -o ConnectTimeout=8 davidlin@10.10.1.10 \
     "sudo bash -c 'nohup /root/k2/k5blast --dip 10.10.1.1 --sip 10 --sport 32704 --dport 7777 --rate 158000 --secs 45 --plen 64 --core 4 > /tmp/rq1-find-flood.txt 2>&1 </dev/null &'" >/dev/null 2>&1
