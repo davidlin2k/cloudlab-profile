@@ -118,10 +118,9 @@ if ref is None or not tsc:
     print("pmu-need-tsc ref=%s tsc=%s" % (ref, tsc)); raise SystemExit
 # AN-007 derivation: busy_s = unhalted-ref-cycles / TSC (ref-cycles
 # stop in idle; the count itself IS the busy time at the base clock)
-print("%.2f cyc_per_ref=%.2f" % (ref / tsc, (cyc or 0) / ref))
+print("%.2f" % (ref / tsc))
 EOF
 )
-PMU=${PMU%% *}
 PKTS=$((P1 - P0))
 IRQD=$(python3 -c "print(int(open('$OUT/irq1.txt').read().split()[0]) - int(open('$OUT/irq0.txt').read().split()[0]))" 2>/dev/null)
 echo "RESULT irqacct: pkts=$PKTS sent=${SENT:-?} irq_delta=${IRQD:-?} cpu${IRQCPU}_busy_stat_s=$BUSY_STAT pmu_busy_s=$PMU ratio=$(python3 -c "print('%.1f' % ($PMU / max(float('$BUSY_STAT'), 0.01)))" 2>/dev/null)" | tee -a run.txt
