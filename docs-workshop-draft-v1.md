@@ -1,7 +1,10 @@
 # Invisible Receive Work: What Linux Pays for It Under Overload
 
-Draft v0, 2026-09-25 (the full draft gate is Oct 9; this pulls it ahead
-for the PI review). Internal until approved. Every sentence with a number
+Draft v1, 2026-09-29 (supersedes v0, 2026-09-25; the full draft gate is
+Oct 9). Applies the DR-013 decisions on the four v0 review items:
+claims cited per DR-005, the "What TCP does not carry" paragraph added,
+section 6 rewritten to current facts (C-019 through C-023, T1a/T1b),
+title confirmed. Internal until approved. Every sentence with a number
 cites a finding ID per DR-004; figures are Draft (scripts in analysis/).
 
 ## Abstract
@@ -111,20 +114,64 @@ TCP tail is scheduler-tail, not receive work). The NAPI kthread wakes in
 3 us in both placements: the delay attaches to the request path, not to
 the kernel's own receive thread.
 
+What TCP does not carry. The collapse does not survive TCP: at 2x the
+knee, TCP admission delivers 169% (co-located) and 194% (separated) of
+knee goodput -- a capacity plateau, not the UDP cliff -- so the flow-
+control kill criterion fires and the UDP collapse is transport-
+specific [C-016]. The corrected-cost knee model also fails on TCP,
+missing the measured knees 3.06x and 3.16x: TCP's per-request receive
+cost depends on load (16.1 us at 20k to 3.3 us at 300k), so the
+constant-cost form is UDP-scoped [C-017]. And TCP's co-location latency
+tax does not multiply: the p99 ratio at the knee is 1.45x, not the 5x
+the UDP wake-delay magnitudes would suggest [C-018]. What TCP does
+carry is separation's service benefit: at 1.5x the knee, separated
+admission holds SLO fraction 0.999 against 0.829 co-located with p99
+645 vs 1475 us [C-015]. Reporting the refutations is part of the
+result: the invisible-work accounting applies to the transport where
+receive work is the bottleneck, and its limits are measured, not
+assumed.
+
 ## 6. The threaded-NAPI stall
 
 Survival curves (Fig. 4): under per-device threaded NAPI, 25 of 48
 matrix cells and 24 of 24 unpinned-sender cells stall (the unpinned case
-is the fastest: 8 of 8 runs stall, onsets 9-19 s) [p1-LADDER.2, AN-006].
-What we ruled out: the mlx5 IRQ affinity "polling after interrupt"
-bailout is not sufficient -- the pre-registered A/B (affinity 0,0 vs
-default) wedged on its own criteria at 790k in both arms of every
-placement (12 of 12), so adaptive-rx and interrupt coalescing are not
-necessary for the stall either [C-010, AN-005, AN-003]. Status: the
-onset and recovery timelines have been delivered as facts
-(checkpoints/2026-09-25-wedge-timelines); interpretation is held for the
-PI's read of the timelines, and the draft of a netdev report exists but
-is not public.
+is the fastest: 8 of 8 runs stall, onsets 9-19 s) [p1-LADDER.2, AN-006,
+C-011]. What we ruled out, in order: the mlx5 IRQ affinity "polling
+after interrupt" bailout is not sufficient -- the pre-registered A/B
+(affinity 0,0 vs default) wedged on its own criteria at 790k in both
+arms of every placement (12 of 12), so adaptive-rx and interrupt
+coalescing are not necessary for the stall either [C-010, AN-005,
+AN-003]; the driver's stop-and-rearm placement-correction path is not
+the cause -- under a forced 10<->46 core hop, 27% of stranded-gap
+onsets begin within 2 ms of an observed migration (null: 2/100) and
+63% of post-gap samples sit on the destination core, but the causal
+contract/restart-strategy arm came back 0/8 with the pin verified, so
+the migration-race mechanism is refuted [C-019, notes/p1-CAUSAL-1];
+the arm_sn stale-doorbell race is not the cause -- the device accepts
+the arm (doorbell record == frozen counter through every gap) and then
+raises no completion event while the queue sits ready (0 stale
+candidates in 67 stranded gaps) [C-020]; and the stall is not a
+distance gradient -- it is specific to the IRQ core's CCX-sibling
+pair: 0/8 (same L3) < 5/8 (far NUMA) < 8/8 (adjacent CCX), burden
+ordered 0.5 < 7.75 < 33.5 s per cell [C-021]. Placing the poller
+inside its IRQ's L3-sibling cluster does not fix it: with the patch
+mechanism verified live, the unpinned arm still wedged 5/8 [C-022].
+The stall is unfixed on current code: 8 of 8 wedged on 6.18.9+ and on
+net-next 7.3.0-rc4+ [C-023].
+
+The stall is a characterized, unexplained liveness failure with a
+placement workaround (keep the poller and its IRQ off the adjacent-CCX
+pair, or pin both to one core). It is not mlx5-specific in the driver
+sense that would make it a one-vendor bug: the same protocol run on an
+i40e / Intel Xeon platform (X710, 2x16c Gold 6142) shows 0 of 8
+stranded in every arm -- SMT sibling of the IRQ core, same-socket,
+other-socket, and unpinned -- with the descriptor-level readiness
+detector armed in every cell [C-025]; the NIC and CPU platform changed
+together, so the cross-check narrows the mechanism to the
+mlx5/AMD-generation combination rather than to threaded NAPI at large.
+The device-side evidence (the accepted arm and the missing completion
+event [C-020]) and the vendor report are held for the PI's approval
+before anything is public.
 
 ## 7. Agenda
 
@@ -148,18 +195,27 @@ our wedge.
 
 | Fig | shows | script | status |
 |---|---|---|---|
-| 1 | goodput against load | analysis/p1_figures.py | Draft |
-| 2 | the blind standard metric; corrected costs predict the knee (UDP) | analysis/p1_fig_model.py | Draft |
-| 3 | wake-delay distributions | analysis/p1_fig_wakedelay.py | Draft |
-| 4 | wedge survival curves | analysis/p1_fig_wedge.py | Draft |
+| 1 | goodput against load | analysis/p1_figures.py | Draft (QA pass) |
+| 2 | the blind standard metric; corrected costs predict the knee (UDP) | analysis/p1_fig_model.py | Draft (QA pass, v2 per DR-005) |
+| 3 | wake-delay distributions | analysis/p1_fig_wakedelay.py | Draft (QA pass) |
+| 4 | wedge survival curves | analysis/p1_fig_wedge.py | Draft (QA pass) |
 
-## Review flags (do not ship without the PI's call)
+Final-figures pass due Oct 6 (DR-013): re-run all four scripts against
+the current rows CSVs, confirm the section 4 anchors reproduce
+(app 906-1407 ns, real 2026-2935 ns, thread 43-55%, /proc/stat 0.60%),
+and re-QA annotations.
 
-- C-004 and C-006 are Pending in the ledger; their sentences cite finding
-  IDs per the rule. Promote at review or cite findings only.
-- C-007 re-promotion (its revised numbers appear in sections 1 and 4).
-- The W3 TCP outcomes (the kill criterion, the failed predictions) have no
-  section in the memo's plan; they appear here only as section 5's TCP
-  numbers. Add or drop?
-- Section 6's text and Fig. 4 are internal until the netdev report is
-  approved.
+## Review flags (resolved per DR-013, kept for the record)
+
+- v0 items 1-2: claims cited per DR-005 (C-004 as written, C-007 at
+  2.8%/6.2% UDP 64 B, C-006 superseded to 43-55% / 0.6%).  Only
+  Supported claims appear; the ledger rows are current.
+- v0 item 3: resolved -- the "What TCP does not carry" paragraph is in
+  section 5 (C-016/C-017/C-018 refutations + C-015's surviving
+  benefit).
+- v0 item 4: title confirmed (the memo's).
+- OPEN (DR-014 hold): section 6 names the vendor-report hold; nothing
+  public until the PI approves after the re-arm/watchdog rows land.
+- Section 6's Fig. 4 remains the wedge A/B matrix; the T1e/T1d/T1b
+  placement arms are cited in text, not plotted (one figure per
+  measured matrix remains the rule).
