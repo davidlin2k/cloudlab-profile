@@ -43,7 +43,7 @@ echo "steer: rule loc0 -> q$Q, irq $IRQ pinned to cpu $IRQCPU" >> run.txt
 # NO_SSH=1 the caller launches the flood itself (same k5blast line)
 # and passes SENT=<n> afterwards; this avoids needing the receiver's
 # root key on the sender.
-P0=$(ethtool -S $IFACE | awk -F: -v q="rx-$Q.packets" '$1==q{gsub(/ /,"",$2); print $2}')
+P0=$(ethtool -S $IFACE | awk -F'[: ]+' -v q="rx-$Q.packets" '$2==q{print $3}')
 awk -F, -v c=$((IRQCPU+1)) 'NR==1{print $c}' /sys/kernel/irq/$IRQ/per_cpu_count > irq0.txt
 grep "^cpu$IRQCPU " /proc/stat > stat-start.txt
 perf stat -C $IRQCPU -e cycles,ref-cycles -x, -o perf.csv -- sleep $((DUR + 4)) &
@@ -60,7 +60,7 @@ for i in $(seq 1 $DUR); do
   sleep 1
 done
 wait $PERFPID
-P1=$(ethtool -S $IFACE | awk -F: -v q="rx-$Q.packets" '$1==q{gsub(/ /,"",$2); print $2}')
+P1=$(ethtool -S $IFACE | awk -F'[: ]+' -v q="rx-$Q.packets" '$2==q{print $3}')
 awk -v c=$((IRQCPU+1)) 'NR==1{print $c}' /sys/kernel/irq/$IRQ/per_cpu_count > irq1.txt
 grep "^cpu$IRQCPU " /proc/stat > stat-end.txt
 SENT=${SENT:-$(ssh -n -o BatchMode=yes -o ConnectTimeout=8 -o StrictHostKeyChecking=no \
@@ -72,7 +72,8 @@ BUSY_STAT=$(python3 - "$OUT" <<'EOF'
 import sys
 def busy(p):
     v = open(p).read().split()[1:9]
-    return sum(float(x) for i, x in enumerate(v) if i not in (3, 4))  # not idle/iowait
+    # /proc/stat is in USER_HZ centiticks (100 on x86) -> seconds
+    return sum(float(x) for i, x in enumerate(v) if i not in (3, 4)) / 100.0
 a = busy(sys.argv[1] + "/stat-start.txt")
 b = busy(sys.argv[1] + "/stat-end.txt")
 print("%.2f" % (b - a))
