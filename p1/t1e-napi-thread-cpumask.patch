@@ -1,5 +1,22 @@
+diff --git a/drivers/net/ethernet/mellanox/mlx5/core/en_main.c b/drivers/net/ethernet/mellanox/mlx5/core/en_main.c
+index 4c6060d54..dc893b23d 100644
+--- a/drivers/net/ethernet/mellanox/mlx5/core/en_main.c
++++ b/drivers/net/ethernet/mellanox/mlx5/core/en_main.c
+@@ -6522,6 +6522,12 @@ mlx5e_create_netdev(struct mlx5_core_dev *mdev, const struct mlx5e_profile *prof
+ 
+ 	netif_carrier_off(netdev);
+ 	netif_tx_disable(netdev);
++	/* T1E: let the core manage the IRQ
++	 * affinity (the napi_config machinery) -- the
++	 * same opt-in bnxt/ice/idpf make. Registers the
++	 * per-NAPI affinity notifier. */
++	netif_set_affinity_auto(netdev);
++
+ 	dev_net_set(netdev, mlx5_core_net(mdev));
+ 
+ 	return netdev;
 diff --git a/net/core/dev.c b/net/core/dev.c
-index f660fccfc..0d404fdd3 100644
+index f660fccfc..6870fa698 100644
 --- a/net/core/dev.c
 +++ b/net/core/dev.c
 @@ -88,6 +88,8 @@
@@ -44,7 +61,28 @@ index f660fccfc..0d404fdd3 100644
  	}
  
  	return err;
-@@ -7497,6 +7518,27 @@ void netif_napi_set_irq_locked(struct napi_struct *napi, int irq)
+@@ -7397,6 +7418,20 @@ netif_napi_irq_notify(struct irq_affinity_notify *notify,
+ 	if (napi->config && napi->dev->irq_affinity_auto)
+ 		cpumask_copy(&napi->config->affinity_mask, mask);
+ 
++	/* T1E: default the threaded poller's cpumask to the L3
++	 * (cluster) siblings of the vector's effective affinity.
++	 * Fires on every effective-affinity change (including the
++	 * re-apply after a driver reset -- the threaded-NAPI
++	 * lifecycle gap in the June 2026 RFC). The poller is
++	 * thereby never stranded on a remote L3/NUMA cpu by
++	 * accident; a later userspace set-affinity wins as usual.
++	 * topology_cluster_cpumask() = the CCX/L3 group on AMD. */
++	if (napi->thread && cpumask_weight(mask) == 1) {
++		const struct cpumask *t1e_llc =
++			topology_cluster_cpumask(cpumask_first(mask));
++		set_cpus_allowed_ptr(napi->thread, t1e_llc);
++	}
++
+ #ifdef CONFIG_RFS_ACCEL
+ 	if (napi->dev->rx_cpu_rmap_auto) {
+ 		err = cpu_rmap_update(rmap, napi->napi_rmap_idx, mask);
+@@ -7497,6 +7532,27 @@ void netif_napi_set_irq_locked(struct napi_struct *napi, int irq)
  		irq_set_affinity_notifier(napi->irq, NULL);
  
  	napi->irq = irq;
