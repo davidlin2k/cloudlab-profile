@@ -1,5 +1,5 @@
 diff --git a/net/core/dev.c b/net/core/dev.c
-index f660fccfc..fe4b1c2fa 100644
+index f660fccfc..0d404fdd3 100644
 --- a/net/core/dev.c
 +++ b/net/core/dev.c
 @@ -88,6 +88,8 @@
@@ -44,3 +44,31 @@ index f660fccfc..fe4b1c2fa 100644
  	}
  
  	return err;
+@@ -7497,6 +7518,27 @@ void netif_napi_set_irq_locked(struct napi_struct *napi, int irq)
+ 		irq_set_affinity_notifier(napi->irq, NULL);
+ 
+ 	napi->irq = irq;
++	if (irq > 0 && napi->thread) {
++		/* T1E default: the poller's cpumask = the L3 (cluster)
++		 * siblings of the vector's effective affinity. A floating
++		 * poller lands on remote L3/NUMA cpus and stalls under
++		 * sustained flood (the measured placement asymmetry).
++		 * Applied at irq-assignment AND at thread (re)creation so
++		 * either driver order gets it; a driver reset destroys the
++		 * thread -- the threaded-NAPI lifecycle gap discussed
++		 * upstream (June 2026 RFC). Only the single-cpu
++		 * effective-affinity case gets the default. A later
++		 * userspace set-affinity wins as usual.
++		 * topology_cluster_cpumask() = the CCX/L3 group on AMD.
++		 */
++		const struct cpumask *t1e_aff =
++			irq_get_effective_affinity_mask(irq);
++
++		if (t1e_aff && cpumask_weight(t1e_aff) == 1)
++			set_cpus_allowed_ptr(napi->thread,
++					     topology_cluster_cpumask(
++						     cpumask_first(t1e_aff)));
++	}
+ 	if (irq < 0 ||
+ 	    (!napi->dev->rx_cpu_rmap_auto && !napi->dev->irq_affinity_auto))
+ 		return;
