@@ -2,6 +2,13 @@
 # preflight.sh -- DR-007 standing rule: run after EVERY ring/flag/channel
 # change; asserts queue-7 steering before any cell counts. Exits 1 on
 # failure (the batch must abort).
+#
+# v2 (AN-010 fix): the W1 rules are now TRULY idempotent -- the old
+# version re-ADDED all five rules every run; each add triggers a
+# device flow-table reprogram whose duration grows with the rule
+# count (the DB reached 70+ duplicates and the reprogram window grew
+# past the assert's 14 s -- the steering asserts read zero while the
+# device rebuilt). Now: the five rules are added only if missing.
 set -u
 IFACE=${IFACE:-enp195s0np0}
 IRQ=$(grep -E 'mlx5_comp7@pci:0000:c3' /proc/interrupts | awk '{print $1}' | tr -d ':')
@@ -22,14 +29,18 @@ done
 [ -e /proc/sys/net/core/busy_read ] && echo 0 > /proc/sys/net/core/busy_read
 [ -n "$IRQ" ] && echo 8 > /proc/irq/$IRQ/smp_affinity_list
 for p in /proc/[0-9]*; do c=$(cat "$p/comm" 2>/dev/null); case "$c" in napi/enp195s0np0-*) taskset -pc 0-63 "${p#/proc/}" >/dev/null 2>&1 ;; esac; done
-# steering is by explicit ntuple rules (the RSS-key route was never
-# reliable: p1prep's hkey set always failed on format; a reboot
-# re-randomizes the key and the W1 sports hash elsewhere). Install the
-# five W1 rules idempotently, then assert.
+
+# --- the W1 rules, idempotent: add a sport's rule only if missing ---
+HAVE=$(ethtool -n $IFACE 2>/dev/null)
+ADDED=0
 for pair in "10.10.1.10 32704" "10.10.1.11 32726" "10.10.1.12 32706" "10.10.1.13 32724" "10.10.1.14 32725"; do
   set -- $pair
-  sudo ethtool -N $IFACE flow-type udp4 src-ip $1 dst-ip 10.10.1.1 src-port $2 dst-port 7777 action 7 >/dev/null 2>&1 || true
+  if ! echo "$HAVE" | grep -q "Src port: $2 "; then
+    ethtool -N $IFACE flow-type udp4 src-ip $1 dst-ip 10.10.1.1 src-port $2 dst-port 7777 action 7 >/dev/null 2>&1 || true
+    ADDED=$((ADDED + 1))
+  fi
 done
+echo "rules added: $ADDED total-q7: $(ethtool -n $IFACE 2>/dev/null | grep -c 'Direct to queue 7')"
 sleep 2
 # assert queue-7 steering: a 10k probe at sport 32704 must advance rx7.
 # The sender's ssh-setup latency varies (a cold sender sshd adds 2-3 s
