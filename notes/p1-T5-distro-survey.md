@@ -1,5 +1,7 @@
 # p1-T5: the distribution-config survey for C-014 (the 166x undercount)
-# (DR-013 addendum T5; facts only, one row per distro, sources cited)
+# (DR-013 addendum T5; superseded version -- the full 20-row survey is
+# analysis/t5-distro-survey.md; this note records the corrected summary
+# and the two corrections to THIS file's first pass, 2026-09-28)
 
 Question (the memo): which real systems ship CONFIG_IRQ_TIME_ACCOUNTING=n
 together with NO_HZ_FULL=y -- the configuration under which C-014's
@@ -7,37 +9,53 @@ together with NO_HZ_FULL=y -- the configuration under which C-014's
 only for the configurations measured, and names which distros ship
 them; if none did, C-014 would be a custom-kernel caveat.
 
-## Verified (config source read directly, date 2026-09-28)
+## Corrected summary (supersedes this file's first 6-row pass)
 
-| Distro / kernel | IRQ_TIME_ACCOUNTING | NO_HZ_FULL | Undercount config? | Source |
-|---|---|---|---|---|
-| Ubuntu 24.04 LTS generic 6.8.0-52 | not set | y | YES | community boot-config record of the shipped kernel (github.com/nyrahul/linux-kernel-configs, Ubuntu 24.04.1 6.8.0-52 bootconfig) |
-| Debian sid (debian/latest packaging) | not set (amd64/config) | y (base config) | YES | salsa.debian.org/kernel-team/linux, branch debian/latest: debian/config/config + debian/config/amd64/config |
-| Fedora (kernel-ark os-build) | y (fedora/generic fragment) | y (common/generic) | NO (irq-time on) | gitlab.com/cki-project/kernel-ark, os-build: redhat/configs/fedora/generic/CONFIG_IRQ_TIME_ACCOUNTING + common/generic/CONFIG_NO_HZ_FULL |
-| RHEL / Rocky 10 (centos-stream-10) | not set (rhel/generic) | y (common/generic) | YES | gitlab.com/redhat/centos-stream/src/kernel/centos-stream-10, main: redhat/configs/rhel/generic/CONFIG_IRQ_TIME_ACCOUNTING + common/generic/CONFIG_NO_HZ_FULL |
-| SUSE SLE15-SP7 x86_64 default | not set | y | YES | github.com/SUSE/kernel-source, SLE15-SP7: config/x86_64/default |
-| Amazon Linux 2023 (in-tree x86_64_defconfig) | absent (n) | absent (n) | NO (no NO_HZ_FULL) | github.com/amazonlinux/linux, master: arch/x86/configs/x86_64_defconfig |
+The full survey (analysis/t5-distro-survey.md, 20 rows, every value
+read from a named config source with per-row references, 2026-09-27)
+flags the undercount combination on **11 of 20 rows**:
+
+- Ship it: Ubuntu 26.04 generic, Ubuntu 24.04 generic + lowlatency +
+  aws + azure + gcp (the cloud-flavor gap in this file's first pass
+  is now closed -- launchpad source diffs, not the 403'd cgit),
+  Debian 13 trixie, SLES 15 SP6-LTSS/SP7, SLES 16.0/16.1,
+  Amazon Linux 2023 (6.1 series; NO_HZ_FULL was turned on
+  mid-6.1-series), Bottlerocket (6.1/6.12/6.18).
+- Do not: Ubuntu 20.04/22.04 (both options off), Fedora 44 and
+  RHEL 9/10 (both y), Azure Linux 3.0 and COS (both off), Flatcar
+  and Android GKI (IRQ_TIME=y, NO_HZ_FULL off).
+- Documented UNKNOWNs: AL2023's new 6.18 default-kernel config,
+  COS's current 129-LTS config (attempts recorded in the survey).
+
+## Corrections to this file's first pass (kept for the record)
+
+1. RHEL/Rocky 10 was listed as matching. WRONG: my fetch read
+   redhat/configs/rhel/generic/CONFIG_IRQ_TIME_ACCOUNTING
+   (the shared fragment, "not set"); the x86-specific fragment that
+   applies to the shipped x86_64 kernel
+   (redhat/configs/rhel/generic/x86/CONFIG_IRQ_TIME_ACCOUNTING)
+   reads CONFIG_IRQ_TIME_ACCOUNTING=y (re-verified 2026-09-28 via
+   the gitlab API). RHEL 9/10 = y/y, does NOT match.
+2. Amazon Linux 2023 was listed as not matching ("no NO_HZ_FULL").
+   WRONG source: I read the upstream in-tree
+   arch/x86/configs/x86_64_defconfig; what ships comes from AL2023's
+   SRPM config. A recorded /boot/config of the shipping
+   6.1.141-165.249.amzn2023.x86_64 shows NO_HZ_FULL=y with
+   IRQ_TIME_ACCOUNTING unset (re-verified 2026-09-28, nyrahul dump).
+   AL2023's 6.1 series MATCHES.
 
 ## Reading
 
-- The undercount configuration is NOT a custom-kernel-only caveat:
-  four mainstream shipping kernels (Ubuntu generic, Debian sid,
-  RHEL/Rocky 10, SUSE SLE15) ship IRQ_TIME_ACCOUNTING=n with
-  NO_HZ_FULL=y.
-- Fedora ships IRQ_TIME_ACCOUNTING=y (the accounting is exact there);
-  Amazon Linux 2023 does not enable NO_HZ_FULL (no undercount mode).
-- So C-014 stands for the measured configuration AND for the four
-  distro configurations above; section 4 names them and the two
-  counter-examples.
+- C-014 is emphatically NOT a custom-kernel-only caveat: mainstream
+  shipping kernels across desktop, server, and cloud images run the
+  undercount configuration (11 of 20 surveyed rows, including the
+  Ubuntu cloud flavors).
+- Section 4 of the paper names the matching set and the
+  counter-examples, per the memo's rule. The claim ledger records
+  this as C-024 (superseded wording, 2026-09-28).
 
-## Not verified remotely (2026-09-28, facts only)
+## Still unverified (facts only)
 
-- Ubuntu CLOUD kernels (linux-azure/-gcp/-aws): launchpad's gitweb and
-  kernel.ubuntu.com return 403 for datacenter fetches; the
-  annotations were not reachable. Next probe: read /boot/config-*
-  from an actual cloud instance (the reservations or a test VM).
-- Azure Linux, Google Container-Optimized OS, Bottlerocket, Flatcar,
-  Android GKI: the config sources exist but the fetches did not
-  resolve this pass (git hosting walls / tree-layout churn).
-- Our H100 nodes' kernel: needs the node pointer (the PROGRAM's llm-d
-  gateway hosts); not in this repo.
+- The two UNKNOWNs above (AL2023 kernel-6.18, COS 129 LTS).
+- Our H100 nodes' kernel: needs the node pointer (the PROGRAM's
+  llm-d gateway hosts); not in this repo.
