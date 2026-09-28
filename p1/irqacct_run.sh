@@ -43,10 +43,10 @@ echo "steer: rule loc0 -> q$Q, irq $IRQ pinned to cpu $IRQCPU" >> run.txt
 # NO_SSH=1 the caller launches the flood itself (same k5blast line)
 # and passes SENT=<n> afterwards; this avoids needing the receiver's
 # root key on the sender.
-P0=$(ethtool -S $IFACE | awk -v q="rx-$Q.packets" '$1==q{print $2}')
+P0=$(ethtool -S $IFACE | awk -F: -v q="rx-$Q.packets" '$1==q{gsub(/ /,"",$2); print $2}')
 awk -F, -v c=$((IRQCPU+1)) 'NR==1{print $c}' /sys/kernel/irq/$IRQ/per_cpu_count > irq0.txt
 grep "^cpu$IRQCPU " /proc/stat > stat-start.txt
-perf stat -C $IRQCPU -e cycles,ref-cycles -o perf.out -- sleep $((DUR + 4)) &
+perf stat -C $IRQCPU -e cycles,ref-cycles -x, -o perf.csv -- sleep $((DUR + 4)) &
 PERFPID=$!
 sleep 2
 if [ "${NO_SSH:-0}" != "1" ]; then
@@ -60,7 +60,7 @@ for i in $(seq 1 $DUR); do
   sleep 1
 done
 wait $PERFPID
-P1=$(ethtool -S $IFACE | awk -v q="rx-$Q.packets" '$1==q{print $2}')
+P1=$(ethtool -S $IFACE | awk -F: -v q="rx-$Q.packets" '$1==q{gsub(/ /,"",$2); print $2}')
 awk -v c=$((IRQCPU+1)) 'NR==1{print $c}' /sys/kernel/irq/$IRQ/per_cpu_count > irq1.txt
 grep "^cpu$IRQCPU " /proc/stat > stat-end.txt
 SENT=${SENT:-$(ssh -n -o BatchMode=yes -o ConnectTimeout=8 -o StrictHostKeyChecking=no \
@@ -79,15 +79,23 @@ print("%.2f" % (b - a))
 EOF
 )
 PMU=$(python3 - "$OUT" <<'EOF'
-import re, sys
-t = open(sys.argv[1] + "/perf.out").read()
-def num(pat):
-    m = re.search(r"([\d,]+)\s+" + pat, t)
-    return float(m.group(1).replace(",", "")) if m else None
-cyc, ref = num("cycles"), num("ref-cycles")
+import sys
+cyc = ref = None
+for l in open(sys.argv[1] + "/perf.csv"):
+    r = l.rstrip("\n").split(",")
+    if len(r) < 3:
+        continue
+    try:
+        v = float(r[0])
+    except ValueError:
+        continue
+    if r[2] == "cycles":
+        cyc = v
+    elif r[2] == "ref-cycles":
+        ref = v
 if not (cyc and ref):
     print("perf-parse-fail"); raise SystemExit
-print("%.2f" % (float(cyc.group(1)) / float(ref.group(1))))
+print("%.2f" % (cyc / ref))
 EOF
 )
 PKTS=$((P1 - P0))
