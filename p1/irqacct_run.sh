@@ -44,8 +44,13 @@ echo "steer: rule loc0 -> q$Q, irq $IRQ pinned to cpu $IRQCPU" >> run.txt
 # and passes SENT=<n> afterwards; this avoids needing the receiver's
 # root key on the sender.
 P0=$(ethtool -S $IFACE | awk -F'[: ]+' -v q="rx-$Q.packets" '$2==q{print $3}')
+D0=$(ethtool -S $IFACE | awk -F'[: ]+' -v q="port.rx_discards" '$2==q{print $3}')
+D1S=$(ethtool -S $IFACE | awk -F'[: ]+' -v q="rx_discards" '$2==q{print $3}')
+echo "p0=$P0 discards0=${D0:-$D1S}" > pkts0.txt
 awk -F, -v c=$((IRQCPU+1)) 'NR==1{print $c}' /sys/kernel/irq/$IRQ/per_cpu_count > irq0.txt
 grep "^cpu$IRQCPU " /proc/stat > stat-start.txt
+grep -iE "tsc: Detected" /proc/tsc 2>/dev/null > tsc.txt || dmesg | grep -iE "tsc: Detected" | tail -1 > tsc.txt
+lscpu | grep "Model name" >> tsc.txt
 perf stat -C $IRQCPU -e cycles,ref-cycles -x, -o perf.csv -- sleep $((DUR + 4)) &
 PERFPID=$!
 sleep 2
@@ -61,6 +66,9 @@ for i in $(seq 1 $DUR); do
 done
 wait $PERFPID
 P1=$(ethtool -S $IFACE | awk -F'[: ]+' -v q="rx-$Q.packets" '$2==q{print $3}')
+D1=$(ethtool -S $IFACE | awk -F'[: ]+' -v q="port.rx_discards" '$2==q{print $3}')
+D1B=$(ethtool -S $IFACE | awk -F'[: ]+' -v q="rx_discards" '$2==q{print $3}')
+echo "p1=$P1 discards1=${D1:-$D1B}" > pkts1.txt
 awk -v c=$((IRQCPU+1)) 'NR==1{print $c}' /sys/kernel/irq/$IRQ/per_cpu_count > irq1.txt
 grep "^cpu$IRQCPU " /proc/stat > stat-end.txt
 SENT=${SENT:-$(ssh -n -o BatchMode=yes -o ConnectTimeout=8 -o StrictHostKeyChecking=no \
@@ -80,8 +88,8 @@ print("%.2f" % (b - a))
 EOF
 )
 PMU=$(python3 - "$OUT" <<'EOF'
-import sys
-cyc = ref = None
+import re, sys
+ref = cyc = None
 for l in open(sys.argv[1] + "/perf.csv"):
     r = l.rstrip("\n").split(",")
     if len(r) < 3:
@@ -94,11 +102,26 @@ for l in open(sys.argv[1] + "/perf.csv"):
         cyc = v
     elif r[2] == "ref-cycles":
         ref = v
-if not (cyc and ref):
-    print("perf-parse-fail"); raise SystemExit
-print("%.2f" % (cyc / ref))
+tsc = None
+try:
+    t = open(sys.argv[1] + "/tsc.txt").read()
+    m = re.search(r"Detected ([0-9.]+) MHz TSC", t)
+    if m:
+        tsc = float(m.group(1)) * 1e6
+    else:
+        m = re.search(r"@ ([0-9.]+)GHz", t)
+        if m:
+            tsc = float(m.group(1)) * 1e9
+except OSError:
+    pass
+if ref is None or not tsc:
+    print("pmu-need-tsc ref=%s tsc=%s" % (ref, tsc)); raise SystemExit
+# AN-007 derivation: busy_s = unhalted-ref-cycles / TSC (ref-cycles
+# stop in idle; the count itself IS the busy time at the base clock)
+print("%.2f cyc_per_ref=%.2f" % (ref / tsc, (cyc or 0) / ref))
 EOF
 )
+PMU=${PMU%% *}
 PKTS=$((P1 - P0))
 IRQD=$(python3 -c "print(int(open('$OUT/irq1.txt').read().split()[0]) - int(open('$OUT/irq0.txt').read().split()[0]))" 2>/dev/null)
 echo "RESULT irqacct: pkts=$PKTS sent=${SENT:-?} irq_delta=${IRQD:-?} cpu${IRQCPU}_busy_stat_s=$BUSY_STAT pmu_busy_s=$PMU ratio=$(python3 -c "print('%.1f' % ($PMU / max(float('$BUSY_STAT'), 0.01)))" 2>/dev/null)" | tee -a run.txt
