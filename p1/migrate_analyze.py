@@ -35,7 +35,7 @@ with open(probe_csv) as f:
     for r in csv.DictReader(f):
         rows.append(dict(ts=float(r["ts_ms"]) / 1000.0,   # ms -> s
                          cc=int(r["cc"]),
-                         owned=r["owned"] == "True",
+                         owned=r["owned"] == "True" and r["own"] != "-1",
                          pkt=int(r["packets"])))
 gaps = []
 start = 0

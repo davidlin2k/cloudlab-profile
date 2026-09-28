@@ -106,15 +106,36 @@ except Exception:
 def u(addr, n):
     return int.from_bytes(bytes(prog.read(addr, n)), "little")
 
+def u_safe(addr, n):
+    # the 7.3-era CQ frag pointers can go stale mid-wedge (the CQ is
+    # 65536 entries there); a bad read marks the row instead of
+    # killing the probe (PROBE-DEAD class removed)
+    try:
+        return u(addr, n)
+    except Exception:
+        return -1
+
 LFS_MASK = (u(FBC_SZ_M1, 4) >> u(FBC_LFS, 1))  # frag-array bound
+
+
+def _lfs_mask():
+    # re-derived per call: a startup read during a ring reconfig can
+    # be garbage and poison every frag index after it
+    m = u_safe(FBC_SZ_M1, 4) >> u_safe(FBC_LFS, 1)
+    return m if 0 < m <= 0xFFFF else 0
 
 def owned_at_cc(cc, logsz, lfs):
     # cc is the free-running consumer counter; the frag index is
-    # (cc >> lfs) masked by the array bound (b2_dump's convention)
+    # (cc >> lfs) masked by the array bound (b2_dump's convention).
+    # The frag reads use u_safe: a stale frag pointer (the 7.3 CQ is
+    # 65536 entries) marks the row (own=-1) instead of crashing.
     frags = u(FBC_FRAGS, 8)
-    frag = u(frags + ((cc >> lfs) & LFS_MASK) * 16, 8)
+    mask = _lfs_mask()
+    if mask == 0:
+        return -1, 0
+    frag = u_safe(frags + ((cc >> lfs) & mask) * 16, 8)
     idx = cc & ((1 << lfs) - 1)
-    op_own = u(frag + idx * 64 + 63, 1)
+    op_own = u_safe(frag + idx * 64 + 63, 1)
     return op_own, (cc >> logsz) & 1
 
 def thread_cpu():
@@ -251,6 +272,7 @@ with open(OUT, "w") as f:
         adb_sn = (int.from_bytes(adb.to_bytes(4, "little"), "big")
                   >> 28) & 3
         op_own, phase = owned_at_cc(cc, logsz, lfs)
+        owned_flag = op_own >= 0 and (op_own & 1 == phase)
         stats_p = u(RQ_STATS_PTR, 8)
         pkt = u(stats_p, 8) if stats_p > 0xFF00000000000000 else 0
         chst_p = u(CH_STATS_PTR, 8)
@@ -263,7 +285,7 @@ with open(OUT, "w") as f:
         iaff = irq_aff() if (onhz and IRQN) else ""
         rphy, roob = rx_counters() if onhz else ("", "")
         f.write(f"{(t1 - t0) * 1000:.1f},{cc},{op_own},{phase},"
-                f"{op_own & 1 == phase},{pkt},{ev},{arm},{st},"
+                f"{owned_flag},{pkt},{ev},{arm},{st},"
                 f"{thread_cpu()},{arm_sn},{adb_sn},{eq_ci},{eq_devw},"
                 f"{eq_cqn0},{ipcpu},{iaff},{rphy},{roob}\n")
         n += 1
