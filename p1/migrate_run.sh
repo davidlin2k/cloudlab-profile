@@ -53,7 +53,7 @@ if [ "${T1A:-0}" = 1 ]; then
     *) echo "T1A-EQ-FAIL eq='$EQA'"; PROBE_ARGS+=(0 "");;
   esac
 fi
-(taskset -c 0 python3 /root/p1/rq1_probe.py "${PROBE_ARGS[@]}" > "$D/probe.meta" 2>&1 &)
+(REARM=${REARM:-0} taskset -c 0 python3 /root/p1/rq1_probe.py "${PROBE_ARGS[@]}" > "$D/probe.meta" 2>&1 &)
 
 if [ "$ARM" = HOP ]; then
   # the forced-migration arm: pin + hop 10<->46 every 100 ms

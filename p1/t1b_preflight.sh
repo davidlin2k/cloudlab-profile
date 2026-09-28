@@ -38,11 +38,10 @@ echo "rules added: $ADDED"
 sleep 2
 
 # --- steering assert: 10k pps x 8 s must advance rx$Q ---
-RXQ=/sys/class/net/$IFACE/queues/rx-$Q
-P0=$(cat $RXQ/rx_packets 2>/dev/null || echo 0)
+P0=$(python3 /root/p1/t1b_qpkts.py $IFACE $Q)
 $SSH "sudo bash -c 'nohup /root/k2/k5blast --dip $DUTIP --sip ${SENDER##*.} --sport $SPORT --dport 7777 --rate 10000 --secs 8 --plen 64 --core 4 > /tmp/pf-status.txt 2>&1 </dev/null &'" >/dev/null 2>&1
 sleep 14
-P1=$(cat $RXQ/rx_packets)
+P1=$(python3 /root/p1/t1b_qpkts.py $IFACE $Q)
 ADV=$((P1 - P0))
 echo "steering assert: rx$Q advance $ADV (need >= 14000)"
 if [ "$ADV" -lt 14000 ]; then
