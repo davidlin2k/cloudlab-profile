@@ -1,22 +1,8 @@
-The T1e prototype patch (DR-013 addendum), against the T1d net-next
-base (net/core/dev.c). Applied when T1d's runs are done; the build
-and the unpinned arm (n=8) follow the frozen rule in specs/p1-T1E.md.
-
+diff --git a/net/core/dev.c b/net/core/dev.c
+index f660fccfc..3c02c08f2 100644
 --- a/net/core/dev.c
 +++ b/net/core/dev.c
-@@ -1630,17 +1630,39 @@ static int napi_threaded_poll(void *data);
- static int napi_kthread_create(struct napi_struct *n)
- {
- 	int err = 0;
-+	const struct cpumask *aff, *llc;
- 
- 	/* Create and wake up the kthread once to put it in
- 	 * TASK_INTERRUPTIBLE mode to avoid the blocked task
- 	 * warning and avoid work with loadavg.
- 	 */
- 	n->thread = kthread_run(napi_threaded_poll, n, "napi/%s-%d",
- 				n->dev->name, n->napi_id);
- 	if (IS_ERR(n->thread)) {
+@@ -1681,6 +1681,23 @@ static int napi_kthread_create(struct napi_struct *n)
  		err = PTR_ERR(n->thread);
  		pr_err("kthread_run failed with err %d\n", err);
  		n->thread = NULL;
@@ -25,13 +11,12 @@ and the unpinned arm (n=8) follow the frozen rule in specs/p1-T1E.md.
 +		 * siblings of its vector's effective affinity. A floating
 +		 * poller lands on remote L3/NUMA cpus and stalls under
 +		 * sustained flood (the measured placement asymmetry).
-+		 * The default is (re)applied on every thread (re)creation
-+		 * because a driver reset destroys the thread -- the
-+		 * threaded-NAPI lifecycle gap under discussion upstream
-+		 * (June 2026 RFC). Only the single-cpu effective-affinity
-+		 * case (per-channel MSI-X vectors) gets the default; the
-+		 * spread case is left floating. A later userspace
-+		 * set-affinity wins as usual.
++		 * Re-applied on every thread (re)creation because a
++		 * driver reset destroys the thread -- the threaded-NAPI
++		 * lifecycle gap discussed upstream (June 2026 RFC).
++		 * Only the single-cpu effective-affinity case (per-channel
++		 * MSI-X vectors) gets the default; the spread case is left
++		 * floating. A later userspace set-affinity wins as usual.
 +		 */
 +		aff = irq_get_effective_affinity(n->irq);
 +		if (aff && cpumask_weight(aff) == 1) {
@@ -41,15 +26,3 @@ and the unpinned arm (n=8) follow the frozen rule in specs/p1-T1E.md.
  	}
  
  	return err;
- }
-
-Semantics notes (facts for the report):
-- The creation site is the single choke point: driver resets destroy
-  and recreate the thread (the NAPI lifecycle), so a default set here
-  is re-applied after every reset.
-- irq_get_effective_affinity(n->irq) is read at creation time; mlx5
-  narrows each comp vector's affinity to its channel cpu at irq
-  creation, before the channel's napi threads are created.
-- The patch does not touch napi_config; it composes with the merged
-  napi_config affinity work (which covers IRQ affinity, not the
-  thread).
