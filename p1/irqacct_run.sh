@@ -32,7 +32,7 @@ grep -E "IRQ_TIME_ACCOUNTING|NO_HZ_FULL" run.txt || echo "config-not-found" >> r
 
 # --- steering: one FD rule to queue Q (delete-then-add = idempotent) ---
 ethtool -N $IFACE delete 0 2>/dev/null
-ethtool -N $IFACE flow-type udp4 dst-ip $RCIP src-ip ${SENDER##*.} \
+ethtool -N $IFACE flow-type udp4 dst-ip $RCIP src-ip $SENDER \
   dst-port 7777 src-port 32704 action $Q loc 0 >> run.txt 2>&1
 IRQ=$(grep -E "i40e-${IFACE}-TxRx-$Q\b" /proc/interrupts | awk -F: '{print $1}' | tr -d ' ')
 echo $IRQCPU > /proc/irq/$IRQ/smp_affinity_list
