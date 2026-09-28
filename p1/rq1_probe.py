@@ -244,6 +244,41 @@ def rx_counters():
         return "", ""
 
 os.makedirs(os.path.dirname(OUT) or ".", exist_ok=True)
+# --- T1F (DR-014): the rearm trigger (specs/p1-REARM.md) ------------
+# REARM=1: when a ready CQE sits at the consumer index with the poller
+# unscheduled and packets AND events frozen for > 50 ms, write the
+# kernel hook's rearm_action param: first 1 (re-issue the arm
+# doorbell); if no event within 500 ms, then 2 (napi_schedule). Every
+# step is logged to <out>.rearm.csv; the main CSV's schema is
+# unchanged.
+REARM = os.environ.get("REARM") == "1"
+REARM_SYSFS = "/sys/module/mlx5_core/parameters/rearm_action"
+rearm_events = []
+strand_ms = 0.0
+strand_start_ms = 0.0
+strand_pkt = strand_ev = None
+fired_this_strand = 0
+rearm_t = None
+
+def rearm_log(row):
+    rearm_events.append(row)
+    with open(OUT + ".rearm.csv", "a") as rf:
+        rf.write(",".join(str(x) for x in row) + "\n")
+
+def write_rearm(v, ts, note):
+    try:
+        with open(REARM_SYSFS, "w") as f:
+            f.write(str(v))
+        rearm_log((f"{ts:.1f}", v, note, "", "", ""))
+        return True
+    except Exception as e:
+        rearm_log((f"{ts:.1f}", v, "write-fail", repr(e)[:40], "", ""))
+        return False
+
+if REARM:
+    with open(OUT + ".rearm.csv", "w") as rf:
+        rf.write("ts_ms,action,note,ev,pkt,extra\n")
+
 t0 = time.time()
 print(f"wall_t0 {t0:.6f} eq={hex(EQ) if EQ else '-'} irqn={IRQN or '-'} "
       f"iface={IFACE}")
@@ -289,6 +324,31 @@ with open(OUT, "w") as f:
                 f"{thread_cpu()},{arm_sn},{adb_sn},{eq_ci},{eq_devw},"
                 f"{eq_cqn0},{ipcpu},{iaff},{rphy},{roob}\n")
         n += 1
+        if REARM:
+            sched = (st & 0x1) == 0  # NAPI_STATE_SCHED clear
+            if (owned_flag and sched and strand_pkt is not None
+                    and pkt == strand_pkt and ev == strand_ev):
+                strand_ms = (t1 - t0) * 1000 - strand_start_ms
+                if strand_ms > 50 and fired_this_strand == 0:
+                    fired_this_strand = 1
+                    rearm_t = t1
+                    write_rearm(1, (t1 - t0) * 1000,
+                                "fire-a ev=%d pkt=%d" % (ev, pkt))
+                elif fired_this_strand == 1 and rearm_t and \
+                        t1 - rearm_t > 0.5 and ev == strand_ev and \
+                        pkt == strand_pkt:
+                    fired_this_strand = 2
+                    write_rearm(2, (t1 - t0) * 1000,
+                                "fire-b ev=%d pkt=%d" % (ev, pkt))
+            else:
+                if fired_this_strand:
+                    rearm_log(((t1 - t0) * 1000, 0,
+                               "strand-end f=%d" % fired_this_strand,
+                               ev, pkt, ""))
+                fired_this_strand = 0
+                strand_pkt, strand_ev = pkt, ev
+                strand_start_ms = (t1 - t0) * 1000
+                strand_ms = 0.0
         # spin-wait to the next millisecond boundary (sleep granularity
         # is ~50-200 us; the achieved rate is reported on exit)
         while time.time() - t1 < 0.001:
