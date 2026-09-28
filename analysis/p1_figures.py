@@ -22,6 +22,7 @@ API would shift them).
 """
 import csv, os, random, sys
 
+sys.path.insert(0, "/home/david/workspace/flowlet-eval/figures")
 sys.path.insert(0, "/mnt/davidlin-personal/flowlet-eval/figures")
 from figstyle import (PALETTE, apply_publication_style, create_subplots,
                       finalize_figure)

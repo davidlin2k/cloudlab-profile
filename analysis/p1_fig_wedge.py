@@ -11,6 +11,7 @@ REFUTED by this matrix (AN-006); the figure shows the raw onset data,
 which is what the refutation rests on.
 """
 import csv, sys
+sys.path.insert(0, "/home/david/workspace/flowlet-eval/figures")
 sys.path.insert(0, "/mnt/davidlin-personal/flowlet-eval/figures")
 from figstyle import (PALETTE, apply_publication_style, create_subplots,
                       finalize_figure)
