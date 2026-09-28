@@ -14,6 +14,7 @@ RES=$T/results-$PAIR.csv
 LOG=$T/driver-$PAIR.log
 echo "cell,arm,verdict,max_strand_ms,pkts_delta,sent,drops_delta,pending_rows,rows" > "$RES"
 ORDS=$T/t1b_orders_$PAIR.txt
+[ -s "$ORDS" ] || { echo "T1B-DRIVER-$PAIR-FAIL: $ORDS missing"; exit 1; }
 
 for b in 1 2 3 4; do
   line=$(sed -n "${b}p" "$ORDS")
