@@ -19,7 +19,10 @@ echo "MIGRATE CELL $CELL ($ARM wire=$WIRE) START $(date -u +%FT%TZ)"
 
 bash /root/p1/preflight.sh || { echo PREFLIGHT-RETRY; sleep 60; bash /root/p1/preflight.sh || { echo PREFLIGHT-FAIL; exit 1; }; }
 
-CH=$(sudo python3 /tmp/b2_dump.py 7 0 1 2>/dev/null | awk '/^== ch7 /{print $5; exit}')
+# b3 first (name-based, version-proof; b2_dump's correlation walk
+# broke on net-next 7.3), b2 as the fallback.
+CH=$(sudo python3 /root/p1/b3_channel.py enp195s0np0 7 2>/dev/null | awk '/^ch7=/{print $1}' | cut -d= -f2)
+case "$CH" in 0x[0-9a-f]*) ;; *) CH=$(sudo python3 /tmp/b2_dump.py 7 0 1 2>/dev/null | awk '/^== ch7 /{print $5; exit}');; esac
 case "$CH" in 0x[0-9a-f]*) ;; *) echo "DISCOVERY-FAIL ch='$CH'"; exit 1;; esac
 
 RQ1_NAPI_PID=""
