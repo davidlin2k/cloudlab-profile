@@ -38,6 +38,11 @@ priv = drgn.cast("struct mlx5e_priv *",
                  drgn.Object(prog, "unsigned long",
                              dev + ((sz + 31) & ~31)))
 ch = priv.channels.c[IX]
+try:
+    ch = ch[0]   # 7.3's c[] is an array of POINTERS (deref); older
+                 # trees had struct arrays (the deref raises, keep)
+except Exception:
+    pass
 addr = ch.address_of_().value_()
 cq = ch.rq.cq.address_of_().value_()
 state = ch.napi.state.value_()
