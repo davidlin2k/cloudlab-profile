@@ -69,7 +69,7 @@ P1=$(ethtool -S $IFACE | awk -F'[: ]+' -v q="rx-$Q.packets" '$2==q{print $3}')
 D1=$(ethtool -S $IFACE | awk -F'[: ]+' -v q="port.rx_discards" '$2==q{print $3}')
 D1B=$(ethtool -S $IFACE | awk -F'[: ]+' -v q="rx_discards" '$2==q{print $3}')
 echo "p1=$P1 discards1=${D1:-$D1B}" > pkts1.txt
-awk -v c=$((IRQCPU+1)) 'NR==1{print $c}' /sys/kernel/irq/$IRQ/per_cpu_count > irq1.txt
+awk -F, -v c=$((IRQCPU+1)) 'NR==1{print $c}' /sys/kernel/irq/$IRQ/per_cpu_count > irq1.txt
 grep "^cpu$IRQCPU " /proc/stat > stat-end.txt
 SENT=${SENT:-$(ssh -n -o BatchMode=yes -o ConnectTimeout=8 -o StrictHostKeyChecking=no \
   "davidlin@$SENDER" "tail -1 /tmp/flood-irqacct.txt" 2>/dev/null \
