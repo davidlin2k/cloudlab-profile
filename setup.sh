@@ -83,7 +83,7 @@ if [ "$ROLE" = rx ]; then
 	# Spread mlx5 vector IRQs 1:1 across physical cores. After this, queue k's
 	# NAPI runs on core k and its DDIO writes land in core k's L3 domain.
 	i=0
-	for irq in $(grep -E "mlx5.*\b${IFACE}" /proc/interrupts | awk -F: '{print $1}' | tr -d ' '); do
+	for irq in $(grep -E "${IFACE}" /proc/interrupts | awk -F: '{print $1}' | tr -d ' '); do
 		echo $i > "/proc/irq/$irq/smp_affinity_list" 2>/dev/null
 		i=$((i + 1)); [ $i -ge $NQ ] && i=0
 	done

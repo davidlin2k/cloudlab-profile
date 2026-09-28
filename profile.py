@@ -24,6 +24,7 @@ import geni.rspec.pg as rspec
 
 hwtypes = [
     ("r6615", "Clemson r6615: 1x32c AMD Genoa 9354P, 4 CCDs, CX-6 100G"),
+    ("c6420", "Clemson c6420: 2x16c Intel Skylake Gold 6142, X710 10G"),
     ("r650", "Clemson r650: 2x36c Ice Lake 8360Y, CX-6 100G, uncore PMON/CAT"),
     ("r6525", "Clemson r6525: 2x32c AMD Milan, CX-6 100G"),
     ("sm110p", "Wisconsin sm110p: 1x16c Ice Lake, CX-6 DX 100G (SIRD/Caladan)"),

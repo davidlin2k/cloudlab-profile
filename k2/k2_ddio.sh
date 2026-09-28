@@ -38,7 +38,8 @@ REMOTE_KIT=/root/e0
 SSH_OPTS="-o BatchMode=yes -o ConnectTimeout=10 -o StrictHostKeyChecking=no"
 SSH_USER=davidlin   # CloudLab nodes share the user's keys; root has none
 DPORT=7777
-PPS=1000000            # ~1 Mpps of 1400B = ~17 Gbps: one core absorbs it
+PPS=${PPS:-1000000}    # ~1 Mpps of 1400B = ~17 Gbps: one core absorbs it
+                       # override down for 10G links (e.g. c6420: PPS=800000)
 NPKTS=$((PPS * 15))    # 15 s per cell
 BATCH=64
 PAUSE=$((1000000 * BATCH / PPS))   # us between batches -> PPS
