@@ -54,6 +54,29 @@ flags the undercount combination on **11 of 20 rows**:
   counter-examples, per the memo's rule. The claim ledger records
   this as C-024 (superseded wording, 2026-09-28).
 
+## Second independent survey (cross-check, 2026-09-28)
+
+A second survey ran in parallel (notes/p1-T5-distro-config.md,
+16 rows) and agrees with this summary on every overlapping row. It
+adds two rows, both now verified by direct read on this side:
+
+- Ubuntu 25.04 (6.14.0-37-generic): **COMBO** -- extracted the
+  shipped linux-modules deb and read /boot/config (NO_HZ_FULL=y,
+  IRQ_TIME_ACCOUNTING not set). Verified 2026-09-28.
+- Azure Linux 2.0 (5.15.x): both not set (does not match) --
+  SPECS/kernel/config raw read. Verified 2026-09-28.
+
+It also upgrades several rows to shipped-artifact sources (stronger
+than git-branch reads): RHEL 9 / Rocky 9.8 (kernel-core rpm),
+Fedora 41/42 (kernel-core rpms), Debian 13 trixie (shipped deb).
+Its "Bottlerocket kernel-6.18 unknown" is ref-scoped (tag v9.2.0
+predates the config; the develop-branch config was read in the
+first survey). Its GKI note: android14-6.6 does not exist; the 6.6
+GKI line is android15-6.6 (IRQ_TIME=y, NO_HZ_FULL absent).
+
+Updated totals: **22 rows surveyed, 12 ship the undercount combo**
+(adding Ubuntu 25.04).
+
 ## Still unverified (facts only)
 
 - The two UNKNOWNs above (AL2023 kernel-6.18, COS 129 LTS).
