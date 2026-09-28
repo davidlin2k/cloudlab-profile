@@ -39,16 +39,22 @@ echo $IRQCPU > /proc/irq/$IRQ/smp_affinity_list
 echo "steer: rule loc0 -> q$Q, irq $IRQ pinned to cpu $IRQCPU" >> run.txt
 
 # --- the aligned measurement bracket ---
+# The flood is normally launched here over ssh to the sender.  With
+# NO_SSH=1 the caller launches the flood itself (same k5blast line)
+# and passes SENT=<n> afterwards; this avoids needing the receiver's
+# root key on the sender.
 P0=$(ethtool -S $IFACE | awk -v q="rx-$Q.packets" '$1==q{print $2}')
 awk -F, -v c=$((IRQCPU+1)) 'NR==1{print $c}' /sys/kernel/irq/$IRQ/per_cpu_count > irq0.txt
 grep "^cpu$IRQCPU " /proc/stat > stat-start.txt
 perf stat -C $IRQCPU -e cycles,ref-cycles -o perf.out -- sleep $((DUR + 4)) &
 PERFPID=$!
 sleep 2
-ssh -n -o BatchMode=yes -o ConnectTimeout=8 -o StrictHostKeyChecking=no \
-  "davidlin@$SENDER" \
-  "sudo bash -c 'nohup /root/k2/k5blast --dip $RCIP --sip ${SENDER##*.} --sport 32704 --dport 7777 --rate $RATE --secs $DUR --plen 64 --core 4 > /tmp/flood-irqacct.txt 2>&1 </dev/null &'" \
-  >> run.txt 2>&1
+if [ "${NO_SSH:-0}" != "1" ]; then
+  ssh -n -o BatchMode=yes -o ConnectTimeout=8 -o StrictHostKeyChecking=no \
+    "davidlin@$SENDER" \
+    "sudo bash -c 'nohup /root/k2/k5blast --dip $RCIP --sip ${SENDER##*.} --sport 32704 --dport 7777 --rate $RATE --secs $DUR --plen 64 --core 4 > /tmp/flood-irqacct.txt 2>&1 </dev/null &'" \
+    >> run.txt 2>&1
+fi
 for i in $(seq 1 $DUR); do
   grep "^cpu$IRQCPU " /proc/stat >> stat-samples.txt
   sleep 1
@@ -57,9 +63,9 @@ wait $PERFPID
 P1=$(ethtool -S $IFACE | awk -v q="rx-$Q.packets" '$1==q{print $2}')
 awk -v c=$((IRQCPU+1)) 'NR==1{print $c}' /sys/kernel/irq/$IRQ/per_cpu_count > irq1.txt
 grep "^cpu$IRQCPU " /proc/stat > stat-end.txt
-SENT=$(ssh -n -o BatchMode=yes -o ConnectTimeout=8 -o StrictHostKeyChecking=no \
+SENT=${SENT:-$(ssh -n -o BatchMode=yes -o ConnectTimeout=8 -o StrictHostKeyChecking=no \
   "davidlin@$SENDER" "tail -1 /tmp/flood-irqacct.txt" 2>/dev/null \
-  | grep -oE "sent=[0-9]+" | cut -d= -f2)
+  | grep -oE "sent=[0-9]+" | cut -d= -f2)}
 
 # --- the AN-007 numbers ---
 BUSY_STAT=$(python3 - "$OUT" <<'EOF'
